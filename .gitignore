@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+.quasar/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
