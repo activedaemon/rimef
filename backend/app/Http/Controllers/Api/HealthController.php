@@ -9,6 +9,9 @@ use Throwable;
 
 /**
  * État de santé de l'API : confirme que Laravel répond et que la base est joignable.
+ *
+ * Servi sur les domaines centraux (base centrale) et sur ceux des tenants
+ * (base du tenant) : la réponse indique le contexte qui a répondu.
  */
 class HealthController extends Controller
 {
@@ -19,6 +22,8 @@ class HealthController extends Controller
         return response()->json([
             'status' => $databaseUp ? 'ok' : 'degraded',
             'app' => config('app.name'),
+            'context' => tenancy()->initialized ? 'tenant' : 'central',
+            'tenant' => tenant('id'),
             'database' => [
                 'status' => $databaseUp ? 'ok' : 'down',
                 'name' => DB::connection()->getDatabaseName(),

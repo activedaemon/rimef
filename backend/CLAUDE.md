@@ -17,6 +17,20 @@ Ne jamais proposer d'installer PHP localement. Depuis la racine `App/` :
 
 Toute commande `php …` ou `composer …` citée dans les consignes ci-dessous s'exécute de cette manière.
 
+## Multi-tenant (stancl/tenancy)
+
+| | Central (supervision) | Tenant (ex. `rimef`) |
+|---|---|---|
+| Domaine | `supervisor.rimef.localhost` (`CENTRAL_DOMAINS`) | `rimef.localhost` (`RIMEF_TENANT_DOMAIN`) |
+| Base | `rimef_central` | `rimef_tenant_<id>` |
+| Routes API | `routes/api.php` | `routes/tenant.php` |
+| Migrations | `database/migrations/` | `database/migrations/tenant/` |
+| Seeders | `DatabaseSeeder` → `TenantSeeder` | `TenantDatabaseSeeder` |
+
+- Les données métier (membres, événements, ressources…) vont dans les **migrations tenant**.
+- `make tenants-migrate` migre toutes les bases tenant ; `make tenants-seed` crée les tenants.
+- Tests : SQLite en mémoire pour la base centrale ; un tenant de test crée une base SQLite temporaire, supprimée en fin de test (voir `tests/Feature/Api/TenancyHealthTest.php`). Les requêtes de test doivent viser un domaine explicite (`http://supervisor.rimef.localhost/...` ou le domaine du tenant).
+
 ## Consignes Laravel Boost
 
 Générées par Laravel Boost (`boost:install` / `boost:update`) : ne pas modifier `AGENTS.md` à la main.

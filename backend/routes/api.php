@@ -3,4 +3,14 @@
 use App\Http\Controllers\Api\HealthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', HealthController::class)->name('api.health');
+/*
+|--------------------------------------------------------------------------
+| Routes centrales (supervision)
+|--------------------------------------------------------------------------
+|
+| Servies uniquement sur les domaines centraux (voir bootstrap/app.php).
+| L'API des tenants est dans routes/tenant.php.
+|
+*/
+
+Route::get('/health', HealthController::class);

@@ -27,4 +27,4 @@ make shell-php                    # Shell dans le conteneur PHP
 
 | Route | Rôle |
 |---|---|
-| `GET /api/health` | État de l'API et de la base de données |
+| `GET /api/health` | État de l'API et de la base : sur `supervisor.rimef.localhost`, contexte central (`rimef_central`) ; sur `rimef.localhost`, contexte tenant (`rimef_tenant_rimef`) |

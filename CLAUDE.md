@@ -23,6 +23,7 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 - Le tenant est **résolu par le domaine complet** : `rimef.localhost` (prod : `rimef.org`, à confirmer). D'autres tenants pourront recevoir un sous-domaine ou leur propre domaine.
 - L'espace central de **supervision** (gestion des tenants) est sur `supervisor.rimef.localhost`.
 - Bases : **`rimef_central`** (tenants, domaines, superviseurs) et **`rimef_tenant_<id>`** par tenant (données métier), soit `rimef_tenant_rimef`.
+- Côté backend : API centrale dans `routes/api.php` (domaines centraux uniquement), API tenant dans `routes/tenant.php` ; migrations centrales dans `database/migrations/`, migrations tenant dans `database/migrations/tenant/`. **Toute nouvelle table métier va dans les migrations tenant.**
 
 ### Principes directeurs
 

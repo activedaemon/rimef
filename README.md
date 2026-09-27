@@ -71,9 +71,8 @@ Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent
 
 | Service | Accès |
 |---|---|
-| Application (tenant `rimef`) | http://rimef.localhost:9280 (frontend à venir) |
-| API — santé | http://rimef.localhost:9280/api/health |
-| Supervision (central) | http://supervisor.rimef.localhost:9280 (à venir) |
+| Application (tenant `rimef`) | http://rimef.localhost:9280 (frontend à venir) — API : `/api/health` |
+| Supervision (central) | http://supervisor.rimef.localhost:9280 (frontend à venir) — API : `/api/health` |
 | MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef_central` |
 | Dashboard Traefik | http://localhost:9281 |
 | Mailpit (emails de dev) | http://localhost:9826 — SMTP `127.0.0.1:9526` |
@@ -89,7 +88,12 @@ L'application est multi-tenant ; au démarrage, un seul tenant existe : `rimef`.
 | Tenant `rimef` (les membres du réseau) | `rimef.localhost` → `rimef.org` (à confirmer) | `rimef_tenant_rimef` |
 | Supervision (gestion des tenants) | `supervisor.rimef.localhost` → `supervisor.rimef.org` | `rimef_central` |
 
-Chaque tenant dispose de sa propre base `rimef_tenant_<identifiant>`, créée par l'application.
+Chaque tenant dispose de sa propre base `rimef_tenant_<identifiant>`, créée par l'application (stancl/tenancy).
+
+- Le tenant est **reconnu par le domaine complet** de la requête ; un domaine inconnu renvoie une 404.
+- `make start` crée le tenant `rimef` s'il n'existe pas (`TenantSeeder`) et migre toutes les bases tenant.
+- Migrations : `backend/database/migrations/` (base centrale) et `backend/database/migrations/tenant/` (bases tenant).
+- Variables `backend/.env` : `CENTRAL_DOMAINS`, `TENANCY_DB_PREFIX`, `RIMEF_TENANT_DOMAIN`.
 
 ## Commandes utiles (Make)
 
@@ -103,7 +107,9 @@ make info         # URLs d'accès
 make logs         # Logs de tous les services
 make artisan ARGS="route:list"   # Commande artisan
 make composer ARGS="require x/y" # Commande composer
-make migrate      # Migrations
+make migrate      # Migrations de la base centrale
+make tenants-seed # Créer les tenants et leurs domaines
+make tenants-migrate  # Migrations de toutes les bases tenant
 make test         # Tests backend (Pest)
 make pint         # Formatage PHP (ARGS="--test" pour vérifier)
 make tinker       # REPL Laravel
