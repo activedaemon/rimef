@@ -56,10 +56,37 @@ L'application RIMeF a pour objectifs de :
 ```bash
 git clone git@github.com:activedaemon/rimef.git
 cd rimef
-make help
+
+# Démarrer l'environnement (crée .docker/.env depuis .docker/.env.example s'il est absent)
+make start
 ```
 
-> Les étapes de démarrage (`make start`, migrations…) seront documentées avec la mise en place de l'environnement Docker.
+Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent à `id -u` et `id -g`.
+
+## Accès à l'application
+
+| Service | Accès |
+|---|---|
+| Application | http://rimef.localhost:9280 (frontend et API à venir) |
+| MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef` |
+| Dashboard Traefik | http://localhost:9281 |
+| Mailpit (emails de dev) | http://localhost:9826 — SMTP `127.0.0.1:9526` |
+
+Les ports (92xx) sont choisis pour cohabiter avec d'autres projets locaux.
+
+## Commandes utiles (Make)
+
+```bash
+make help         # Liste de toutes les commandes
+make start        # Démarrer les services
+make stop         # Arrêter les services (conserve les données)
+make restart      # Redémarrer les services
+make ps           # État des services
+make info         # URLs d'accès
+make logs         # Logs de tous les services
+make shell-mysql  # Client MySQL sur la base rimef
+make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmation)
+```
 
 ## Structure du projet
 
@@ -67,7 +94,10 @@ make help
 .
 ├── backend/             # API Laravel                       (à venir)
 ├── frontend/            # SPA Vue 3 / Quasar                (à venir)
-├── .docker/             # Configuration Docker (dev)        (à venir)
+├── .docker/             # Configuration Docker (dev)
+│   ├── mysql/           # Configuration MySQL (utf8mb4, UTC, mode strict)
+│   ├── traefik/         # Configuration Traefik
+│   └── docker-compose.yml
 │
 ├── .claude/             # Configuration et règles Claude Code
 │   ├── commands/        # Slash commands personnalisés

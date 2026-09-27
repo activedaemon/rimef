@@ -71,4 +71,18 @@ pages HTML statiques, tokens CSS (`src/css/rimef.css`) et assets (`public/rimef/
 
 ## 🚀 Infrastructure & Déploiement
 
-> Section à compléter au fur et à mesure de la mise en place du socle.
+### Environnement de dev (`.docker/`)
+
+Lancement depuis `App/` : `make start` (voir `make help`).
+
+| Service | Conteneur | Accès |
+|---|---|---|
+| Traefik v3.7 | `rimef-traefik` | `http://rimef.localhost:9280`, dashboard `http://localhost:9281` |
+| MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef`) |
+| Mailpit | `rimef-mailpit` | UI `http://localhost:9826`, SMTP `9526` |
+
+- Ports en **92xx** pour cohabiter avec Fruxa (91xx) sur le même poste.
+- MySQL stocke les dates en **UTC** ; la conversion dans le fuseau de l'utilisatrice se fait côté application.
+- `make down` supprime la base locale : ne jamais le lancer sans accord explicite.
+
+> Déploiement : à définir.
