@@ -17,6 +17,13 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 | Ressources / Fiche ressource | Rapports, analyses, publications, travaux académiques, formations |
 | Modifier mon profil | Espace personnel du membre |
 
+### Architecture multi-tenant
+
+- La plateforme est **multi-tenant** (stancl/tenancy), avec **un seul tenant au démarrage** : `rimef`.
+- Le tenant est **résolu par le domaine complet** : `rimef.localhost` (prod : `rimef.org`, à confirmer). D'autres tenants pourront recevoir un sous-domaine ou leur propre domaine.
+- L'espace central de **supervision** (gestion des tenants) est sur `supervisor.rimef.localhost`.
+- Bases : **`rimef_central`** (tenants, domaines, superviseurs) et **`rimef_tenant_<id>`** par tenant (données métier), soit `rimef_tenant_rimef`.
+
 ### Principes directeurs
 
 - **Rapidité** : l'application doit charger vite, y compris sur réseau mobile lent.
@@ -78,11 +85,12 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 | Service | Conteneur | Accès |
 |---|---|---|
 | Traefik v3.7 | `rimef-traefik` | `http://rimef.localhost:9280`, dashboard `http://localhost:9281` |
-| MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef`) |
+| MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef_central`) |
 | Mailpit | `rimef-mailpit` | UI `http://localhost:9826`, SMTP `9526` |
 
 - Ports en **92xx** pour cohabiter avec Fruxa (91xx) sur le même poste.
 - MySQL stocke les dates en **UTC** ; la conversion dans le fuseau de l'utilisatrice se fait côté application.
+- L'utilisateur `rimef` peut créer et supprimer les bases `rimef_tenant_*` (`.docker/mysql/init/01-tenant-grants.sql`, appliqué à la création du volume uniquement).
 - `make down` supprime la base locale : ne jamais le lancer sans accord explicite.
 
 > Déploiement : à définir.

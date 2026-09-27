@@ -67,12 +67,24 @@ Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent
 
 | Service | Accès |
 |---|---|
-| Application | http://rimef.localhost:9280 (frontend et API à venir) |
-| MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef` |
+| Application (tenant `rimef`) | http://rimef.localhost:9280 (à venir) |
+| Supervision (central) | http://supervisor.rimef.localhost:9280 (à venir) |
+| MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef_central` |
 | Dashboard Traefik | http://localhost:9281 |
 | Mailpit (emails de dev) | http://localhost:9826 — SMTP `127.0.0.1:9526` |
 
 Les ports (92xx) sont choisis pour cohabiter avec d'autres projets locaux.
+
+## Multi-tenant
+
+L'application est multi-tenant ; au démarrage, un seul tenant existe : `rimef`.
+
+| Espace | Domaine (local → production) | Base de données |
+|---|---|---|
+| Tenant `rimef` (les membres du réseau) | `rimef.localhost` → `rimef.org` (à confirmer) | `rimef_tenant_rimef` |
+| Supervision (gestion des tenants) | `supervisor.rimef.localhost` → `supervisor.rimef.org` | `rimef_central` |
+
+Chaque tenant dispose de sa propre base `rimef_tenant_<identifiant>`, créée par l'application.
 
 ## Commandes utiles (Make)
 
@@ -84,7 +96,7 @@ make restart      # Redémarrer les services
 make ps           # État des services
 make info         # URLs d'accès
 make logs         # Logs de tous les services
-make shell-mysql  # Client MySQL sur la base rimef
+make shell-mysql  # Client MySQL sur la base centrale (DB=rimef_tenant_rimef pour le tenant)
 make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmation)
 ```
 
@@ -95,7 +107,7 @@ make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmat
 ├── backend/             # API Laravel                       (à venir)
 ├── frontend/            # SPA Vue 3 / Quasar                (à venir)
 ├── .docker/             # Configuration Docker (dev)
-│   ├── mysql/           # Configuration MySQL (utf8mb4, UTC, mode strict)
+│   ├── mysql/           # Configuration MySQL (utf8mb4, UTC, mode strict) + droits tenant
 │   ├── traefik/         # Configuration Traefik
 │   └── docker-compose.yml
 │

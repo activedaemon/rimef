@@ -82,7 +82,7 @@ info: ## @main Afficher les URLs d'accès
 	@echo "  Point d'entrée        $(GREEN)http://rimef.localhost:9280$(NC) (frontend et API à venir)"
 	@echo ""
 	@echo "$(YELLOW)Base de données$(NC)"
-	@echo "  MySQL 8.4 LTS         $(GREEN)127.0.0.1:9307$(NC) (user: rimef / pass: rimef / db: rimef)"
+	@echo "  MySQL 8.4 LTS         $(GREEN)127.0.0.1:9307$(NC) (user: rimef / pass: rimef / db: rimef_central)"
 	@echo ""
 	@echo "$(YELLOW)Outils$(NC)"
 	@echo "  Dashboard Traefik     $(GREEN)http://localhost:9281$(NC)"
@@ -97,8 +97,8 @@ info: ## @main Afficher les URLs d'accès
 # Base de données
 # ============================================================================
 
-shell-mysql: ## @db Ouvrir un client mysql interactif sur la base rimef
-	@$(COMPOSE) exec rimef-mysql mysql -urimef -primef rimef
+shell-mysql: ## @db Ouvrir un client mysql sur la base centrale (DB=rimef_tenant_rimef pour un tenant)
+	@$(COMPOSE) exec rimef-mysql mysql -urimef -primef $(or $(DB),rimef_central)
 
 # ============================================================================
 # Logs

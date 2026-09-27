@@ -41,7 +41,7 @@ services:
     image: mysql:8.4.9
     container_name: rimef-mysql
     environment:
-      MYSQL_DATABASE: "${MYSQL_DATABASE:-rimef}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-rimef_central}"
       MYSQL_USER: "${MYSQL_USER:-rimef}"
       MYSQL_PASSWORD: "${MYSQL_PASSWORD:-rimef}"
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root}"
@@ -49,6 +49,7 @@ services:
     volumes:
       - rimef-mysql-data:/var/lib/mysql
       - ./mysql/my.cnf:/etc/mysql/conf.d/rimef.cnf:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "9307:3306"
     healthcheck:
