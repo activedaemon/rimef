@@ -1,0 +1,56 @@
+# =============================================================================
+# TRAEFIK - Configuration statique (RIMeF, dev)
+# =============================================================================
+# Documentation : https://doc.traefik.io/traefik/
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+  insecure: true  # Dashboard accessible sans auth en dev (à désactiver en prod)
+
+log:
+  level: INFO     # DEBUG | INFO | WARN | ERROR
+  format: common
+
+accessLog:
+  format: common
+  filters:
+    statusCodes:
+      - "400-599"
+
+# -----------------------------------------------------------------------------
+# Entrypoints
+# -----------------------------------------------------------------------------
+entryPoints:
+  web:
+    address: ":80"
+    # Production : redirection HTTP → HTTPS
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: websecure
+    #       scheme: https
+    #       permanent: true
+
+  # websecure (HTTPS) - à activer en production
+  # websecure:
+  #   address: ":443"
+
+# -----------------------------------------------------------------------------
+# Providers
+# -----------------------------------------------------------------------------
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: rimef-net
+    watch: true
+
+# -----------------------------------------------------------------------------
+# Ping (healthcheck)
+# -----------------------------------------------------------------------------
+ping:
+  entryPoint: web
