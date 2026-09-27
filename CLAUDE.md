@@ -50,8 +50,9 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 ## 🛠 Stack technique
 
 ### Backend
-- **Framework** : Laravel (API)
+- **Framework** : Laravel 13 (API), PHP 8.5 — consignes détaillées dans `backend/CLAUDE.md` (Laravel Boost)
 - **Base de données** : MySQL 8.4
+- **Tests** : Pest — **Formatage** : Pint
 - **Email (dev)** : Mailpit
 
 ### Frontend
@@ -85,12 +86,16 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 | Service | Conteneur | Accès |
 |---|---|---|
 | Traefik v3.7 | `rimef-traefik` | `http://rimef.localhost:9280`, dashboard `http://localhost:9281` |
+| PHP-FPM 8.5 | `rimef-php` | Laravel (`backend/`) — commandes via `make artisan`, `make composer`, `make test` |
+| Nginx | `rimef-nginx` | reçoit de Traefik les requêtes `/api/*` de `rimef.localhost` et `supervisor.rimef.localhost` |
 | MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef_central`) |
 | Mailpit | `rimef-mailpit` | UI `http://localhost:9826`, SMTP `9526` |
 
 - Ports en **92xx** pour cohabiter avec Fruxa (91xx) sur le même poste.
 - MySQL stocke les dates en **UTC** ; la conversion dans le fuseau de l'utilisatrice se fait côté application.
 - L'utilisateur `rimef` peut créer et supprimer les bases `rimef_tenant_*` (`.docker/mysql/init/01-tenant-grants.sql`, appliqué à la création du volume uniquement).
-- `make down` supprime la base locale : ne jamais le lancer sans accord explicite.
+- **PHP n'est pas installé sur le poste** : toute commande PHP/Composer passe par le conteneur `rimef-php`.
+- Serveur MCP **Laravel Boost** : `.mcp.json` à la racine, via `docker exec` (conteneurs démarrés requis).
+- `make down` et `make fresh` suppriment des données : ne jamais les lancer sans accord explicite.
 
 > Déploiement : à définir.

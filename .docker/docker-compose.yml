@@ -2,8 +2,8 @@
 # RIMEF - Docker Compose (dev)
 # =============================================================================
 # Lancement : depuis App/, exécuter `make start`
-# Services : Traefik + MySQL + Mailpit
-# Backend Laravel et frontend Quasar : ajoutés avec leurs briques respectives
+# Services : Traefik + Backend Laravel (PHP-FPM + Nginx) + MySQL + Mailpit
+# Frontend Quasar : ajouté avec sa brique
 # =============================================================================
 
 services:
@@ -60,6 +60,72 @@ services:
       start_period: 30s
     restart: on-failure
     networks: [rimef-net]
+
+  # ===========================================================================
+  # BACKEND - PHP-FPM 8.5 (Laravel)
+  # ===========================================================================
+  rimef-php:
+    build:
+      context: ..
+      dockerfile: .docker/backend/php/Dockerfile
+    container_name: rimef-php
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    working_dir: /var/www/html
+    volumes:
+      - ../backend:/var/www/html
+    environment:
+      TZ: UTC
+      COMPOSER_HOME: /tmp/composer
+    depends_on:
+      rimef-mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -v >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: on-failure
+    networks: [rimef-net]
+
+  # ===========================================================================
+  # BACKEND - Nginx (vhost Laravel)
+  # ===========================================================================
+  rimef-nginx:
+    build:
+      context: ..
+      dockerfile: .docker/backend/nginx/Dockerfile
+    container_name: rimef-nginx
+    volumes:
+      - ../backend:/var/www/html:ro
+    depends_on:
+      rimef-php:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/nginx-health -o /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: on-failure
+    networks: [rimef-net]
+    labels:
+      - "traefik.enable=true"
+
+      # ---------------------------------------------------------------------
+      # Route Backend API (même domaine que le frontend, préfixe /api)
+      #   - rimef.localhost/api/*             → tenant rimef
+      #   - supervisor.rimef.localhost/api/*  → central (supervision)
+      # Priorité 200 : passe devant le frontend (ajouté à la brique 4)
+      # ---------------------------------------------------------------------
+      - "traefik.http.routers.backend.rule=(Host(`rimef.localhost`) || Host(`supervisor.rimef.localhost`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.routers.backend.priority=200"
+      - "traefik.http.routers.backend.service=backend-service"
+
+      # Service Backend (Nginx → PHP-FPM)
+      - "traefik.http.services.backend-service.loadbalancer.server.port=80"
+      - "traefik.http.services.backend-service.loadbalancer.passHostHeader=true"
 
   # ===========================================================================
   # OUTILS - Mailpit (capture des emails de dev)

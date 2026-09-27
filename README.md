@@ -29,8 +29,9 @@ L'application RIMeF a pour objectifs de :
 ## Stack technique
 
 ### Backend
-- **Framework** : Laravel (API)
+- **Framework** : Laravel 13 (API), PHP 8.5
 - **Base de données** : MySQL 8.4
+- **Tests** : Pest — **Formatage** : Pint
 - **Email (dev)** : Mailpit
 
 ### Frontend
@@ -57,9 +58,12 @@ L'application RIMeF a pour objectifs de :
 git clone git@github.com:activedaemon/rimef.git
 cd rimef
 
-# Démarrer l'environnement (crée .docker/.env depuis .docker/.env.example s'il est absent)
+# Démarrer l'environnement : crée .docker/.env et backend/.env s'ils sont absents,
+# installe les dépendances Composer au premier lancement, puis migre la base
 make start
 ```
+
+PHP et Composer tournent dans le conteneur `rimef-php` : rien à installer sur le poste hormis Docker et Make.
 
 Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent à `id -u` et `id -g`.
 
@@ -67,7 +71,8 @@ Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent
 
 | Service | Accès |
 |---|---|
-| Application (tenant `rimef`) | http://rimef.localhost:9280 (à venir) |
+| Application (tenant `rimef`) | http://rimef.localhost:9280 (frontend à venir) |
+| API — santé | http://rimef.localhost:9280/api/health |
 | Supervision (central) | http://supervisor.rimef.localhost:9280 (à venir) |
 | MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef_central` |
 | Dashboard Traefik | http://localhost:9281 |
@@ -96,6 +101,14 @@ make restart      # Redémarrer les services
 make ps           # État des services
 make info         # URLs d'accès
 make logs         # Logs de tous les services
+make artisan ARGS="route:list"   # Commande artisan
+make composer ARGS="require x/y" # Commande composer
+make migrate      # Migrations
+make test         # Tests backend (Pest)
+make pint         # Formatage PHP (ARGS="--test" pour vérifier)
+make tinker       # REPL Laravel
+make shell-php    # Shell dans le conteneur PHP
+make fresh        # Réinitialiser la base (DESTRUCTIF, demande confirmation)
 make shell-mysql  # Client MySQL sur la base centrale (DB=rimef_tenant_rimef pour le tenant)
 make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmation)
 ```
@@ -104,9 +117,10 @@ make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmat
 
 ```
 .
-├── backend/             # API Laravel                       (à venir)
+├── backend/             # API Laravel
 ├── frontend/            # SPA Vue 3 / Quasar                (à venir)
 ├── .docker/             # Configuration Docker (dev)
+│   ├── backend/         # Images PHP-FPM 8.5 et Nginx
 │   ├── mysql/           # Configuration MySQL (utf8mb4, UTC, mode strict) + droits tenant
 │   ├── traefik/         # Configuration Traefik
 │   └── docker-compose.yml
@@ -116,6 +130,7 @@ make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmat
 │   ├── rules/           # Règles de développement
 │   └── skills/          # Skills personnalisés
 │
+├── .mcp.json            # Serveur MCP Laravel Boost (via Docker)
 ├── CLAUDE.md            # Configuration Claude Code
 └── Makefile             # Commandes de développement
 ```
