@@ -1,22 +1,103 @@
-# Dependencies
-node_modules/
-vendor/
+# ============================================================================
+# Fichiers Docker locaux
+# ============================================================================
+.docker/volumes/
 
-# Build output
-dist/
-.quasar/
+# ============================================================================
+# Logs
+# ============================================================================
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Environment
+# ============================================================================
+# Environnement
+# ============================================================================
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+**/.env
+**/env
 
-# IDE
+# ============================================================================
+# IDE et éditeurs
+# ============================================================================
 .idea/
-.vscode/*
-!.vscode/extensions.json
+.vscode/
+*.swp
+*.swo
 
+# ============================================================================
 # OS
+# ============================================================================
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============================================================================
+# Temporaires / builds
+# ============================================================================
+dist/
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# ============================================================================
+# Fichiers sensibles et secrets
+# ============================================================================
+*.enc
+*.key
+*.pem
+*.p12
+*.pfx
+
+*secret*
+*secrets*
+.secrets/
+secrets/
+credentials/
+*.cert
+*.crt
+id_rsa*
+known_hosts
+
+# ============================================================================
+# Node.js
+# ============================================================================
+node_modules/
+.npm
+.yarn-integrity
+.pnp.*
+
+# ============================================================================
+# PHP / Laravel
+# ============================================================================
+/vendor/
+/backend/vendor/
+/backend/storage/*.key
+/backend/storage/oauth-*.key
+/backend/storage/framework/cache/data/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/storage/logs/*
+/backend/public/storage
+/backend/public/hot
+/backend/.phpunit.result.cache
+/backend/.phpunit.cache
+
+# ============================================================================
+# Claude Code - paramètres locaux
+# ============================================================================
+.claude/settings.local.json
+.claude/projects/
