@@ -76,6 +76,7 @@ known_hosts
 # Node.js
 # ============================================================================
 node_modules/
+.quasar/
 .npm
 .yarn-integrity
 .pnp.*

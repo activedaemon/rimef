@@ -59,11 +59,11 @@ git clone git@github.com:activedaemon/rimef.git
 cd rimef
 
 # Démarrer l'environnement : crée .docker/.env et backend/.env s'ils sont absents,
-# installe les dépendances Composer au premier lancement, puis migre la base
+# installe les dépendances Composer et npm au premier lancement, puis migre la base
 make start
 ```
 
-PHP et Composer tournent dans le conteneur `rimef-php` : rien à installer sur le poste hormis Docker et Make.
+PHP, Composer, Node et npm tournent dans les conteneurs : rien à installer sur le poste hormis Docker et Make. Le premier démarrage des frontends prend quelques minutes (`npm install`).
 
 Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent à `id -u` et `id -g`.
 
@@ -71,8 +71,8 @@ Sur Linux, vérifier que `USER_ID` et `GROUP_ID` de `.docker/.env` correspondent
 
 | Service | Accès |
 |---|---|
-| Application (tenant `rimef`) | http://rimef.localhost:9280 (frontend à venir) — API : `/api/health` |
-| Supervision (central) | http://supervisor.rimef.localhost:9280 (frontend à venir) — API : `/api/health` |
+| Application (tenant `rimef`) | http://rimef.localhost:9280 — API : `/api/health` |
+| Supervision (central) | http://supervisor.rimef.localhost:9280 — API : `/api/health` |
 | MySQL 8.4 | `127.0.0.1:9307` — user `rimef` / pass `rimef` / base `rimef_central` |
 | Dashboard Traefik | http://localhost:9281 |
 | Mailpit (emails de dev) | http://localhost:9826 — SMTP `127.0.0.1:9526` |
@@ -94,6 +94,20 @@ Chaque tenant dispose de sa propre base `rimef_tenant_<identifiant>`, créée pa
 - `make start` crée le tenant `rimef` s'il n'existe pas (`TenantSeeder`) et migre toutes les bases tenant.
 - Migrations : `backend/database/migrations/` (base centrale) et `backend/database/migrations/tenant/` (bases tenant).
 - Variables `backend/.env` : `CENTRAL_DOMAINS`, `TENANCY_DB_PREFIX`, `RIMEF_TENANT_DOMAIN`.
+- Traefik envoie `rimef.localhost` et `*.rimef.localhost` au frontend des membres, `supervisor.rimef.localhost` à la supervision, et `/api/*` au backend. Un tenant sur **son propre domaine** doit aussi être ajouté aux règles Traefik (`.docker/docker-compose.yml`).
+
+## Frontend
+
+Deux applications Vue 3 / Quasar / TypeScript, chacune dans son conteneur Vite :
+
+| Application | Dossier | Conteneur | Domaine |
+|---|---|---|---|
+| Espace des membres | `frontend/app/` | `rimef-frontend` | `rimef.localhost` (et sous-domaines de tenants) |
+| Supervision | `frontend/supervisor/` | `rimef-supervisor` | `supervisor.rimef.localhost` |
+
+- Organisation : `src/core/` (configuration, layouts, client HTTP) et `src/modules/<domaine>/` (vues, services, routes chargées à la demande).
+- Chaque application appelle l'API sur son propre domaine (`/api`), sans CORS.
+- Charte reprise du design system (`../rimef-handoff/`) : `src/css/tokens.scss` et `src/css/quasar.variables.scss`. Polices Inter et Instrument Serif hébergées par l'application, icônes Tabler.
 
 ## Commandes utiles (Make)
 
@@ -111,6 +125,10 @@ make migrate      # Migrations de la base centrale
 make tenants-seed # Créer les tenants et leurs domaines
 make tenants-migrate  # Migrations de toutes les bases tenant
 make test         # Tests backend (Pest)
+make front-check  # Types + lint des deux frontends
+make front-test   # Tests des deux frontends (Vitest)
+make npm ARGS="run build"      # Commande npm (membres) ; make npm-sup pour la supervision
+make shell-front  # Shell dans le conteneur frontend (make shell-sup pour la supervision)
 make pint         # Formatage PHP (ARGS="--test" pour vérifier)
 make tinker       # REPL Laravel
 make shell-php    # Shell dans le conteneur PHP
@@ -124,9 +142,12 @@ make down         # Tout supprimer, base comprise (DESTRUCTIF, demande confirmat
 ```
 .
 ├── backend/             # API Laravel
-├── frontend/            # SPA Vue 3 / Quasar                (à venir)
+├── frontend/
+│   ├── app/             # SPA Vue 3 / Quasar — espace des membres
+│   └── supervisor/      # SPA Vue 3 / Quasar — supervision
 ├── .docker/             # Configuration Docker (dev)
 │   ├── backend/         # Images PHP-FPM 8.5 et Nginx
+│   ├── frontend/        # Image Node 24 commune aux deux SPA (Vite)
 │   ├── mysql/           # Configuration MySQL (utf8mb4, UTC, mode strict) + droits tenant
 │   ├── traefik/         # Configuration Traefik
 │   └── docker-compose.yml

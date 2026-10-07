@@ -1,0 +1,81 @@
+// Jetons de la charte RIMeF, repris de rimef-handoff/sources/design-system.css.
+// Source de vérité : rimef-handoff/design-system/tokens.json — garder les deux alignés.
+
+:root {
+  // Palette
+  --ink: #182033;
+  --ink-2: #354057;
+  --muted: #667085;
+  --petrol-dark: #17363c;
+  --petrol: #234c55;
+  --petrol-light: #dce8e9;
+  --terracotta: #c86f55;
+  --terracotta-light: #f4ded7;
+  --terracotta-ink: #9c4d37;
+  --saffron: #d3a64a;
+  --saffron-light: #f6ecd1;
+  --saffron-ink: #8a6a22;
+  --sage: #7c8b7b;
+  --sage-light: #e3e8e2;
+  --sage-ink: #4b5c4a;
+  --leaf-sage: #8fa89c;
+  --ivory: #f5f1e8;
+  --paper: #fcfaf6;
+  --card: #fffdf9;
+  --sand: #efe7d9;
+  --sand-line: #e4d9c6;
+  --border: #e9e3d7;
+  --on-dark: #f5f1e8;
+
+  // Typographie
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'Inter Variable', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --fs-display: clamp(2.5rem, 1.6rem + 2.6vw, 3.5rem);
+  --fs-h1: clamp(2.25rem, 1.8rem + 1.4vw, 2.75rem);
+  --fs-h2: 1.875rem;
+  --fs-h3: 1.4rem;
+  --fs-lead: 1.125rem;
+  --fs-body: 0.9375rem;
+  --fs-sm: 0.8125rem;
+  --fs-xs: 0.75rem;
+  --fs-eyebrow: 0.6875rem;
+
+  // Formes
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(24, 32, 51, 0.025);
+  --shadow-float: 0 12px 40px -16px rgba(23, 54, 60, 0.28);
+
+  // Espacements (échelle 4 px)
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  // Mise en page
+  --container: 1240px;
+  --gutter: 32px;
+  --header-h: 72px;
+}
+
+@media (max-width: 1080px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  :root {
+    --gutter: 16px;
+    --header-h: 60px;
+    --fs-h2: 1.6rem;
+  }
+}

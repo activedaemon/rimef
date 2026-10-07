@@ -1,12 +1,13 @@
 # Makefile RIMeF
-# Services : Traefik + Backend (PHP-FPM 8.5 + Nginx) + MySQL 8.4 LTS + Mailpit
-# Les cibles frontend sont ajoutées avec leur brique.
+# Services : Traefik + Frontend (membres + supervision, Vite/Quasar)
+#            + Backend (PHP-FPM 8.5 + Nginx) + MySQL 8.4 LTS + Mailpit
 
 .PHONY: help start stop down restart ps info \
         artisan composer migrate fresh clear-cache tinker test pint shell-php shell-nginx \
         tenants-seed tenants-migrate \
+        npm npm-sup front-check front-test shell-front shell-sup \
         shell-mysql \
-        logs logs-backend logs-mysql logs-traefik logs-mailpit
+        logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit
 
 # Couleurs
 BLUE    := \033[0;34m
@@ -31,6 +32,9 @@ help: ## @main Afficher ce message d'aide
 	@echo ""
 	@echo "$(MAGENTA)Cycle de vie :$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## @main ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## @main "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(MAGENTA)Frontend :$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## @front ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## @front "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(MAGENTA)Backend :$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## @back ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## @back "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
@@ -93,7 +97,7 @@ info: ## @main Afficher les URLs d'accès
 	@echo "$(CYAN)═══════════════════════════════════════════════════════════════$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Application$(NC)"
-	@echo "  Tenant rimef          $(GREEN)http://rimef.localhost:9280$(NC) (frontend à venir) — API : $(GREEN)/api/health$(NC)"
+	@echo "  Tenant rimef          $(GREEN)http://rimef.localhost:9280$(NC) — API : $(GREEN)/api/health$(NC)"
 	@echo "  Supervision (central) $(GREEN)http://supervisor.rimef.localhost:9280$(NC) — API : $(GREEN)/api/health$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Base de données$(NC)"
@@ -108,6 +112,34 @@ info: ## @main Afficher les URLs d'accès
 	@echo "$(BLUE)       automatiquement à 127.0.0.1. Sinon, ajouter dans /etc/hosts :$(NC)"
 	@echo "$(BLUE)       127.0.0.1 rimef.localhost supervisor.rimef.localhost$(NC)"
 	@echo ""
+
+# ============================================================================
+# Frontend (frontend/app = membres, frontend/supervisor = supervision)
+# ============================================================================
+
+# Usage : make npm ARGS="install paquet"
+npm: ## @front Lancer une commande npm dans l'espace des membres (ex: make npm ARGS="run build")
+	@$(COMPOSE) exec rimef-frontend npm $(ARGS)
+
+npm-sup: ## @front Lancer une commande npm dans la supervision (ex: make npm-sup ARGS="run build")
+	@$(COMPOSE) exec rimef-supervisor npm $(ARGS)
+
+front-check: ## @front Vérifier les types et le lint des deux applications
+	@echo "$(BLUE)Espace des membres...$(NC)"
+	@$(COMPOSE) exec rimef-frontend sh -c "npm run -s type-check && npm run -s lint"
+	@echo "$(BLUE)Supervision...$(NC)"
+	@$(COMPOSE) exec rimef-supervisor sh -c "npm run -s type-check && npm run -s lint"
+	@echo "$(GREEN)Types et lint OK$(NC)"
+
+front-test: ## @front Lancer les tests des deux applications (Vitest)
+	@$(COMPOSE) exec rimef-frontend npm run -s test
+	@$(COMPOSE) exec rimef-supervisor npm run -s test
+
+shell-front: ## @front Ouvrir un shell dans le container de l'espace des membres
+	@$(COMPOSE) exec rimef-frontend sh
+
+shell-sup: ## @front Ouvrir un shell dans le container de la supervision
+	@$(COMPOSE) exec rimef-supervisor sh
 
 # ============================================================================
 # Backend
@@ -183,6 +215,9 @@ shell-mysql: ## @db Ouvrir un client mysql sur la base centrale (DB=rimef_tenant
 
 logs: ## @logs Voir les logs de tous les services (suivi)
 	@$(COMPOSE) logs -f --tail=100
+
+logs-frontend: ## @logs Voir les logs des deux applications frontend
+	@$(COMPOSE) logs -f --tail=100 rimef-frontend rimef-supervisor
 
 logs-backend: ## @logs Voir les logs du backend (PHP-FPM + Nginx)
 	@$(COMPOSE) logs -f --tail=100 rimef-php rimef-nginx
