@@ -2,8 +2,8 @@
 # RIMEF - Docker Compose (dev)
 # =============================================================================
 # Lancement : depuis App/, exécuter `make start`
-# Services : Traefik + Backend Laravel (PHP-FPM + Nginx) + MySQL + Mailpit
-# Frontend Quasar : ajouté avec sa brique
+# Services : Traefik + Frontend (membres + supervision, Vite/Quasar)
+#            + Backend Laravel (PHP-FPM + Nginx) + MySQL + Mailpit
 # =============================================================================
 
 services:
@@ -33,6 +33,99 @@ services:
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.rimef.localhost`)"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.entrypoints=web"
+
+  # ===========================================================================
+  # FRONTEND - Espace des membres (Vite + Quasar, frontend/app)
+  # ===========================================================================
+  rimef-frontend:
+    build:
+      context: ..
+      dockerfile: .docker/frontend/Dockerfile
+    container_name: rimef-frontend
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    working_dir: /app
+    volumes:
+      - ../frontend/app:/app
+    environment:
+      VITE_DOCKER_ENV: "true"
+      TZ: UTC
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    restart: on-failure
+    networks: [rimef-net]
+    labels:
+      - "traefik.enable=true"
+
+      # ---------------------------------------------------------------------
+      # Route Frontend des tenants (hors /api, servi par le backend)
+      #   - rimef.localhost
+      #   - *.rimef.localhost (futurs tenants en sous-domaine)
+      # supervisor.rimef.localhost est pris par rimef-supervisor (priorité 60).
+      # Un tenant sur son propre domaine doit être ajouté ici ET au backend.
+      # ---------------------------------------------------------------------
+      - "traefik.http.routers.frontend.rule=(Host(`rimef.localhost`) || HostRegexp(`^[a-z0-9-]+\\.rimef\\.localhost$$`)) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.routers.frontend.priority=50"
+      - "traefik.http.routers.frontend.service=frontend-service"
+
+      # Route Vite HMR (WebSocket et endpoints internes)
+      - "traefik.http.routers.frontend-hmr.rule=(Host(`rimef.localhost`) || HostRegexp(`^[a-z0-9-]+\\.rimef\\.localhost$$`)) && (PathPrefix(`/@vite`) || PathPrefix(`/@fs`) || PathPrefix(`/node_modules`) || Path(`/__vite_ping`))"
+      - "traefik.http.routers.frontend-hmr.entrypoints=web"
+      - "traefik.http.routers.frontend-hmr.priority=110"
+      - "traefik.http.routers.frontend-hmr.service=frontend-service"
+
+      # Service Frontend
+      - "traefik.http.services.frontend-service.loadbalancer.server.port=5173"
+      - "traefik.http.services.frontend-service.loadbalancer.passHostHeader=true"
+
+  # ===========================================================================
+  # FRONTEND - Supervision (Vite + Quasar, frontend/supervisor)
+  # ===========================================================================
+  rimef-supervisor:
+    build:
+      context: ..
+      dockerfile: .docker/frontend/Dockerfile
+    container_name: rimef-supervisor
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    working_dir: /app
+    volumes:
+      - ../frontend/supervisor:/app
+    environment:
+      VITE_DOCKER_ENV: "true"
+      TZ: UTC
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5174 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    restart: on-failure
+    networks: [rimef-net]
+    labels:
+      - "traefik.enable=true"
+
+      # ---------------------------------------------------------------------
+      # Route Supervision : supervisor.rimef.localhost (hors /api)
+      # Priorité 60 : passe devant la règle générique *.rimef.localhost
+      # ---------------------------------------------------------------------
+      - "traefik.http.routers.supervisor.rule=Host(`supervisor.rimef.localhost`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.supervisor.entrypoints=web"
+      - "traefik.http.routers.supervisor.priority=60"
+      - "traefik.http.routers.supervisor.service=supervisor-service"
+
+      # Route Vite HMR (priorité 120 : devant celle du frontend des tenants)
+      - "traefik.http.routers.supervisor-hmr.rule=Host(`supervisor.rimef.localhost`) && (PathPrefix(`/@vite`) || PathPrefix(`/@fs`) || PathPrefix(`/node_modules`) || Path(`/__vite_ping`))"
+      - "traefik.http.routers.supervisor-hmr.entrypoints=web"
+      - "traefik.http.routers.supervisor-hmr.priority=120"
+      - "traefik.http.routers.supervisor-hmr.service=supervisor-service"
+
+      # Service Supervision
+      - "traefik.http.services.supervisor-service.loadbalancer.server.port=5174"
+      - "traefik.http.services.supervisor-service.loadbalancer.passHostHeader=true"
 
   # ===========================================================================
   # BACKEND - MySQL 8.4 LTS
@@ -116,9 +209,10 @@ services:
       # Route Backend API (même domaine que le frontend, préfixe /api)
       #   - rimef.localhost/api/*             → tenant rimef
       #   - supervisor.rimef.localhost/api/*  → central (supervision)
-      # Priorité 200 : passe devant le frontend (ajouté à la brique 4)
+      #   - *.rimef.localhost/api/*           → futurs tenants en sous-domaine
+      # Priorité 200 : passe devant le frontend et la supervision
       # ---------------------------------------------------------------------
-      - "traefik.http.routers.backend.rule=(Host(`rimef.localhost`) || Host(`supervisor.rimef.localhost`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=(Host(`rimef.localhost`) || HostRegexp(`^[a-z0-9-]+\\.rimef\\.localhost$$`)) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=web"
       - "traefik.http.routers.backend.priority=200"
       - "traefik.http.routers.backend.service=backend-service"

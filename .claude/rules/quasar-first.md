@@ -29,7 +29,7 @@ composant Quasar existe**. Si oui, l'utiliser sauf justification précise.
 ## Charte RIMeF
 Quand Quasar utilise une couleur standard (ex: `color="warning"`),
 **préserver la charte RIMeF** (pétrole, terracotta, safran, sauge — voir
-`../design-system/src/css/rimef.css`) via :
+`../rimef-handoff/design-system/tokens.json`, repris dans `frontend/*/src/css/tokens.scss`) via :
 - Override CSS scoped `:deep(.q-xxx)` avec les variables de la charte
 - OU configurer `quasar.variables.scss` pour aligner globalement
 
