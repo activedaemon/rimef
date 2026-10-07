@@ -1,51 +1,49 @@
 <script setup lang="ts">
-// Logo RIMEF (fiche Logo du design system) : marque aux trois feuilles + mot RIMEF,
-// avec la mention « Réseau international des médiatrices francophones » en option.
-withDefaults(defineProps<{ withMention?: boolean }>(), { withMention: false });
+// Logo RIMEF : quatre feuilles, RIMEF et la mention « Réseau international des
+// médiatrices francophones » (public/logo-rimef.svg, texte vectorisé).
+// Sous 720 px, la version compacte sans mention (illisible à cette taille) prend le relais.
+withDefaults(
+  defineProps<{
+    /** Hauteur en px (version complète). */
+    height?: number;
+    /** Hauteur en px de la version compacte, sous 720 px ; 0 = garder la version complète. */
+    compactHeight?: number;
+    /** Logo dans un lien déjà libellé : texte alternatif vide. */
+    decorative?: boolean;
+  }>(),
+  { height: 52, compactHeight: 36, decorative: false }
+);
+
+const LABEL = 'RIMEF — Réseau international des médiatrices francophones';
 </script>
 
 <template>
-  <span class="app-logo">
-    <img src="/favicon.svg" alt="" width="30" height="30" class="app-logo__mark" />
-    <span class="app-logo__word">
-      <b>RIMEF</b>
-      <small v-if="withMention">Réseau international<br />des médiatrices francophones</small>
-    </span>
-  </span>
+  <picture
+    class="app-logo"
+    :style="{
+      '--logo-height': `${height}px`,
+      '--logo-compact-height': `${compactHeight || height}px`,
+    }"
+  >
+    <source v-if="compactHeight" media="(max-width: 720px)" srcset="/logo-rimef-compact.svg" />
+    <img src="/logo-rimef.svg" :alt="decorative ? '' : LABEL" class="app-logo__img" />
+  </picture>
 </template>
 
 <style lang="scss" scoped>
 .app-logo {
   display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--ink);
 
-  &__mark {
-    flex: none;
+  &__img {
+    display: block;
+    width: auto;
+    height: var(--logo-height);
   }
+}
 
-  &__word {
-    display: flex;
-    flex-direction: column;
-    line-height: 1;
-
-    b {
-      // noinspection CssNoGenericFontName
-      font-family: var(--font-serif);
-      font-size: 1.6rem;
-      font-weight: 400;
-      letter-spacing: 0.01em;
-    }
-
-    small {
-      margin-top: 3px;
-      font-size: 6.5px;
-      line-height: 1.3;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--ink-2);
-    }
+@media (max-width: 720px) {
+  .app-logo__img {
+    height: var(--logo-compact-height);
   }
 }
 </style>

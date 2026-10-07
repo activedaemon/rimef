@@ -8,7 +8,7 @@ import LeafMotif from '@/components/brand/LeafMotif.vue';
     <q-page-container>
       <q-page class="auth-page">
         <main class="auth-page__inner">
-          <AppLogo with-mention class="auth-page__logo" />
+          <AppLogo :height="76" :compact-height="0" class="auth-page__logo" />
 
           <div class="auth-card">
             <LeafMotif class="auth-card__leaf" />

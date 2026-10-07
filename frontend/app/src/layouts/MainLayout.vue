@@ -7,7 +7,7 @@ import AppLogo from '@/components/brand/AppLogo.vue';
     <q-header class="main-header">
       <div class="container main-header__inner">
         <router-link :to="{ name: 'home' }" class="main-header__home" aria-label="RIMEF, accueil">
-          <AppLogo />
+          <AppLogo decorative />
         </router-link>
       </div>
     </q-header>
