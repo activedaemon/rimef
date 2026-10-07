@@ -30,6 +30,7 @@ Toute commande `php …` ou `composer …` citée dans les consignes ci-dessous 
 - Les données métier (membres, événements, ressources…) vont dans les **migrations tenant**.
 - `make tenants-migrate` migre toutes les bases tenant ; `make tenants-seed` crée les tenants.
 - Tests : SQLite en mémoire pour la base centrale ; un tenant de test crée une base SQLite temporaire, supprimée en fin de test (voir `tests/Feature/Api/TenancyHealthTest.php`). Les requêtes de test doivent viser un domaine explicite (`http://supervisor.rimef.localhost/...` ou le domaine du tenant).
+- Tests dans un tenant : `uses(RefreshDatabase::class, WithTenant::class)` (`tests/Concerns/WithTenant.php`) fournit le tenant `test` sur `test.rimef.localhost`, ses rôles et `tenantUrl()`. Le tenant est fermé par `TestCase::tearDown()` avant l'annulation de la transaction.
 
 ## Consignes Laravel Boost
 

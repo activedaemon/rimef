@@ -13,8 +13,8 @@ import 'quasar/src/css/index.sass';
 import '@/css/app.scss';
 
 import App from '@/App.vue';
-import { tablerIconMapFn } from '@core/config/tabler-icon-set';
-import router from '@core/config/router';
+import { tablerIconMapFn } from '@/lib/tabler-icon-set';
+import router from '@/router';
 
 IconSet.iconMapFn = tablerIconMapFn;
 

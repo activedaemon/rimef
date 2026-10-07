@@ -34,7 +34,18 @@ L'application RIMeF a pour objectifs de :
 - **Tests** : Pest — **Formatage** : Pint
 - **Email (dev)** : Mailpit
 
-### Frontend
+### Authentification
+
+Tout l'espace des membres est réservé aux comptes connectés ; il n'y a pas d'inscription publique (comptes sur invitation, à venir).
+
+- **Mécanisme** : Laravel Fortify + Sanctum en mode SPA (cookie de session, protection CSRF), sur le domaine du tenant. Sessions, cache et limiteur de tentatives sont stockés dans la base du tenant.
+- **Routes** (domaine du tenant) : `GET /api/sanctum/csrf-cookie`, `POST /api/login`, `POST /api/logout`, `POST /api/forgot-password`, `POST /api/reset-password`, `GET /api/user`. Elles répondent 404 sur le domaine de supervision.
+- **Sécurité** : 5 tentatives de connexion par minute (email + IP), mots de passe de 12 caractères minimum, comptes désactivables (`is_active`), même réponse à « mot de passe oublié » qu'une adresse soit connue ou non.
+- **Rôles** (spatie/laravel-permission, base du tenant) : `admin` (Administratrice) et `member` (Membre).
+- **Compte de développement** : `make start` (ou `make tenants-db-seed`) crée une administratrice dans chaque tenant, en local uniquement, à partir de `RIMEF_DEV_ADMIN_EMAIL` / `RIMEF_DEV_ADMIN_PASSWORD` (`backend/.env`, par défaut `admin@rimef.localhost` / `rimef-dev-admin`).
+- Les emails de réinitialisation sont visibles dans Mailpit (http://localhost:9826).
+
+## Frontend
 - **Framework** : Vue 3 (Composition API, TypeScript)
 - **UI Framework** : Quasar (SPA)
 - **État** : Pinia
@@ -105,7 +116,7 @@ Deux applications Vue 3 / Quasar / TypeScript, chacune dans son conteneur Vite :
 | Espace des membres | `frontend/app/` | `rimef-frontend` | `rimef.localhost` (et sous-domaines de tenants) |
 | Supervision | `frontend/supervisor/` | `rimef-supervisor` | `supervisor.rimef.localhost` |
 
-- Organisation : `src/core/` (configuration, layouts, client HTTP) et `src/modules/<domaine>/` (vues, services, routes chargées à la demande).
+- Organisation (comme Fruxa) : dossiers transverses à la racine de `src/` (`router/`, `layouts/`, `lib/`, `stores/`, `components/`…) et `src/modules/<domaine>/` (vues, services) pour les écrans métier. Routes chargées à la demande.
 - Chaque application appelle l'API sur son propre domaine (`/api`), sans CORS.
 - Charte reprise du design system (`../rimef-handoff/`) : `src/css/tokens.scss` et `src/css/quasar.variables.scss`. Polices Inter et Instrument Serif hébergées par l'application, icônes Tabler.
 
@@ -124,6 +135,7 @@ make composer ARGS="require x/y" # Commande composer
 make migrate      # Migrations de la base centrale
 make tenants-seed # Créer les tenants et leurs domaines
 make tenants-migrate  # Migrations de toutes les bases tenant
+make tenants-db-seed  # Données initiales des tenants (rôles, admin de dev en local)
 make test         # Tests backend (Pest)
 make front-check  # Types + lint des deux frontends
 make front-test   # Tests des deux frontends (Vitest)

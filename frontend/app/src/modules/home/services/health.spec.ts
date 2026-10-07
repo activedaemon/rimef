@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { summarizeHealth, type HealthResponse } from './health.service';
+import { summarizeHealth, type HealthResponse } from './health';
 
 const healthy: HealthResponse = {
   status: 'ok',

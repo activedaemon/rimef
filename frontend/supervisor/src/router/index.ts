@@ -1,14 +1,19 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
-import homeRoutes from '@modules/home/router';
-
-const APP_NAME = 'RIMEF';
+const APP_NAME = 'RIMEF Supervision';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: () => import('@core/layouts/MainLayout.vue'),
-    children: [...homeRoutes],
+    component: () => import('@/layouts/SupervisorLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'dashboard',
+        component: () => import('@modules/dashboard/views/DashboardView.vue'),
+        meta: { title: 'Tableau de bord' },
+      },
+    ],
   },
   {
     path: '/:pathMatch(.*)*',

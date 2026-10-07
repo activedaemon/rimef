@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios';
 
-import { http } from '@core/services/http';
+import { http } from '@/lib/http';
 
 export interface HealthResponse {
   status: 'ok' | 'degraded';

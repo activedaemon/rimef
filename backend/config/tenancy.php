@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use App\Tenancy\DatabaseStoresTenancyBootstrapper;
 use Database\Seeders\TenantDatabaseSeeder;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
@@ -37,8 +38,10 @@ return [
      */
     'bootstrappers' => [
         DatabaseTenancyBootstrapper::class,
+        // Après DatabaseTenancyBootstrapper : cache et sessions en base suivent le tenant
+        DatabaseStoresTenancyBootstrapper::class,
         // CacheTenancyBootstrapper non activé : il exige un cache à tags (Redis…).
-        // Le cache étant stocké en base, il est déjà isolé par la base du tenant.
+        // Le cache étant stocké en base, il est isolé par la base du tenant.
         FilesystemTenancyBootstrapper::class,
         QueueTenancyBootstrapper::class,
         // Stancl\Tenancy\Bootstrappers\RedisTenancyBootstrapper::class, // Note: phpredis is needed

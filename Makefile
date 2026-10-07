@@ -4,7 +4,7 @@
 
 .PHONY: help start stop down restart ps info \
         artisan composer migrate fresh clear-cache tinker test pint shell-php shell-nginx \
-        tenants-seed tenants-migrate \
+        tenants-seed tenants-migrate tenants-db-seed \
         npm npm-sup front-check front-test shell-front shell-sup \
         shell-mysql \
         logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit
@@ -50,7 +50,7 @@ help: ## @main Afficher ce message d'aide
 # Cycle de vie
 # ============================================================================
 
-start: ## @main Démarrer les services + migrer la base centrale + créer et migrer les tenants
+start: ## @main Démarrer les services + migrer la base centrale + créer, migrer et alimenter les tenants
 	@if [ ! -f .docker/.env ]; then \
 		echo "$(YELLOW).docker/.env absent, génération depuis .docker/.env.example...$(NC)"; \
 		cp .docker/.env.example .docker/.env; \
@@ -68,6 +68,7 @@ start: ## @main Démarrer les services + migrer la base centrale + créer et mig
 	@$(MAKE) -s migrate
 	@$(MAKE) -s tenants-seed
 	@$(MAKE) -s tenants-migrate
+	@$(MAKE) -s tenants-db-seed
 	@$(MAKE) -s info
 
 stop: ## @main Arrêter les services (conserve les volumes)
@@ -177,6 +178,11 @@ tenants-migrate: ## @back Exécuter les migrations de toutes les bases tenant
 	@echo "$(BLUE)Migrations des tenants...$(NC)"
 	@$(COMPOSE) exec rimef-php php artisan tenants:migrate
 	@echo "$(GREEN)Tenants migrés$(NC)"
+
+tenants-db-seed: ## @back Alimenter les bases tenant (rôles + admin de dev en local, idempotent)
+	@echo "$(BLUE)Données initiales des tenants...$(NC)"
+	@$(COMPOSE) exec rimef-php php artisan tenants:seed
+	@echo "$(GREEN)Tenants alimentés$(NC)"
 
 clear-cache: ## @back Vider les caches Laravel (config, route, view, event, compiled — sans toucher à la table cache)
 	@echo "$(BLUE)Vidage des caches Laravel...$(NC)"
