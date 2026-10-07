@@ -27,6 +27,12 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 - Bases : **`rimef_central`** (tenants, domaines, superviseurs) et **`rimef_tenant_<id>`** par tenant (données métier), soit `rimef_tenant_rimef`.
 - Côté backend : API centrale dans `routes/api.php` (domaines centraux uniquement), API tenant dans `routes/tenant.php` ; migrations centrales dans `database/migrations/`, migrations tenant dans `database/migrations/tenant/`. **Toute nouvelle table métier va dans les migrations tenant.**
 
+### Authentification
+
+- Espace des membres **entièrement réservé aux comptes connectés**, sans inscription publique (invitation à venir). Supervision : authentification à concevoir plus tard.
+- Fortify + Sanctum SPA (cookie de session) sur le domaine du tenant ; rôles `admin` / `member` via spatie/laravel-permission (enum `App\Enums\Role`). Toute nouvelle route métier du tenant va dans le groupe `auth:sanctum` + `EnsureUserIsActive` de `routes/tenant.php`.
+- **Piège multi-tenant** : Laravel peut créer cache et sessions avant l'identification du tenant (base centrale). `App\Tenancy\DatabaseStoresTenancyBootstrapper` les réaligne : il doit rester juste après `DatabaseTenancyBootstrapper` dans `config/tenancy.php`.
+
 ### Principes directeurs
 
 - **Rapidité** : l'application doit charger vite, y compris sur réseau mobile lent.
@@ -66,7 +72,7 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 - **Build Tool** : Vite — **Tests** : Vitest — **Qualité** : vue-tsc, ESLint, Prettier
 - **Icônes** : Tabler (`@tabler/icons-webfont`, `<q-icon name="search" />`)
 - **Polices** : hébergées par l'application (`@fontsource`), pas de Google Fonts
-- Organisation de chaque SPA : `src/core/` (config, layouts, services) et `src/modules/<domaine>/` (views, services, router)
+- Organisation de chaque SPA, comme Fruxa : à la racine de `src/`, les dossiers transverses (`router/` avec toutes les routes, `layouts/`, `lib/` pour le client HTTP et les icônes, `stores/`, `components/`, `composables/`, `css/`), et `src/modules/<domaine>/` (views, services, components) pour les écrans métier ; alias `@/` et `@modules/`
 
 ### Infrastructure
 - **Conteneurisation** : Docker & Docker Compose

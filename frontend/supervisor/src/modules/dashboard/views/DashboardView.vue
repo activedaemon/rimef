@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 
-import { fetchHealth, summarizeHealth, type HealthResponse } from '../services/health.service';
+import { fetchHealth, summarizeHealth, type HealthResponse } from '../services/health';
 
 const loading = ref(true);
 const health = ref<HealthResponse | null>(null);

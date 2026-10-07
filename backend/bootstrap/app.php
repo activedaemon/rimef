@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,7 +25,16 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // SPA sur le même domaine : session + CSRF pour les requêtes de frontend/app
+        $middleware->statefulApi();
+
+        // API JSON : pas de redirection vers des pages Laravel
+        Authenticate::redirectUsing(fn (Request $request) => $request->expectsJson() ? null : '/connexion');
+        RedirectIfAuthenticated::redirectUsing(function (Request $request) {
+            abort_if($request->expectsJson(), 409, 'Vous êtes déjà connectée.');
+
+            return '/';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
