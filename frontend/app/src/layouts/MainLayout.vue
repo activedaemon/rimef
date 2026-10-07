@@ -1,10 +1,13 @@
+<script setup lang="ts">
+import AppLogo from '@/components/brand/AppLogo.vue';
+</script>
+
 <template>
   <q-layout view="hHh lpR fff">
     <q-header class="main-header">
       <div class="container main-header__inner">
-        <router-link :to="{ name: 'home' }" class="logo" aria-label="RIMEF, accueil">
-          <img src="/favicon.svg" alt="" width="30" height="30" />
-          <span class="logo__word">RIMEF</span>
+        <router-link :to="{ name: 'home' }" class="main-header__home" aria-label="RIMEF, accueil">
+          <AppLogo />
         </router-link>
       </div>
     </q-header>
@@ -30,20 +33,10 @@
   }
 }
 
-.logo {
+.main-header__home {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   min-height: 44px;
-  color: var(--ink);
   text-decoration: none;
-
-  &__word {
-    // noinspection CssNoGenericFontName
-    font-family: var(--font-serif);
-    font-size: 1.6rem;
-    line-height: 1;
-    letter-spacing: 0.01em;
-  }
 }
 </style>

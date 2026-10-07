@@ -42,7 +42,7 @@ Tout l'espace des membres est réservé aux comptes connectés ; il n'y a pas d'
 - **Routes** (domaine du tenant) : `GET /api/sanctum/csrf-cookie`, `POST /api/login`, `POST /api/logout`, `POST /api/forgot-password`, `POST /api/reset-password`, `GET /api/user`. Elles répondent 404 sur le domaine de supervision.
 - **Sécurité** : 5 tentatives de connexion par minute (email + IP), mots de passe de 12 caractères minimum, comptes désactivables (`is_active`), même réponse à « mot de passe oublié » qu'une adresse soit connue ou non.
 - **Rôles** (spatie/laravel-permission, base du tenant) : `admin` (Administratrice) et `member` (Membre).
-- **Compte de développement** : `make start` (ou `make tenants-db-seed`) crée une administratrice dans chaque tenant, en local uniquement, à partir de `RIMEF_DEV_ADMIN_EMAIL` / `RIMEF_DEV_ADMIN_PASSWORD` (`backend/.env`, par défaut `admin@rimef.localhost` / `rimef-dev-admin`).
+- **Compte de développement** : `make start` (ou `make tenants-db-seed`) crée une administratrice dans chaque tenant, en local uniquement, à partir de `RIMEF_DEV_ADMIN_EMAIL` / `RIMEF_DEV_ADMIN_PASSWORD`. Renseignez vos propres identifiants dans `backend/.env` (non versionné) avant le premier lancement.
 - Les emails de réinitialisation sont visibles dans Mailpit (http://localhost:9826).
 
 ## Frontend

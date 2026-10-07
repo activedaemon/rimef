@@ -51,6 +51,56 @@ p {
   min-height: 44px;
 }
 
+// Champs de formulaire (fiche Field) : libellé au-dessus, bordure fine,
+// focus pétrole avec halo, erreur en terracotta
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.q-field--outlined .q-field__control {
+  border-radius: var(--radius-sm);
+  background: var(--card);
+
+  &::before {
+    border-color: var(--control-border);
+  }
+
+  &:hover::before {
+    border-color: var(--border-hover);
+  }
+}
+
+// Hauteur de la maquette (42 px) portée à 44 px pour la zone tactile
+.q-field--outlined.q-field--dense .q-field__control,
+.q-field--outlined.q-field--dense .q-field__marginal {
+  height: 44px;
+}
+
+.q-field--outlined.q-field--error .q-field__control::before {
+  border-color: var(--terracotta);
+}
+
+.q-field__bottom {
+  padding-top: 6px;
+  font-size: var(--fs-xs);
+}
+
+.q-field--outlined.q-field--focused .q-field__control {
+  box-shadow: 0 0 0 3px var(--petrol-light);
+
+  &::after {
+    border-width: 1px;
+  }
+}
+
+.q-field__native::placeholder {
+  color: var(--placeholder);
+}
+
 .container {
   width: 100%;
   max-width: var(--container);
