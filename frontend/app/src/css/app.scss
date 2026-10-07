@@ -101,6 +101,12 @@ p {
   color: var(--placeholder);
 }
 
+// Pages intérieures (Réseau, Agenda, Ressources, Profil) : fond ivoire ; l'accueil est sur paper
+.inner-page {
+  padding-bottom: var(--s-16);
+  background: var(--ivory);
+}
+
 .container {
   width: 100%;
   max-width: var(--container);

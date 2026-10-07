@@ -16,3 +16,8 @@ $warning: #d3a64a; // safran
 $typography-font-family: 'Inter Variable', 'Helvetica Neue', Arial, system-ui, sans-serif;
 $button-border-radius: 3px; // radius-xs
 $generic-border-radius: 6px; // radius-sm
+
+// Points de rupture alignés sur la charte : mobile < 720 px, tablette < 1080 px
+// (lt-sm / gt-xs, lt-md / gt-sm…) ; repris côté JavaScript dans main.ts (Screen.setSizes).
+$breakpoint-xs: 719px;
+$breakpoint-sm: 1079px;

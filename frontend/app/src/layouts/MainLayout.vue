@@ -1,42 +1,24 @@
 <script setup lang="ts">
-import AppLogo from '@/components/brand/AppLogo.vue';
+import { ref } from 'vue';
+
+import AppDrawer from './components/AppDrawer.vue';
+import AppFooter from './components/AppFooter.vue';
+import AppHeader from './components/AppHeader.vue';
+import AppTabBar from './components/AppTabBar.vue';
+
+const drawerOpen = ref(false);
 </script>
 
 <template>
-  <q-layout view="hHh lpR fff">
-    <q-header class="main-header">
-      <div class="container main-header__inner">
-        <router-link :to="{ name: 'home' }" class="main-header__home" aria-label="RIMEF, accueil">
-          <AppLogo decorative />
-        </router-link>
-      </div>
-    </q-header>
+  <q-layout view="hHh lpR fFf">
+    <AppHeader @open-drawer="drawerOpen = true" />
+    <AppDrawer v-if="$q.screen.lt.sm" v-model="drawerOpen" />
 
     <q-page-container>
       <router-view />
+      <AppFooter />
     </q-page-container>
+
+    <AppTabBar v-if="$q.screen.lt.sm" />
   </q-layout>
 </template>
-
-<style lang="scss" scoped>
-.main-header {
-  height: var(--header-h);
-  background: rgba(252, 250, 246, 0.94);
-  border-bottom: 1px solid var(--border);
-  color: var(--ink);
-  backdrop-filter: saturate(1.1) blur(6px);
-
-  &__inner {
-    display: flex;
-    align-items: center;
-    height: 100%;
-  }
-}
-
-.main-header__home {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  text-decoration: none;
-}
-</style>

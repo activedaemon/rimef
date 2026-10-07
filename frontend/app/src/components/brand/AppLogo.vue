@@ -1,8 +1,12 @@
 <script setup lang="ts">
-// Logo RIMEF : quatre feuilles, RIMEF et la mention « Réseau international des
-// médiatrices francophones » (public/logo-rimef.svg, texte vectorisé).
-// Sous 720 px, la version compacte sans mention (illisible à cette taille) prend le relais.
-withDefaults(
+// Logo RIMEF (texte vectorisé) :
+// - complet : feuilles, RIMEF et la mention (public/logo-rimef.svg), remplacé sous 720 px
+//   par la version compacte, la mention y étant illisible ;
+// - compact : feuilles centrées sur RIMEF, sans mention (bandeau du haut) ;
+// - sur fond sombre : texte ivoire (pied de page).
+import { computed } from 'vue';
+
+const props = withDefaults(
   defineProps<{
     /** Hauteur en px (version complète). */
     height?: number;
@@ -10,11 +14,22 @@ withDefaults(
     compactHeight?: number;
     /** Logo dans un lien déjà libellé : texte alternatif vide. */
     decorative?: boolean;
+    /** Sur fond sombre (pied de page) : texte ivoire. */
+    onDark?: boolean;
+    /** Version compacte (feuilles + RIMEF, sans la mention) à toutes les tailles. */
+    compact?: boolean;
   }>(),
-  { height: 52, compactHeight: 36, decorative: false }
+  { height: 52, compactHeight: 36, decorative: false, onDark: false, compact: false }
 );
 
 const LABEL = 'RIMEF — Réseau international des médiatrices francophones';
+
+const logoSource = computed(() => {
+  if (props.onDark) {
+    return '/logo-rimef-on-dark.svg';
+  }
+  return props.compact ? '/logo-rimef-compact.svg' : '/logo-rimef.svg';
+});
 </script>
 
 <template>
@@ -25,8 +40,12 @@ const LABEL = 'RIMEF — Réseau international des médiatrices francophones';
       '--logo-compact-height': `${compactHeight || height}px`,
     }"
   >
-    <source v-if="compactHeight" media="(max-width: 720px)" srcset="/logo-rimef-compact.svg" />
-    <img src="/logo-rimef.svg" :alt="decorative ? '' : LABEL" class="app-logo__img" />
+    <source
+      v-if="compactHeight && !onDark && !compact"
+      media="(max-width: 719px)"
+      srcset="/logo-rimef-compact.svg"
+    />
+    <img :src="logoSource" :alt="decorative ? '' : LABEL" class="app-logo__img" />
   </picture>
 </template>
 
@@ -41,7 +60,7 @@ const LABEL = 'RIMEF — Réseau international des médiatrices francophones';
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 719px) {
   .app-logo__img {
     height: var(--logo-compact-height);
   }

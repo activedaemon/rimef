@@ -18,6 +18,36 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@modules/home/views/HomeView.vue'),
         meta: { title: 'Accueil' },
       },
+      {
+        path: 'reseau',
+        name: 'network',
+        component: () => import('@modules/network/views/NetworkView.vue'),
+        meta: { title: 'Réseau' },
+      },
+      {
+        path: 'agenda',
+        name: 'agenda',
+        component: () => import('@modules/agenda/views/AgendaView.vue'),
+        meta: { title: 'Agenda' },
+      },
+      {
+        path: 'ressources',
+        name: 'resources',
+        component: () => import('@modules/resources/views/ResourcesView.vue'),
+        meta: { title: 'Ressources' },
+      },
+      {
+        path: 'profil',
+        name: 'profile',
+        component: () => import('@modules/profile/views/ProfileView.vue'),
+        meta: { title: 'Mon profil' },
+      },
+      {
+        path: 'profil/modifier',
+        name: 'profile-edit',
+        component: () => import('@modules/profile/views/ProfileEditView.vue'),
+        meta: { title: 'Modifier mon profil' },
+      },
     ],
   },
   {

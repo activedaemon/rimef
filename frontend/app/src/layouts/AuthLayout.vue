@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLogo from '@/components/brand/AppLogo.vue';
-import LeafMotif from '@/components/brand/LeafMotif.vue';
 </script>
 
 <template>
@@ -11,7 +10,6 @@ import LeafMotif from '@/components/brand/LeafMotif.vue';
           <AppLogo :height="76" :compact-height="0" class="auth-page__logo" />
 
           <div class="auth-card">
-            <LeafMotif class="auth-card__leaf" />
             <router-view />
           </div>
 
@@ -46,23 +44,12 @@ import LeafMotif from '@/components/brand/LeafMotif.vue';
 }
 
 .auth-card {
-  position: relative;
   width: 100%;
   padding: var(--s-8);
-  overflow: hidden;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-card);
-
-  &__leaf {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 96px;
-    height: 77px;
-    opacity: 0.9;
-  }
 }
 
 @media (max-width: 720px) {
@@ -72,11 +59,6 @@ import LeafMotif from '@/components/brand/LeafMotif.vue';
 
   .auth-card {
     padding: var(--s-6) var(--s-5);
-
-    &__leaf {
-      width: 72px;
-      height: 58px;
-    }
   }
 }
 </style>

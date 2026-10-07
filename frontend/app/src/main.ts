@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import { IconSet, Notify, Quasar } from 'quasar';
+import { IconSet, Notify, Quasar, Screen } from 'quasar';
 import langFr from 'quasar/lang/fr';
 import { createPinia } from 'pinia';
 
@@ -24,6 +24,9 @@ const app = createApp(App).use(createPinia()).use(router).use(Quasar, {
   lang: langFr,
   plugins: { Notify },
 });
+
+// Points de rupture de la charte (720 / 1080 px), identiques à quasar.variables.scss
+Screen.setSizes({ sm: 720, md: 1080, lg: 1440, xl: 1920 });
 
 // Session expirée pendant la navigation (401) : retour à la connexion, puis à la page en cours
 setUnauthorizedHandler(() => {
