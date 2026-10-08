@@ -30,6 +30,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SANCTUM_STATEFUL_DOMAINS" value="test.rimef.localhost"/>
+        <!-- Pas de superadmin automatique dans les tenants de test (créé explicitement) -->
+        <env name="RIMEF_SUPERADMIN_EMAIL" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
