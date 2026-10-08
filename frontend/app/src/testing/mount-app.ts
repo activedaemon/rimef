@@ -1,9 +1,9 @@
 // Montage de composants pour les tests (happy-dom) : Quasar, Pinia et un routeur en mémoire.
 import { mount, type ComponentMountingOptions } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { IconSet, Quasar } from 'quasar';
+import { IconSet, Notify, Quasar } from 'quasar';
 import type { Component } from 'vue';
-import { createMemoryHistory, createRouter, type RouteRecordRaw } from 'vue-router';
+import { createMemoryHistory, createRouter, RouterView, type RouteRecordRaw } from 'vue-router';
 
 import { tablerIconMapFn } from '@/lib/tabler-icon-set';
 
@@ -14,13 +14,41 @@ const Blank = { template: '<div />' };
 
 const ROUTE_NAMES = [
   ['/', 'home'],
-  ['/reseau', 'network'],
-  ['/agenda', 'agenda'],
-  ['/ressources', 'resources'],
-  ['/profil', 'profile'],
-  ['/profil/modifier', 'profile-edit'],
+  ['/recherche', 'search'],
   ['/connexion', 'login'],
 ] as const;
+
+// Rubriques avec leur recherche, comme dans router/index.ts
+const SECTION_ROUTES: RouteRecordRaw[] = [
+  {
+    path: '/reseau',
+    name: 'network',
+    component: Blank,
+    meta: { searchPlaceholder: 'Rechercher une médiatrice…', searchScope: 'reseau' },
+  },
+  {
+    path: '/agenda',
+    name: 'agenda',
+    component: Blank,
+    meta: { searchPlaceholder: 'Rechercher un événement…', searchScope: 'agenda' },
+  },
+  {
+    path: '/ressources',
+    name: 'resources',
+    component: Blank,
+    meta: { searchPlaceholder: 'Rechercher une ressource…', searchScope: 'ressources' },
+  },
+];
+
+// Même imbrication que router/index.ts pour le profil
+const PROFILE_ROUTES: RouteRecordRaw = {
+  path: '/profil',
+  component: RouterView,
+  children: [
+    { path: '', name: 'profile', component: Blank },
+    { path: 'modifier', name: 'profile-edit', component: Blank },
+  ],
+};
 
 export async function mountApp<T extends Component>(
   component: T,
@@ -28,18 +56,18 @@ export async function mountApp<T extends Component>(
 ) {
   const pinia = createPinia();
   setActivePinia(pinia);
-  const routes: RouteRecordRaw[] = ROUTE_NAMES.map(([routePath, name]) => ({
-    path: routePath,
-    name,
-    component: Blank,
-  }));
+  const routes: RouteRecordRaw[] = [
+    ...ROUTE_NAMES.map(([routePath, name]) => ({ path: routePath, name, component: Blank })),
+    ...SECTION_ROUTES,
+    PROFILE_ROUTES,
+  ];
   const router = createRouter({ history: createMemoryHistory(), routes });
   await router.push(path);
   await router.isReady();
 
   const wrapper = mount(component, {
     ...options,
-    global: { plugins: [Quasar, pinia, router], ...options.global },
+    global: { plugins: [[Quasar, { plugins: { Notify } }], pinia, router], ...options.global },
     attachTo: document.body,
   } as ComponentMountingOptions<T>);
 

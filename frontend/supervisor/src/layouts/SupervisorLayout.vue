@@ -5,10 +5,10 @@
         <router-link
           :to="{ name: 'dashboard' }"
           class="logo"
-          aria-label="RIMEF Supervision, tableau de bord"
+          aria-label="RIMeF Supervision, tableau de bord"
         >
           <img src="/favicon.svg" alt="" width="26" height="26" />
-          <span class="logo__word">RIMEF</span>
+          <span class="logo__word">RIMeF</span>
           <span class="logo__space">Supervision</span>
         </router-link>
       </div>

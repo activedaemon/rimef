@@ -1,5 +1,6 @@
 // Styles globaux RIMeF : jetons de la charte puis base typographique.
 @use 'tokens';
+@use 'components';
 
 body {
   background: var(--paper);

@@ -1,29 +1,30 @@
 <script setup lang="ts">
 // Barre d'onglets mobile (fiche TabBar), sous 720 px : Accueil, Réseau, Agenda, Ressources, Profil.
-import { useRoute } from 'vue-router';
-
-import { isNavigationItemActive, TAB_BAR_NAVIGATION } from '@/router/navigation';
-
-const route = useRoute();
+// q-tabs / q-route-tab (onde, indicateur animé) : choix assumé, les lecteurs d'écran
+// annoncent des « onglets » ; la zone reste une <nav> libellée.
+import { TAB_BAR_NAVIGATION } from '@/router/navigation';
 </script>
 
 <template>
   <q-footer class="app-tab-bar">
-    <nav class="app-tab-bar__nav" aria-label="Navigation mobile">
-      <q-btn
-        v-for="item in TAB_BAR_NAVIGATION"
-        :key="item.routeName"
-        flat
-        stack
+    <nav aria-label="Navigation mobile">
+      <q-tabs
         no-caps
-        :ripple="false"
-        :to="{ name: item.routeName }"
-        :icon="item.icon"
-        :label="item.label"
-        class="app-tab-bar__tab"
-        :class="{ 'app-tab-bar__tab--active': isNavigationItemActive(item, route.name) }"
-        :aria-current="isNavigationItemActive(item, route.name) ? 'page' : undefined"
-      />
+        switch-indicator
+        active-color="primary"
+        indicator-color="primary"
+        class="app-tab-bar__tabs"
+      >
+        <q-route-tab
+          v-for="item in TAB_BAR_NAVIGATION"
+          :key="item.routeName"
+          :to="{ name: item.routeName }"
+          :exact="item.routeName === 'home'"
+          :icon="item.icon"
+          :label="item.label"
+          class="app-tab-bar__tab"
+        />
+      </q-tabs>
     </nav>
   </q-footer>
 </template>
@@ -35,29 +36,34 @@ const route = useRoute();
   border-top: 1px solid var(--border);
   color: var(--muted);
 
-  &__nav {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+  &__tabs {
+    :deep(.q-tabs__content) {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    :deep(.q-tab__indicator) {
+      height: 2px;
+    }
   }
 
   &__tab {
     min-height: 56px;
     padding: 6px 0;
-    border-radius: 0;
-    font-size: 11px;
-    color: var(--muted);
 
-    :deep(.q-icon) {
-      margin-bottom: 3px;
+    :deep(.q-tab__icon) {
+      width: 21px;
+      height: 21px;
       font-size: 21px;
     }
 
-    :deep(.q-focus-helper) {
-      display: none;
+    :deep(.q-tab__label) {
+      margin-top: 3px;
+      font-size: 11px;
+      line-height: 1.2;
     }
 
-    &--active {
-      color: var(--petrol);
+    &.q-tab--active :deep(.q-tab__label) {
       font-weight: 600;
     }
   }

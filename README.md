@@ -1,6 +1,6 @@
 # RIMeF
 
-> **Plateforme web du Réseau International des Femmes Médiatrices Francophones**
+> **Plateforme web du Réseau International des Médiatrices Francophones**
 
 RIMeF est une application web destinée à faciliter l'accès à l'information, aux ressources et aux opportunités de mise en réseau pour les femmes médiatrices et les professionnelles impliquées dans les processus de paix et de médiation.
 
@@ -41,8 +41,8 @@ Tout l'espace des membres est réservé aux comptes connectés ; il n'y a pas d'
 - **Mécanisme** : Laravel Fortify + Sanctum en mode SPA (cookie de session, protection CSRF), sur le domaine du tenant. Sessions, cache et limiteur de tentatives sont stockés dans la base du tenant.
 - **Routes** (domaine du tenant) : `GET /api/sanctum/csrf-cookie`, `POST /api/login`, `POST /api/logout`, `POST /api/forgot-password`, `POST /api/reset-password`, `GET /api/user`. Elles répondent 404 sur le domaine de supervision.
 - **Sécurité** : 5 tentatives de connexion par minute (email + IP), mots de passe de 12 caractères minimum, comptes désactivables (`is_active`), même réponse à « mot de passe oublié » qu'une adresse soit connue ou non.
-- **Rôles** (spatie/laravel-permission, base du tenant) : `admin` (Administratrice) et `member` (Membre).
-- **Compte de développement** : `make start` (ou `make tenants-db-seed`) crée une administratrice dans chaque tenant, en local uniquement, à partir de `RIMEF_DEV_ADMIN_EMAIL` / `RIMEF_DEV_ADMIN_PASSWORD`. Renseignez vos propres identifiants dans `backend/.env` (non versionné) avant le premier lancement.
+- **Rôles** (spatie/laravel-permission, base du tenant) : `superadmin` (Superadministrateur, tous les droits), `admin` (Administratrice) et `member` (Membre).
+- **Superadmin** : David Gautier (`david@active-daemon.com`), créé ou rétabli dans chaque tenant et dans **tous les environnements** par `SuperAdminSeeder` (`make tenants-db-seed`, et automatiquement à la création d'un tenant). Son compte ne peut être ni supprimé, ni désactivé, ni privé de son rôle. Mot de passe lu dans `RIMEF_SUPERADMIN_PASSWORD` (`backend/.env`, non versionné) ; s'il est vide, le compte reçoit un mot de passe aléatoire, à remplacer via « Mot de passe oublié ».
 - Les emails de réinitialisation sont visibles dans Mailpit (http://localhost:9826).
 
 ## Frontend
@@ -135,7 +135,7 @@ make composer ARGS="require x/y" # Commande composer
 make migrate      # Migrations de la base centrale
 make tenants-seed # Créer les tenants et leurs domaines
 make tenants-migrate  # Migrations de toutes les bases tenant
-make tenants-db-seed  # Données initiales des tenants (rôles, admin de dev en local)
+make tenants-db-seed  # Données initiales des tenants (rôles, superadmin)
 make test         # Tests backend (Pest)
 make front-check  # Types + lint des deux frontends
 make front-test   # Tests des deux frontends (Vitest)

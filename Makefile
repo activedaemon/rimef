@@ -27,7 +27,7 @@ COMPOSE := cd .docker && docker compose -f docker-compose.yml
 
 help: ## @main Afficher ce message d'aide
 	@echo "$(CYAN)═══════════════════════════════════════════════════════════════$(NC)"
-	@echo "$(BLUE)RIMeF$(NC) - Réseau International des Femmes Médiatrices Francophones"
+	@echo "$(BLUE)RIMeF$(NC) - Réseau International des Médiatrices Francophones"
 	@echo "$(CYAN)═══════════════════════════════════════════════════════════════$(NC)"
 	@echo ""
 	@echo "$(MAGENTA)Cycle de vie :$(NC)"

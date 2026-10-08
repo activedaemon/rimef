@@ -1,6 +1,6 @@
 # RIMeF - Configuration Claude Code
 
-Bienvenue dans le projet **RIMeF** — plateforme web du *Réseau International des Femmes Médiatrices Francophones*.
+Bienvenue dans le projet **RIMeF** — plateforme web du *Réseau International des Médiatrices Francophones*.
 
 ## 🕊 Domaine métier
 
@@ -30,7 +30,7 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 ### Authentification
 
 - Espace des membres **entièrement réservé aux comptes connectés**, sans inscription publique (invitation à venir). Supervision : authentification à concevoir plus tard.
-- Fortify + Sanctum SPA (cookie de session) sur le domaine du tenant ; rôles `admin` / `member` via spatie/laravel-permission (enum `App\Enums\Role`). Toute nouvelle route métier du tenant va dans le groupe `auth:sanctum` + `EnsureUserIsActive` de `routes/tenant.php`.
+- Fortify + Sanctum SPA (cookie de session) sur le domaine du tenant ; rôles `superadmin` / `admin` / `member` via spatie/laravel-permission (enum `App\Enums\Role`). Le superadmin (David Gautier, `SuperAdminSeeder`, tous environnements) passe toutes les autorisations (`Gate::before`) et est protégé dans le modèle `User` : ni suppression, ni désactivation, ni retrait du rôle. Le seeding des tenants (`TenantDatabaseSeeder`) est relançable et s'exécute aussi à la création d'un tenant. Toute nouvelle route métier du tenant va dans le groupe `auth:sanctum` + `EnsureUserIsActive` de `routes/tenant.php`.
 - **Piège multi-tenant** : Laravel peut créer cache et sessions avant l'identification du tenant (base centrale). `App\Tenancy\DatabaseStoresTenancyBootstrapper` les réaligne : il doit rester juste après `DatabaseTenancyBootstrapper` dans `config/tenancy.php`.
 
 ### Principes directeurs

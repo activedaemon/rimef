@@ -6,7 +6,7 @@ export interface NavigationItem {
   routeName: string;
   /** Icône Tabler (sans le préfixe ti-). */
   icon: string;
-  /** Routes qui rendent le lien actif (par défaut : routeName seule). */
+  /** Routes qui rendent le lien actif dans le tiroir (par défaut : routeName seule). */
   activeFor?: string[];
 }
 
@@ -24,9 +24,18 @@ export const PROFILE_NAVIGATION: NavigationItem = {
   activeFor: ['profile', 'profile-edit'],
 };
 
+/** Pied de page : pages d'information. */
+export const FOOTER_NAVIGATION: NavigationItem[] = [
+  { label: 'À propos', routeName: 'about', icon: 'info-circle' },
+  { label: 'Contact', routeName: 'contact', icon: 'mail' },
+  { label: 'Mentions légales', routeName: 'legal-notice', icon: 'scale' },
+  { label: 'Confidentialité', routeName: 'privacy', icon: 'shield-lock' },
+];
+
 /** Barre d'onglets mobile : navigation principale + profil. */
 export const TAB_BAR_NAVIGATION: NavigationItem[] = [...MAIN_NAVIGATION, PROFILE_NAVIGATION];
 
+/** Lien courant dans le tiroir mobile (les q-route-tab gèrent seuls leur état actif). */
 export function isNavigationItemActive(item: NavigationItem, routeName: unknown): boolean {
   return typeof routeName === 'string' && (item.activeFor ?? [item.routeName]).includes(routeName);
 }

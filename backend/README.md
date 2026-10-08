@@ -1,6 +1,6 @@
 # RIMeF — Backend
 
-API Laravel de **RIMeF**, la plateforme du Réseau International des Femmes Médiatrices Francophones.
+API Laravel de **RIMeF**, la plateforme du Réseau International des Médiatrices Francophones.
 
 Le backend est une **API pure** : l'interface est servie par le frontend Quasar (`../frontend/`).
 Traefik lui transmet uniquement les requêtes `/api/*`.

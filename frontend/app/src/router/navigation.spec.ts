@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FOOTER_NAVIGATION,
   isNavigationItemActive,
   MAIN_NAVIGATION,
   PROFILE_NAVIGATION,
@@ -14,6 +15,15 @@ describe('navigation', () => {
       'Réseau',
       'Agenda',
       'Ressources',
+    ]);
+  });
+
+  it('lists the information pages in the footer', () => {
+    expect(FOOTER_NAVIGATION.map((item) => item.label)).toEqual([
+      'À propos',
+      'Contact',
+      'Mentions légales',
+      'Confidentialité',
     ]);
   });
 
