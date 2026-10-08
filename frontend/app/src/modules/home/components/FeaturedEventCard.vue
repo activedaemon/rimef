@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // Événement à la une (maquette Accueil) : visuel, titre, dates, lieu, participantes,
 // actions. « J'y participe » est une bascule locale tant que l'agenda n'existe pas.
-import { useQuasar } from 'quasar';
 import { computed, ref } from 'vue';
 
 import InitialsAvatar from '@/components/InitialsAvatar.vue';
+import { useNotify } from '@/composables/useNotify';
 import { mediatorCount, type FeaturedEvent } from '../services/home-feed';
 
 const props = defineProps<{ event: FeaturedEvent }>();
@@ -12,7 +12,7 @@ const props = defineProps<{ event: FeaturedEvent }>();
 /** Avatars affichés avant le « +N ». */
 const VISIBLE_ATTENDEES = 4;
 
-const $q = useQuasar();
+const notify = useNotify();
 const participating = ref(false);
 
 const count = computed(() => props.event.attendeeCount + (participating.value ? 1 : 0));
@@ -20,13 +20,11 @@ const hiddenCount = computed(() => props.event.attendeeCount - VISIBLE_ATTENDEES
 
 function toggleParticipation(): void {
   participating.value = !participating.value;
-  $q.notify({
-    message: participating.value
+  notify.info(
+    participating.value
       ? `Votre participation au ${props.event.title} est notée.`
-      : 'Participation retirée.',
-    position: 'bottom',
-    timeout: 2200,
-  });
+      : 'Participation retirée.'
+  );
 }
 </script>
 
