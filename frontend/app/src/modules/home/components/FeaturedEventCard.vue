@@ -5,7 +5,8 @@ import { computed, ref } from 'vue';
 
 import InitialsAvatar from '@/components/InitialsAvatar.vue';
 import { useNotify } from '@/composables/useNotify';
-import { mediatorCount, type FeaturedEvent } from '../services/home-feed';
+import { mediatorCount } from '@/lib/wording';
+import type { FeaturedEvent } from '../services/home-feed';
 
 const props = defineProps<{ event: FeaturedEvent }>();
 

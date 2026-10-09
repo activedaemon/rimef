@@ -14,6 +14,7 @@ const Blank = { template: '<div />' };
 
 const ROUTE_NAMES = [
   ['/', 'home'],
+  ['/reseau/:id', 'member'],
   ['/recherche', 'search'],
   ['/connexion', 'login'],
 ] as const;
@@ -24,7 +25,11 @@ const SECTION_ROUTES: RouteRecordRaw[] = [
     path: '/reseau',
     name: 'network',
     component: Blank,
-    meta: { searchPlaceholder: 'Rechercher une médiatrice…', searchScope: 'reseau' },
+    meta: {
+      searchPlaceholder: 'Rechercher une médiatrice…',
+      searchScope: 'reseau',
+      searchInPage: true,
+    },
   },
   {
     path: '/agenda',

@@ -116,8 +116,3 @@ const DEMO_FEED: HomeFeed = {
 export async function fetchHomeFeed(): Promise<HomeFeed> {
   return DEMO_FEED;
 }
-
-/** Accord de « médiatrice » selon le nombre. */
-export function mediatorCount(count: number): string {
-  return `${count} médiatrice${count > 1 ? 's' : ''}`;
-}

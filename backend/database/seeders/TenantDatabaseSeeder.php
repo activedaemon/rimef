@@ -17,6 +17,12 @@ class TenantDatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             SuperAdminSeeder::class,
+            ExpertiseSeeder::class,
         ]);
+
+        // Médiatrices fictives de l'annuaire : jamais hors du poste de développement.
+        if (app()->environment('local')) {
+            $this->call(DemoMembersSeeder::class);
+        }
     }
 }

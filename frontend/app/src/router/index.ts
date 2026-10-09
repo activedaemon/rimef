@@ -19,14 +19,27 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Accueil' },
       },
       {
+        // Routes imbriquées : l'onglet « Réseau » reste actif sur la fiche d'une médiatrice
         path: 'reseau',
-        name: 'network',
-        component: () => import('@modules/network/views/NetworkView.vue'),
+        component: RouterView,
         meta: {
-          title: 'Réseau',
           searchPlaceholder: 'Rechercher une médiatrice…',
           searchScope: 'reseau',
         },
+        children: [
+          {
+            path: '',
+            name: 'network',
+            component: () => import('@modules/network/views/NetworkView.vue'),
+            meta: { title: 'Réseau', searchInPage: true },
+          },
+          {
+            path: ':id(\\d+)',
+            name: 'member',
+            component: () => import('@modules/network/views/MemberProfileView.vue'),
+            meta: { title: 'Profil médiatrice' },
+          },
+        ],
       },
       {
         path: 'agenda',

@@ -72,4 +72,23 @@ describe('HeaderSearch', () => {
     expect(wrapper.find('form[role="search"] input').element).toHaveProperty('value', 'paix');
     wrapper.unmount();
   });
+
+  it('filters the current page when it searches in place, keeping its other criteria', async () => {
+    const { wrapper, router } = await mountApp(HeaderSearch, { path: '/reseau?region=europe' });
+
+    const form = wrapper.find('form[role="search"]');
+    await form.find('input').setValue(' Claire ');
+    await form.trigger('submit');
+    await flushPromises();
+
+    expect(router.currentRoute.value.name).toBe('network');
+    expect(router.currentRoute.value.query).toEqual({ region: 'europe', q: 'Claire' });
+
+    await form.find('input').setValue('');
+    await form.trigger('submit');
+    await flushPromises();
+
+    expect(router.currentRoute.value.query).toEqual({ region: 'europe' });
+    wrapper.unmount();
+  });
 });

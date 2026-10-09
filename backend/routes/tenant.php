@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\MemberController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
@@ -37,6 +38,9 @@ Route::middleware([
 
     Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
         Route::get('/user', CurrentUserController::class)->name('user.current');
+
+        Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+        Route::get('/members/filters', [MemberController::class, 'filters'])->name('members.filters');
     });
 });
 

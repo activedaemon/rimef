@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Prochains rendez-vous (maquette Accueil) : pastille date, titre, lieu, participantes.
 import DateTile from '@/components/DateTile.vue';
-import { mediatorCount, type Meeting } from '../services/home-feed';
+import { mediatorCount } from '@/lib/wording';
+import type { Meeting } from '../services/home-feed';
 
 defineProps<{ meetings: Meeting[] }>();
 </script>

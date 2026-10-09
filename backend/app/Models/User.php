@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
@@ -61,6 +62,16 @@ class User extends Authenticatable
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => trim("{$this->first_name} {$this->last_name}"));
+    }
+
+    /**
+     * Profil de médiatrice affiché dans l'annuaire (comptes ayant le rôle member).
+     *
+     * @return HasOne<MemberProfile, $this>
+     */
+    public function memberProfile(): HasOne
+    {
+        return $this->hasOne(MemberProfile::class);
     }
 
     /**
