@@ -1,15 +1,14 @@
 <script setup lang="ts">
 // En-tête (fiche SiteHeader) : logo, navigation principale, menu du compte.
 // Sous 720 px, la navigation passe dans le tiroir (bouton menu) et la barre d'onglets.
-import { useRoute } from 'vue-router';
-
+// Navigation en q-tabs / q-route-tab (onde, soulignement animé) : choix assumé, les
+// lecteurs d'écran annoncent des « onglets » ; la zone reste une <nav> libellée.
 import AppLogo from '@/components/brand/AppLogo.vue';
-import { isNavigationItemActive, MAIN_NAVIGATION } from '@/router/navigation';
+import { MAIN_NAVIGATION } from '@/router/navigation';
 import AccountMenu from './AccountMenu.vue';
+import HeaderSearch from './HeaderSearch.vue';
 
 defineEmits<{ 'open-drawer': [] }>();
-
-const route = useRoute();
 </script>
 
 <template>
@@ -24,26 +23,33 @@ const route = useRoute();
         @click="$emit('open-drawer')"
       />
 
-      <router-link :to="{ name: 'home' }" class="app-header__home" aria-label="RIMEF, accueil">
+      <router-link :to="{ name: 'home' }" class="app-header__home" aria-label="RIMeF, accueil">
         <AppLogo decorative compact :height="40" :compact-height="34" />
       </router-link>
 
       <nav class="app-header__nav gt-xs" aria-label="Navigation principale">
-        <q-btn
-          v-for="item in MAIN_NAVIGATION"
-          :key="item.routeName"
-          flat
+        <q-tabs
           no-caps
-          :ripple="false"
-          :to="{ name: item.routeName }"
-          :label="item.label"
-          class="app-header__link"
-          :class="{ 'app-header__link--active': isNavigationItemActive(item, route.name) }"
-          :aria-current="isNavigationItemActive(item, route.name) ? 'page' : undefined"
-        />
+          inline-label
+          align="left"
+          active-color="primary"
+          indicator-color="primary"
+          class="app-header__tabs"
+        >
+          <q-route-tab
+            v-for="item in MAIN_NAVIGATION"
+            :key="item.routeName"
+            :to="{ name: item.routeName }"
+            :exact="item.routeName === 'home'"
+            :icon="item.icon"
+            :label="item.label"
+            class="app-header__tab"
+          />
+        </q-tabs>
       </nav>
 
       <div class="app-header__tools">
+        <HeaderSearch />
         <AccountMenu />
       </div>
     </div>
@@ -72,48 +78,51 @@ const route = useRoute();
   }
 
   &__nav {
-    display: flex;
-    gap: var(--s-4);
     align-self: stretch;
   }
 
-  &__link {
-    position: relative;
-    align-self: stretch;
-    padding: 0 var(--s-2);
-    border-radius: 0;
+  &__tabs {
+    height: 100%;
+    color: var(--ink-2);
+
+    // Soulignement de 2 px au ras du filet du bandeau (fiche SiteHeader)
+    :deep(.q-tab__indicator) {
+      height: 2px;
+    }
+  }
+
+  &__tab {
+    min-height: 100%;
+    padding: 0 var(--s-4);
     font-size: var(--fs-sm);
     font-weight: 500;
-    color: var(--ink-2);
+
+    // Icône à gauche du libellé (inline-label)
+    :deep(.q-tab__icon) {
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+    }
+
+    :deep(.q-tab__label) {
+      padding-left: var(--s-2);
+      font-size: var(--fs-sm);
+      line-height: 1;
+    }
 
     &:hover {
       color: var(--ink);
     }
 
-    // Lien courant : pétrole, graisse 600, filet de 2 px au ras de la bordure
-    &--active {
-      color: var(--petrol);
+    &.q-tab--active {
       font-weight: 600;
-
-      &::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        bottom: -1px;
-        left: 0;
-        height: 2px;
-        background: var(--petrol);
-      }
-    }
-
-    :deep(.q-focus-helper) {
-      display: none;
     }
   }
 
   &__tools {
     display: flex;
     align-items: center;
+    gap: var(--s-4);
     margin-left: auto;
   }
 }

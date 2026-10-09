@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import { useSession } from '@/stores/session';
 
 const session = useSession();
-const roleLabel = computed(() => (session.isAdmin ? 'Administratrice' : 'Membre RIMEF'));
 </script>
 
 <template>
   <q-page class="inner-page">
     <div class="container">
-      <PageIntro :title="session.user?.name ?? 'Mon profil'" :eyebrow="roleLabel">
+      <PageIntro :title="session.user?.name ?? 'Mon profil'" :eyebrow="session.roleLabel">
         <q-btn
           outline
           color="primary"

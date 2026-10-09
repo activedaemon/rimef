@@ -1,62 +1,90 @@
 <script setup lang="ts">
-// Pied de page (fiche SiteFooter) : logo, navigation, devise, mention de copyright.
-// Langue, réseaux sociaux et pages d'information viendront avec leurs contenus.
-import AppLogo from '@/components/brand/AppLogo.vue';
-import { MAIN_NAVIGATION } from '@/router/navigation';
+// Pied de page (fiche SiteFooter) : pages d'information à gauche, mention de copyright à
+// droite sur la même ligne, ornement feuilles blanches en filigrane à droite (décoratif).
+import { FOOTER_NAVIGATION } from '@/router/navigation';
 
 const YEAR = new Date().getFullYear();
 </script>
 
 <template>
   <footer class="app-footer">
-    <div class="container app-footer__inner">
-      <router-link :to="{ name: 'home' }" class="app-footer__home" aria-label="RIMEF, accueil">
-        <AppLogo on-dark decorative :height="56" :compact-height="0" />
-      </router-link>
+    <img src="/rimef-feuilles-blanc.svg" alt="" aria-hidden="true" class="app-footer__ornament" />
 
-      <nav class="app-footer__nav" aria-label="Pied de page">
-        <router-link
-          v-for="item in MAIN_NAVIGATION"
-          :key="item.routeName"
-          :to="{ name: item.routeName }"
-          class="app-footer__link"
-        >
-          {{ item.label }}
-        </router-link>
+    <div class="container app-footer__inner">
+      <nav class="app-footer__nav" aria-label="Informations">
+        <ul class="app-footer__list">
+          <li v-for="item in FOOTER_NAVIGATION" :key="item.routeName" class="app-footer__item">
+            <router-link :to="{ name: item.routeName }" class="app-footer__link">
+              {{ item.label }}
+            </router-link>
+          </li>
+        </ul>
       </nav>
 
-      <p class="app-footer__motto">Des femmes en dialogue pour des sociétés plus pacifiques.</p>
-    </div>
-
-    <div class="app-footer__bottom">
-      <div class="container">
-        © {{ YEAR }} RIMEF · Réseau International des Médiatrices Francophones
-      </div>
+      <p class="app-footer__copyright">
+        © {{ YEAR }} RIMeF · Réseau International des Médiatrices Francophones
+      </p>
     </div>
   </footer>
 </template>
 
 <style lang="scss" scoped>
 .app-footer {
+  position: relative;
+  overflow: hidden;
   background: var(--petrol-dark);
   color: var(--on-dark);
 
   &__inner {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    position: relative;
+    display: flex;
     align-items: center;
-    gap: var(--s-10);
-    padding-block: var(--s-10);
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-8);
+    padding-block: var(--s-5);
   }
 
-  &__home {
-    display: inline-flex;
+  // Filigrane ancré dans le coin droit, rogné par le pied de page
+  &__ornament {
+    position: absolute;
+    right: max(var(--gutter), calc((100% - var(--container)) / 2 + var(--gutter)));
+    bottom: -48px;
+    height: 190px;
+    opacity: 0.12;
+    pointer-events: none;
+    user-select: none;
   }
 
+  // Point médian entre les liens, hors des liens et masqué aux lecteurs d'écran.
+  // Le point qui tomberait en début de ligne (retour à la ligne) est rogné par
+  // overflow: hidden grâce à la marge négative de la liste.
   &__nav {
+    flex-shrink: 0; // les liens restent sur une ligne ; seule la mention passe à la ligne
+    overflow: hidden;
+  }
+
+  &__list {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--s-2) var(--s-6);
+    margin: 0 0 0 calc(-1 * var(--s-6));
+    padding: 4px 0;
+    list-style: none;
+  }
+
+  &__item {
+    position: relative;
+    padding-left: var(--s-6);
+
+    &::before {
+      content: '·' / '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: var(--s-6);
+      color: rgba(245, 241, 232, 0.5);
+      text-align: center;
+      transform: translateY(-50%);
+    }
   }
 
   &__link {
@@ -73,40 +101,35 @@ const YEAR = new Date().getFullYear();
     }
   }
 
-  &__motto {
-    max-width: 26ch;
-    // noinspection CssNoGenericFontName
-    font-family: var(--font-serif);
-    font-size: 1.05rem;
-    font-style: italic;
-    line-height: 1.35;
-  }
-
-  &__bottom {
-    padding-block: var(--s-4);
-    border-top: 1px solid rgba(245, 241, 232, 0.14);
+  // À droite des liens, mais arrêtée avant les feuilles en filigrane (≈ 135 px de large)
+  &__copyright {
+    margin-right: 160px;
     font-size: var(--fs-xs);
     color: rgba(245, 241, 232, 0.72);
-  }
-}
-
-@media (max-width: 1079px) {
-  .app-footer__inner {
-    grid-template-columns: auto 1fr;
-  }
-
-  .app-footer__motto {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    max-width: none;
+    text-align: right;
   }
 }
 
 @media (max-width: 719px) {
   .app-footer__inner {
-    grid-template-columns: 1fr;
-    gap: var(--s-6);
-    padding-block: var(--s-8);
+    flex-direction: column;
+    align-items: flex-start;
+    padding-block: var(--s-5) var(--s-6);
+  }
+
+  .app-footer__nav {
+    flex-shrink: 1;
+  }
+
+  .app-footer__copyright {
+    margin-right: 0;
+    text-align: left;
+  }
+
+  .app-footer__ornament {
+    right: var(--s-2);
+    bottom: -36px;
+    height: 150px;
   }
 }
 </style>

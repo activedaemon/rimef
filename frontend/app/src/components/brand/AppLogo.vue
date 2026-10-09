@@ -1,9 +1,8 @@
 <script setup lang="ts">
-// Logo RIMEF (texte vectorisé) :
-// - complet : feuilles, RIMEF et la mention (public/logo-rimef.svg), remplacé sous 720 px
+// Logo RIMeF (texte vectorisé) :
+// - complet : feuilles, RIMeF et la mention (public/logo-rimef.svg), remplacé sous 720 px
 //   par la version compacte, la mention y étant illisible ;
-// - compact : feuilles centrées sur RIMEF, sans mention (bandeau du haut) ;
-// - sur fond sombre : texte ivoire (pied de page).
+// - compact : feuilles centrées sur RIMeF, sans mention (bandeau du haut).
 import { computed } from 'vue';
 
 const props = withDefaults(
@@ -14,22 +13,15 @@ const props = withDefaults(
     compactHeight?: number;
     /** Logo dans un lien déjà libellé : texte alternatif vide. */
     decorative?: boolean;
-    /** Sur fond sombre (pied de page) : texte ivoire. */
-    onDark?: boolean;
-    /** Version compacte (feuilles + RIMEF, sans la mention) à toutes les tailles. */
+    /** Version compacte (feuilles + RIMeF, sans la mention) à toutes les tailles. */
     compact?: boolean;
   }>(),
-  { height: 52, compactHeight: 36, decorative: false, onDark: false, compact: false }
+  { height: 52, compactHeight: 36, decorative: false, compact: false }
 );
 
-const LABEL = 'RIMEF — Réseau international des médiatrices francophones';
+const LABEL = 'RIMeF — Réseau International des Médiatrices Francophones';
 
-const logoSource = computed(() => {
-  if (props.onDark) {
-    return '/logo-rimef-on-dark.svg';
-  }
-  return props.compact ? '/logo-rimef-compact.svg' : '/logo-rimef.svg';
-});
+const logoSource = computed(() => (props.compact ? '/logo-rimef-compact.svg' : '/logo-rimef.svg'));
 </script>
 
 <template>
@@ -41,7 +33,7 @@ const logoSource = computed(() => {
     }"
   >
     <source
-      v-if="compactHeight && !onDark && !compact"
+      v-if="compactHeight && !compact"
       media="(max-width: 719px)"
       srcset="/logo-rimef-compact.svg"
     />

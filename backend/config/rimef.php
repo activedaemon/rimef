@@ -16,17 +16,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Compte administratrice de développement
+    | Superadmin
     |--------------------------------------------------------------------------
     |
-    | Créé par TenantDatabaseSeeder dans chaque tenant, en environnement local
-    | uniquement et seulement si email et mot de passe sont renseignés.
+    | Compte protégé (ni supprimable, ni désactivable), créé dans chaque tenant et
+    | dans tous les environnements par SuperAdminSeeder. Sans mot de passe défini,
+    | il en reçoit un aléatoire : le choisir via « Mot de passe oublié ».
     |
     */
 
-    'dev_admin' => [
-        'email' => env('RIMEF_DEV_ADMIN_EMAIL'),
-        'password' => env('RIMEF_DEV_ADMIN_PASSWORD'),
+    'superadmin' => [
+        'email' => env('RIMEF_SUPERADMIN_EMAIL', 'david@active-daemon.com'),
+        'password' => env('RIMEF_SUPERADMIN_PASSWORD'),
+        'first_name' => 'David',
+        'last_name' => 'Gautier',
     ],
 
 ];

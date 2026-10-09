@@ -1,0 +1,70 @@
+// Éléments partagés du design system (fiches Card, LinkMore, Badge), appliqués aux
+// composants Quasar par des classes : .rimef-card sur q-card, .rimef-badge sur q-badge.
+
+// Carte (fiche Card) : fond card, filet fin, coins 6 px, ombre quasi nulle
+.rimef-card.q-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.card-title {
+  font-size: var(--fs-h3);
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+}
+
+// Lien discret « Voir tout » (fiche LinkMore)
+.link-more {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--petrol);
+  text-decoration: underline;
+  text-decoration-color: rgba(35, 76, 85, 0.35);
+  text-underline-offset: 3px;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration-color: var(--petrol);
+  }
+}
+
+// Métadonnée : icône 15 px atténuée + texte 13 px
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+
+  .q-icon {
+    color: var(--muted);
+  }
+}
+
+// Badge d'état rectangulaire (fiche Badge) ; couleur par les props Quasar :
+// <q-badge class="rimef-badge" color="sage-light" text-color="sage-ink" />
+.rimef-badge.q-badge {
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+// Couleurs de la charte utilisables dans les props color / text-color de Quasar
+.bg-sage-light {
+  background: var(--sage-light) !important;
+}
+
+.text-sage-ink {
+  color: var(--sage-ink) !important;
+}

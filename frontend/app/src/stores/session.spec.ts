@@ -94,6 +94,20 @@ describe('useSession', () => {
     expect(session.authenticated).toBe(false);
   });
 
+  it.each([
+    [['superadmin'], 'Superadministrateur', true],
+    [['admin'], 'Administratrice', true],
+    [['member'], 'Membre RIMeF', false],
+  ])('labels the roles %j as « %s »', async (roles, label, isAdmin) => {
+    vi.mocked(auth.fetchCurrentUser).mockResolvedValue({ ...aminata, roles });
+    const session = useSession();
+
+    await session.bootstrap();
+
+    expect(session.roleLabel).toBe(label);
+    expect(session.isAdmin).toBe(isAdmin);
+  });
+
   it('forgets the member on logout even if the API call fails', async () => {
     vi.mocked(auth.fetchCurrentUser).mockResolvedValue(aminata);
     vi.mocked(auth.logout).mockRejectedValue(httpError(500));

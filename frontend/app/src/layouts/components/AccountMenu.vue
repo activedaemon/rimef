@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Menu du compte (fiche AccountMenu) : identité, profil, déconnexion.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 
 import { useLogout } from '@/composables/useLogout';
 import { useSession } from '@/stores/session';
@@ -9,8 +9,6 @@ import { useSession } from '@/stores/session';
 const session = useSession();
 const { logout, loggingOut } = useLogout();
 const menuList = ref<{ $el: HTMLElement } | null>(null);
-
-const roleLabel = computed(() => (session.isAdmin ? 'Administratrice' : 'Membre RIMEF'));
 
 function focusFirstItem(): void {
   menuList.value?.$el.querySelector<HTMLElement>('.q-item')?.focus();
@@ -45,7 +43,7 @@ function moveFocus(event: KeyboardEvent): void {
         <q-avatar size="40px" class="account-button__avatar">{{ session.initials }}</q-avatar>
         <div>
           <p class="account-menu__name">{{ session.user?.name }}</p>
-          <p class="account-menu__role">{{ roleLabel }}</p>
+          <p class="account-menu__role">{{ session.roleLabel }}</p>
         </div>
       </div>
 

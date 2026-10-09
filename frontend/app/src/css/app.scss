@@ -1,5 +1,6 @@
 // Styles globaux RIMeF : jetons de la charte puis base typographique.
 @use 'tokens';
+@use 'components';
 
 body {
   background: var(--paper);
@@ -132,5 +133,13 @@ p {
   *::after {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+// Sous 720 px, les notifications du bas s'affichent au-dessus de la barre d'onglets
+// (56 px + bordure, voir AppTabBar.vue)
+@media (max-width: 719px) {
+  .q-notifications__list--bottom {
+    bottom: calc(57px + env(safe-area-inset-bottom, 0px));
   }
 }

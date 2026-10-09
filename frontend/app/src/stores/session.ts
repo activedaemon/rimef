@@ -20,7 +20,18 @@ export const useSession = defineStore('session', () => {
   let bootstrapPromise: Promise<void> | null = null;
 
   const authenticated = computed(() => user.value !== null);
-  const isAdmin = computed(() => user.value?.roles.includes('admin') ?? false);
+  const isSuperAdmin = computed(() => user.value?.roles.includes('superadmin') ?? false);
+  // Le superadmin a aussi tous les droits d'administration
+  const isAdmin = computed(
+    () => isSuperAdmin.value || (user.value?.roles.includes('admin') ?? false)
+  );
+  /** Rôle affiché (menu du compte, profil). */
+  const roleLabel = computed(() => {
+    if (isSuperAdmin.value) {
+      return 'Superadministrateur';
+    }
+    return isAdmin.value ? 'Administratrice' : 'Membre RIMeF';
+  });
   const initials = computed(() =>
     user.value ? `${user.value.first_name.charAt(0)}${user.value.last_name.charAt(0)}` : ''
   );
@@ -64,5 +75,17 @@ export const useSession = defineStore('session', () => {
     user.value = null;
   }
 
-  return { user, bootstrapped, authenticated, isAdmin, initials, bootstrap, login, logout, clear };
+  return {
+    user,
+    bootstrapped,
+    authenticated,
+    isSuperAdmin,
+    isAdmin,
+    roleLabel,
+    initials,
+    bootstrap,
+    login,
+    logout,
+    clear,
+  };
 });

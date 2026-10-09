@@ -1,9 +1,9 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory, RouterView, type RouteRecordRaw } from 'vue-router';
 
 import { safeRedirect } from '@/lib/redirect';
 import { useSession } from '@/stores/session';
 
-const APP_NAME = 'RIMEF';
+const APP_NAME = 'RIMeF';
 
 // Tout l'espace des membres est réservé aux comptes connectés : une route est
 // protégée sauf si elle (ou un parent) porte `meta.public` ou `meta.guestOnly`.
@@ -22,31 +22,88 @@ const routes: RouteRecordRaw[] = [
         path: 'reseau',
         name: 'network',
         component: () => import('@modules/network/views/NetworkView.vue'),
-        meta: { title: 'Réseau' },
+        meta: {
+          title: 'Réseau',
+          searchPlaceholder: 'Rechercher une médiatrice…',
+          searchScope: 'reseau',
+        },
       },
       {
         path: 'agenda',
         name: 'agenda',
         component: () => import('@modules/agenda/views/AgendaView.vue'),
-        meta: { title: 'Agenda' },
+        meta: {
+          title: 'Agenda',
+          searchPlaceholder: 'Rechercher un événement…',
+          searchScope: 'agenda',
+        },
       },
       {
         path: 'ressources',
         name: 'resources',
         component: () => import('@modules/resources/views/ResourcesView.vue'),
-        meta: { title: 'Ressources' },
+        meta: {
+          title: 'Ressources',
+          searchPlaceholder: 'Rechercher une ressource…',
+          searchScope: 'ressources',
+        },
       },
       {
+        // Routes imbriquées : l'onglet « Profil » reste actif sur /profil/modifier
         path: 'profil',
-        name: 'profile',
-        component: () => import('@modules/profile/views/ProfileView.vue'),
-        meta: { title: 'Mon profil' },
+        component: RouterView,
+        children: [
+          {
+            path: '',
+            name: 'profile',
+            component: () => import('@modules/profile/views/ProfileView.vue'),
+            meta: {
+              title: 'Mon profil',
+              searchPlaceholder: 'Rechercher un événement, une médiatrice…',
+            },
+          },
+          {
+            path: 'modifier',
+            name: 'profile-edit',
+            component: () => import('@modules/profile/views/ProfileEditView.vue'),
+            meta: {
+              title: 'Modifier mon profil',
+              searchPlaceholder: 'Rechercher une médiatrice, un événement…',
+            },
+          },
+        ],
       },
       {
-        path: 'profil/modifier',
-        name: 'profile-edit',
-        component: () => import('@modules/profile/views/ProfileEditView.vue'),
-        meta: { title: 'Modifier mon profil' },
+        path: 'recherche',
+        name: 'search',
+        component: () => import('@modules/search/views/SearchView.vue'),
+        meta: { title: 'Recherche' },
+      },
+      {
+        path: 'a-propos',
+        name: 'about',
+        component: () => import('@modules/info/views/AboutView.vue'),
+        meta: { title: 'À propos' },
+      },
+      {
+        path: 'contact',
+        name: 'contact',
+        component: () => import('@modules/info/views/ContactView.vue'),
+        meta: { title: 'Contact' },
+      },
+      {
+        // À rendre consultable sans connexion (LCEN) quand son contenu sera rédigé
+        path: 'mentions-legales',
+        name: 'legal-notice',
+        component: () => import('@modules/info/views/LegalNoticeView.vue'),
+        meta: { title: 'Mentions légales' },
+      },
+      {
+        // À rendre consultable sans connexion (RGPD) quand son contenu sera rédigé
+        path: 'confidentialite',
+        name: 'privacy',
+        component: () => import('@modules/info/views/PrivacyView.vue'),
+        meta: { title: 'Confidentialité' },
       },
     ],
   },

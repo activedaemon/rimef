@@ -32,7 +32,7 @@ onMounted(loadHealth);
   <q-page class="dashboard">
     <div class="container">
       <h1 class="dashboard__title">Tableau de bord</h1>
-      <p class="dashboard__intro">Gestion des tenants de la plateforme RIMEF.</p>
+      <p class="dashboard__intro">Gestion des tenants de la plateforme RIMeF.</p>
 
       <q-card flat bordered class="health" aria-labelledby="health-title">
         <q-card-section class="health__body" aria-live="polite">

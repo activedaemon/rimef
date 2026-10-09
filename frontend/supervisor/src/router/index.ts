@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
-const APP_NAME = 'RIMEF Supervision';
+const APP_NAME = 'RIMeF Supervision';
 
 const routes: RouteRecordRaw[] = [
   {

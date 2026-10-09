@@ -1,6 +1,6 @@
 # RIMeF - Configuration Claude Code
 
-Bienvenue dans le projet **RIMeF** — plateforme web du *Réseau International des Femmes Médiatrices Francophones*.
+Bienvenue dans le projet **RIMeF** — plateforme web du *Réseau International des Médiatrices Francophones*.
 
 ## 🕊 Domaine métier
 
@@ -30,7 +30,7 @@ RIMeF facilite l'accès à l'information, aux ressources et aux opportunités de
 ### Authentification
 
 - Espace des membres **entièrement réservé aux comptes connectés**, sans inscription publique (invitation à venir). Supervision : authentification à concevoir plus tard.
-- Fortify + Sanctum SPA (cookie de session) sur le domaine du tenant ; rôles `admin` / `member` via spatie/laravel-permission (enum `App\Enums\Role`). Toute nouvelle route métier du tenant va dans le groupe `auth:sanctum` + `EnsureUserIsActive` de `routes/tenant.php`.
+- Fortify + Sanctum SPA (cookie de session) sur le domaine du tenant ; rôles `superadmin` / `admin` / `member` via spatie/laravel-permission (enum `App\Enums\Role`). Le superadmin (David Gautier, `SuperAdminSeeder`, tous environnements) passe toutes les autorisations (`Gate::before`) et est protégé dans le modèle `User` : ni suppression, ni désactivation, ni retrait du rôle. Le seeding des tenants (`TenantDatabaseSeeder`) est relançable et s'exécute aussi à la création d'un tenant. Toute nouvelle route métier du tenant va dans le groupe `auth:sanctum` + `EnsureUserIsActive` de `routes/tenant.php`.
 - **Piège multi-tenant** : Laravel peut créer cache et sessions avant l'identification du tenant (base centrale). `App\Tenancy\DatabaseStoresTenancyBootstrapper` les réaligne : il doit rester juste après `DatabaseTenancyBootstrapper` dans `config/tenancy.php`.
 
 ### Principes directeurs
@@ -109,6 +109,8 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 | Nginx | `rimef-nginx` | reçoit de Traefik les requêtes `/api/*` de `rimef.localhost` et `*.rimef.localhost` (dont `supervisor.`) |
 | MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef_central`) |
 | Mailpit | `rimef-mailpit` | UI `http://localhost:9826`, SMTP `9526` |
+
+- **Test des emails** (hors production) : `http://rimef.localhost:9280/api/dev/emails` pour prévisualiser chaque email et en envoyer un exemplaire vers Mailpit. Tout nouvel email s'ajoute au catalogue de `App\Http\Controllers\Dev\EmailPreviewController`.
 
 - Ports en **92xx** pour cohabiter avec Fruxa (91xx) sur le même poste.
 - MySQL stocke les dates en **UTC** ; la conversion dans le fuseau de l'utilisatrice se fait côté application.

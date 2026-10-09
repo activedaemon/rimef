@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
+import QuoteBlock from '@/components/QuoteBlock.vue';
 </script>
 
 <template>
   <q-page class="inner-page">
     <div class="container">
       <PageIntro title="Réseau" lead="Les médiatrices et professionnelles de la paix du réseau." />
+      <QuoteBlock text="Un réseau pensé par et pour les médiatrices francophones." />
       <EmptyState
         icon="users"
         title="L’annuaire arrive bientôt"

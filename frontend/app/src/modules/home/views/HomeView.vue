@@ -1,98 +1,116 @@
 <script setup lang="ts">
-import PageIntro from '@/components/PageIntro.vue';
-import { MAIN_NAVIGATION } from '@/router/navigation';
+// Accueil (maquette) : bandeau, événement à la une et citation, trois blocs
+// (rendez-vous, nouveautés, ressources), bandeau éditorial.
+import { onMounted, ref } from 'vue';
+
+import QuoteBlock from '@/components/QuoteBlock.vue';
 import { useSession } from '@/stores/session';
+import EditorialBand from '../components/EditorialBand.vue';
+import FeaturedEventCard from '../components/FeaturedEventCard.vue';
+import HomeHero from '../components/HomeHero.vue';
+import NetworkNewsCard from '../components/NetworkNewsCard.vue';
+import ResourcesCard from '../components/ResourcesCard.vue';
+import UpcomingMeetingsCard from '../components/UpcomingMeetingsCard.vue';
+import { fetchHomeFeed, type HomeFeed } from '../services/home-feed';
 
 const session = useSession();
+const feed = ref<HomeFeed | null>(null);
 
-const SHORTCUTS: Record<string, string> = {
-  network: 'Les médiatrices du réseau, leurs expertises et leurs langues.',
-  agenda: 'Les rencontres internationales et régionales à venir.',
-  resources: 'Rapports, analyses, publications et formations.',
-};
-const shortcuts = MAIN_NAVIGATION.filter((item) => item.routeName in SHORTCUTS);
+onMounted(async () => {
+  feed.value = await fetchHomeFeed();
+});
 </script>
 
 <template>
   <q-page class="home">
-    <div class="container">
-      <PageIntro
-        eyebrow="Réseau International des Femmes Médiatrices Francophones"
-        :title="`Bonjour, ${session.user?.first_name ?? ''}`"
-        lead="Retrouvez le réseau, l’agenda des rencontres et la bibliothèque de ressources."
-      />
+    <HomeHero :first-name="session.user?.first_name ?? ''" />
 
-      <nav class="home__shortcuts" aria-label="Accès rapides">
-        <q-card
-          v-for="item in shortcuts"
-          :key="item.routeName"
-          flat
-          bordered
-          class="home__shortcut"
-        >
-          <router-link :to="{ name: item.routeName }" class="home__shortcut-link">
-            <q-icon :name="item.icon" size="22px" class="home__shortcut-icon" />
-            <span class="home__shortcut-title">{{ item.label }}</span>
-            <span class="home__shortcut-text">{{ SHORTCUTS[item.routeName] }}</span>
-          </router-link>
-        </q-card>
-      </nav>
+    <div v-if="feed" class="container home__main">
+      <div class="home__feature-row">
+        <FeaturedEventCard v-if="feed.featuredEvent" :event="feed.featuredEvent" />
+        <QuoteBlock
+          variant="card"
+          tone="ivory"
+          text="Des processus de paix inclusifs, pour une paix plus durable."
+        />
+      </div>
+
+      <div class="home__blocks">
+        <UpcomingMeetingsCard :meetings="feed.meetings" />
+        <NetworkNewsCard :news="feed.news" />
+        <ResourcesCard :resources="feed.resources" class="home__last-block" />
+      </div>
+
+      <EditorialBand class="home__band" />
     </div>
   </q-page>
 </template>
 
 <style lang="scss" scoped>
+// Contenu sous le bandeau, sur fond paper (maquette)
 .home {
-  padding-bottom: var(--s-16);
+  padding-bottom: 44px;
   background: var(--paper);
 
-  &__shortcuts {
+  &__main {
+    padding-top: 28px;
+  }
+
+  &__feature-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--s-6);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 24px;
   }
 
-  &__shortcut {
-    background: var(--card);
-    border-color: var(--border);
-    box-shadow: var(--shadow-card);
-    transition: border-color 0.15s;
-
-    &:hover {
-      border-color: var(--border-hover);
-    }
-  }
-
-  &__shortcut-link {
+  &__blocks {
     display: grid;
-    gap: var(--s-2);
-    height: 100%;
-    padding: var(--s-6);
-    color: inherit;
-    text-decoration: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: 24px;
   }
 
-  &__shortcut-icon {
-    color: var(--petrol);
-  }
-
-  &__shortcut-title {
-    // noinspection CssNoGenericFontName
-    font-family: var(--font-serif);
-    font-size: var(--fs-h3);
-    color: var(--ink);
-  }
-
-  &__shortcut-text {
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
+  &__band {
+    margin-top: 32px;
   }
 }
 
 @media (max-width: 1079px) {
-  .home__shortcuts {
-    grid-template-columns: 1fr;
-    gap: var(--s-4);
+  .home {
+    &__feature-row {
+      grid-template-columns: 1fr;
+    }
+
+    &__blocks {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__last-block {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (max-width: 719px) {
+  .home {
+    padding-bottom: 32px;
+
+    &__main {
+      padding-top: 20px;
+    }
+
+    &__feature-row {
+      gap: 16px;
+    }
+
+    &__blocks {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    &__band {
+      margin-top: 24px;
+    }
   }
 }
 </style>

@@ -1,7 +1,7 @@
 {
     "name": "activedaemon/rimef-backend",
     "type": "project",
-    "description": "API Laravel de RIMeF, plateforme du Réseau International des Femmes Médiatrices Francophones.",
+    "description": "API Laravel de RIMeF, plateforme du Réseau International des Médiatrices Francophones.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
