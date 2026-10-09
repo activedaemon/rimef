@@ -25,12 +25,12 @@ class ListMembersRequest extends FormRequest
             'expertise.*' => ['integer'],
             'region' => ['array'],
             'region.*' => [Rule::enum(Region::class)],
-            'language' => ['array', 'max:50'],
-            'language.*' => ['string', 'max:3'],
             'organization' => ['array'],
             'organization.*' => [Rule::enum(OrganizationType::class)],
             'available' => ['boolean'],
-            'sort' => ['nullable', Rule::in(['name', 'country'])],
+            'favorites' => ['boolean'],
+            'upcoming' => ['boolean'],
+            'sort' => ['nullable', Rule::in(['name', 'country', 'event'])],
             'page' => ['integer', 'min:1'],
         ];
     }

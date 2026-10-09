@@ -31,12 +31,4 @@ class MemberProfileFactory extends Factory
     {
         return $this->state(fn (array $attributes) => ['is_available' => true]);
     }
-
-    /**
-     * Langues parlées, dans l'ordre donné (codes ISO 639-1).
-     */
-    public function speaking(string ...$codes): static
-    {
-        return $this->afterCreating(fn (MemberProfile $profile) => $profile->syncLanguages(array_values($codes)));
-    }
 }

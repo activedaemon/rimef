@@ -10,14 +10,14 @@ describe('UpcomingMeetingsCard', () => {
       props: {
         meetings: [
           {
-            id: 'm1',
+            id: 1,
             day: '18',
             month: 'OCT',
             title: 'EU Community',
             place: 'Bruxelles',
             attendeeCount: 5,
           },
-          { id: 'm2', day: '26', month: 'OCT', title: 'Dakar', place: 'Dakar', attendeeCount: 1 },
+          { id: 2, day: '26', month: 'OCT', title: 'Dakar', place: 'Dakar', attendeeCount: 1 },
         ],
       },
     });

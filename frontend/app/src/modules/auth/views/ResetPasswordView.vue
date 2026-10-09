@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import AppButton from '@/components/AppButton.vue';
 import { extractApiError } from '@/lib/http';
 import { resetPassword } from '../services/auth';
 
@@ -105,11 +106,8 @@ async function submit(): Promise<void> {
         />
       </div>
 
-      <q-btn
+      <AppButton
         type="submit"
-        color="primary"
-        unelevated
-        no-caps
         label="Enregistrer le mot de passe"
         class="auth-form__submit"
         :loading="submitting"

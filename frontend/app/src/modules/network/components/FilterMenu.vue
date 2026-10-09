@@ -35,6 +35,7 @@ const count = computed(() => selected.value.length);
     <q-btn
       unelevated
       no-caps
+      :ripple="false"
       class="filter-chip"
       :class="{
         'filter-chip--ghost': ghost,

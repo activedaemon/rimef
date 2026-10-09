@@ -20,9 +20,9 @@ class TenantDatabaseSeeder extends Seeder
             ExpertiseSeeder::class,
         ]);
 
-        // Médiatrices fictives de l'annuaire : jamais hors du poste de développement.
+        // Médiatrices fictives et événements de démonstration : jamais hors du poste de développement.
         if (app()->environment('local')) {
-            $this->call(DemoMembersSeeder::class);
+            $this->call([DemoMembersSeeder::class, DemoEventsSeeder::class]);
         }
     }
 }

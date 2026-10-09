@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Contenu d'un filtre : cases à cocher (libellé, aide, effectif) et pied Effacer / Afficher.
 // Partagé par le menu déroulant (ordinateur) et la feuille basse (téléphone) de FilterMenu.
+import AppButton from '@/components/AppButton.vue';
 import type { FilterOption } from '../services/members';
 
 defineProps<{ options: FilterOption[]; section?: string; comfortable?: boolean }>();
@@ -40,11 +41,8 @@ function toggle(value: string, checked: boolean): void {
   </q-list>
   <div class="filter-options__foot">
     <q-btn flat dense no-caps class="link-more" label="Effacer" @click="selected = []" />
-    <q-btn
+    <AppButton
       v-close-popup
-      unelevated
-      no-caps
-      color="primary"
       :size="comfortable ? 'md' : 'sm'"
       class="filter-options__apply"
       label="Afficher les résultats"

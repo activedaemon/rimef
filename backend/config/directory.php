@@ -4,12 +4,11 @@ use App\Enums\Region;
 
 /*
 |--------------------------------------------------------------------------
-| Annuaire du réseau : pays et langues
+| Annuaire du réseau : pays
 |--------------------------------------------------------------------------
 |
-| Les profils stockent des codes (ISO 3166-1 alpha-2 pour les pays, ISO 639-1
-| pour les langues) ; libellés et régions sont définis ici. Ajouter un pays
-| ou une langue = une ligne.
+| Les profils stockent le code ISO 3166-1 alpha-2 du pays ; libellé et région
+| sont définis ici. Ajouter un pays = une ligne.
 |
 */
 
@@ -111,28 +110,6 @@ return [
         'PH' => ['name' => 'Philippines', 'region' => Region::AsiaPacific->value],
         'VU' => ['name' => 'Vanuatu', 'region' => Region::AsiaPacific->value],
         'VN' => ['name' => 'Viêt Nam', 'region' => Region::AsiaPacific->value],
-    ],
-
-    'languages' => [
-        'fr' => 'Français',
-        'en' => 'Anglais',
-        'ar' => 'Arabe',
-        'es' => 'Espagnol',
-        'pt' => 'Portugais',
-        'de' => 'Allemand',
-        'it' => 'Italien',
-        'ru' => 'Russe',
-        'zh' => 'Chinois',
-        'sw' => 'Swahili',
-        'wo' => 'Wolof',
-        'bm' => 'Bambara',
-        'ff' => 'Peul',
-        'ha' => 'Haoussa',
-        'ln' => 'Lingala',
-        'rn' => 'Kirundi',
-        'rw' => 'Kinyarwanda',
-        'mg' => 'Malgache',
-        'ht' => 'Créole haïtien',
     ],
 
 ];

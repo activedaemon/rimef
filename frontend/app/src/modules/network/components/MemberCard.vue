@@ -1,27 +1,57 @@
 <script setup lang="ts">
-// Carte médiatrice (fiche MemberCard) : portrait, nom, pays, deux expertises, langues,
-// disponibilité. Toute la carte mène au profil (lien étiré sur le nom).
-// En attendant les photos, le portrait est un avatar à initiales.
-import { computed } from 'vue';
+// Carte médiatrice (fiche MemberCard) : portrait, marque-page, nom, pays, deux expertises,
+// prochain événement ou disponibilité. Toute la carte mène au profil (lien étiré sur le nom).
+// Portrait : la photo de la médiatrice, ou ses initiales (aussi si la photo ne se charge pas).
+import { computed, ref } from 'vue';
 
-import InitialsAvatar from '@/components/InitialsAvatar.vue';
+import MemberAvatar from '@/components/MemberAvatar.vue';
 import type { Member } from '../services/members';
 
 const props = defineProps<{ member: Member }>();
+const emit = defineEmits<{ toggleFavorite: [] }>();
+
+// Marque-page plein (enregistré) : tracé SVG de l'icône Tabler « bookmark », rempli par Quasar,
+// plutôt que la police des icônes pleines (un fichier de plus pour une seule icône)
+const BOOKMARK_FILLED = 'M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z|0 0 24 24';
+
+const favoriteLabel = computed(() =>
+  props.member.is_favorite
+    ? `Retirer ${props.member.name} des favoris`
+    : `Ajouter ${props.member.name} aux favoris`
+);
 
 const MAX_EXPERTISES = 2;
 
 const expertises = computed(() => props.member.expertises.slice(0, MAX_EXPERTISES));
-const languagesLabel = computed(
-  () => `Langues : ${props.member.languages.map((language) => language.name).join(', ')}`
-);
+const photoFailed = ref(false);
 </script>
 
 <template>
   <q-card flat tag="article" class="rimef-card member-card">
     <div class="member-card__portrait">
-      <InitialsAvatar :name="member.name" :size="72" />
+      <img
+        v-if="member.photo_url && !photoFailed"
+        :src="member.photo_url"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        class="member-card__photo"
+        @error="photoFailed = true"
+      />
+      <MemberAvatar v-else :name="member.name" :size="72" />
     </div>
+
+    <q-btn
+      flat
+      dense
+      :ripple="false"
+      class="member-card__bookmark"
+      :class="{ 'member-card__bookmark--on': member.is_favorite }"
+      :icon="member.is_favorite ? BOOKMARK_FILLED : 'bookmark'"
+      :aria-pressed="member.is_favorite"
+      :aria-label="favoriteLabel"
+      @click="emit('toggleFavorite')"
+    />
 
     <div class="member-card__body">
       <h3 class="member-card__name">
@@ -39,15 +69,14 @@ const languagesLabel = computed(
         <li v-for="expertise in expertises" :key="expertise">{{ expertise }}</li>
       </ul>
 
-      <p v-if="member.languages.length" class="member-card__languages" :aria-label="languagesLabel">
-        <template v-for="(language, index) in member.languages" :key="language.code">
-          <span v-if="index" class="member-card__dot" aria-hidden="true">·</span>
-          {{ language.code.toUpperCase() }}
-        </template>
-      </p>
-
       <div class="member-card__foot">
-        <p v-if="member.is_available" class="member-card__available">
+        <p v-if="member.next_event" class="member-card__next">
+          Prochainement :
+          <b>
+            <router-link :to="{ name: 'agenda' }">{{ member.next_event.title }}</router-link>
+          </b>
+        </p>
+        <p v-else-if="member.is_available" class="member-card__available">
           Disponible pour collaboration
         </p>
         <q-icon name="arrow-right" size="17px" class="member-card__arrow" aria-hidden="true" />
@@ -82,8 +111,22 @@ const languagesLabel = computed(
     display: grid;
     place-items: center;
     aspect-ratio: 372 / 256;
+    overflow: hidden;
     background: var(--ivory);
     border-bottom: 1px solid var(--border);
+  }
+
+  // Photo recadrée sur le visage (maquette : 28 % du haut), léger zoom au survol
+  &__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 28%;
+    transition: transform 0.5s ease;
+  }
+
+  &:hover &__photo {
+    transform: scale(1.025);
   }
 
   &__body {
@@ -138,19 +181,6 @@ const languagesLabel = computed(
     }
   }
 
-  &__languages {
-    margin-top: 12px;
-    font-size: var(--fs-xs);
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--ink-2);
-  }
-
-  &__dot {
-    margin-inline: 4px;
-    color: var(--border-hover);
-  }
-
   &__foot {
     display: flex;
     align-items: flex-end;
@@ -158,6 +188,72 @@ const languagesLabel = computed(
     gap: 12px;
     margin-top: auto;
     padding-top: 14px;
+  }
+
+  // Marque-page au-dessus de la photo, cliquable par-dessus le lien étiré de la carte
+  &__bookmark {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    border-radius: var(--radius-xs);
+    background: rgba(252, 250, 246, 0.94);
+    box-shadow: 0 1px 2px rgba(24, 32, 51, 0.08);
+    color: var(--ink-2);
+
+    :deep(.q-icon) {
+      font-size: 16px;
+    }
+
+    :deep(.q-focus-helper) {
+      display: none;
+    }
+
+    &:hover,
+    &--on {
+      color: var(--terracotta);
+    }
+  }
+
+  // Prochain événement : puce terracotta (maquette .m-next)
+  &__next {
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+    color: var(--muted);
+
+    b {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      color: var(--ink);
+
+      &::before {
+        content: '';
+        flex: none;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--terracotta);
+      }
+    }
+
+    a {
+      position: relative;
+      z-index: 2;
+      color: inherit;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--link-hover);
+      }
+    }
   }
 
   &__available {
@@ -216,6 +312,17 @@ const languagesLabel = computed(
   .member-card,
   .member-grid--list .member-card {
     flex-direction: row;
+
+    // Portrait à gauche : marque-page dans son coin haut gauche (maquette)
+    .member-card__bookmark {
+      top: 6px;
+      right: auto;
+      left: 6px;
+      width: 28px;
+      min-width: 28px;
+      height: 28px;
+      min-height: 28px;
+    }
 
     .member-card__portrait {
       flex: none;

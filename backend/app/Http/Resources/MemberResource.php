@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\Expertise;
-use App\Models\MemberLanguage;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
 use Illuminate\Http\Request;
@@ -36,13 +35,15 @@ class MemberResource extends JsonResource
             'region' => $region?->label(),
             'organization' => $profile?->organization_type?->label(),
             'is_available' => (bool) $profile?->is_available,
+            'is_favorite' => (bool) ($this->is_favorite ?? false),
+            'next_event' => $this->nextEvent === null ? null : [
+                'id' => $this->nextEvent->id,
+                'title' => $this->nextEvent->title,
+                'starts_at' => $this->nextEvent->starts_at->toIso8601String(),
+            ],
+            'photo_url' => $this->photoUrl(),
             'expertises' => $profile === null ? [] : $profile->expertises
                 ->map(fn (Expertise $expertise): string => $expertise->name)->values()->all(),
-            'languages' => $profile === null ? [] : $profile->languages
-                ->map(fn (MemberLanguage $language): array => [
-                    'code' => $language->language_code,
-                    'name' => DirectoryCatalog::languageName($language->language_code),
-                ])->values()->all(),
         ];
     }
 }

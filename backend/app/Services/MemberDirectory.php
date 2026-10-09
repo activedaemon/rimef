@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Enums\OrganizationType;
 use App\Enums\Region;
 use App\Enums\Role;
+use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
@@ -24,18 +25,25 @@ class MemberDirectory
     public const PER_PAGE = 12;
 
     /**
-     * @param  array{q?: string|null, expertise?: list<int>, region?: list<string>, language?: list<string>, organization?: list<string>, available?: bool, sort?: string|null}  $filters
+     * Pour chaque médiatrice : `is_favorite` (marque-page de $viewer) et son prochain événement.
+     *
+     * @param  array{q?: string|null, expertise?: list<int>, region?: list<string>, organization?: list<string>, available?: bool, favorites?: bool, upcoming?: bool, sort?: string|null}  $filters
      * @return LengthAwarePaginator<int, User>
      */
-    public function search(array $filters): LengthAwarePaginator
+    public function search(array $filters, User $viewer): LengthAwarePaginator
     {
         $query = $this->members()
             ->leftJoin('member_profiles', 'member_profiles.user_id', '=', 'users.id')
             ->select('users.*')
-            ->with(['memberProfile.expertises', 'memberProfile.languages']);
+            ->addSelect([
+                'next_event_id' => $this->nextEvent()->select('events.id'),
+                'next_event_at' => $this->nextEvent()->select('events.starts_at'),
+            ])
+            ->withExists(['favoredBy as is_favorite' => fn (Builder $favorite) => $favorite->whereKey($viewer->getKey())])
+            ->with(['memberProfile.expertises', 'nextEvent']);
 
         $this->applySearch($query, (string) ($filters['q'] ?? ''));
-        $this->applyFilters($query, $filters);
+        $this->applyFilters($query, $filters, $viewer);
         $this->applySort($query, $filters['sort'] ?? null);
 
         return $query->paginate(self::PER_PAGE)->withQueryString();
@@ -53,7 +61,7 @@ class MemberDirectory
      * Valeurs proposées par chaque filtre, avec leur nombre de médiatrices
      * (seules les valeurs portées par au moins une médiatrice sont listées).
      *
-     * @return array{expertise: list<array{value: int, label: string, count: int}>, region: list<array{value: string, label: string, count: int}>, language: list<array{value: string, label: string, count: int}>, organization: list<array{value: string, label: string, count: int}>}
+     * @return array{expertise: list<array{value: int, label: string, count: int}>, region: list<array{value: string, label: string, count: int}>, organization: list<array{value: string, label: string, count: int}>}
      */
     public function facets(): array
     {
@@ -73,10 +81,6 @@ class MemberDirectory
         $organizations = (clone $profiles)->whereNotNull('organization_type')
             ->groupBy('organization_type')->pluck(DB::raw('count(*)'), 'organization_type');
 
-        $languages = DB::table('member_languages')
-            ->whereIn('member_profile_id', (clone $profiles)->select('id'))
-            ->groupBy('language_code')->pluck(DB::raw('count(*)'), 'language_code');
-
         $expertises = Expertise::query()
             ->withCount(['memberProfiles' => fn (Builder $query) => $query->whereIn('user_id', $this->members()->select('users.id'))])
             ->get()
@@ -93,15 +97,35 @@ class MemberDirectory
                 $regionCounts,
                 fn (string $value): string => Region::from($value)->label(),
             ),
-            'language' => $this->options(
-                $languages->all(),
-                fn (string $value): string => DirectoryCatalog::languageName($value),
-            ),
             'organization' => $this->options(
                 $organizations->all(),
                 fn (string $value): string => OrganizationType::from($value)->label(),
             ),
         ];
+    }
+
+    /**
+     * La médiatrice figure dans l'annuaire (compte actif ayant le rôle member).
+     */
+    public function isListed(User $user): bool
+    {
+        return $this->members()->whereKey($user->getKey())->exists();
+    }
+
+    /**
+     * Premier événement à venir de la médiatrice de la ligne courante (sous-requête).
+     *
+     * @return Builder<Event>
+     */
+    private function nextEvent(): Builder
+    {
+        return Event::query()
+            ->join('event_user', 'event_user.event_id', '=', 'events.id')
+            ->whereColumn('event_user.user_id', 'users.id')
+            ->where('events.starts_at', '>=', now())
+            ->orderBy('events.starts_at')
+            ->orderBy('events.id')
+            ->limit(1);
     }
 
     /**
@@ -115,7 +139,7 @@ class MemberDirectory
     }
 
     /**
-     * Chaque mot doit apparaître dans le nom, le pays, l'organisation, une expertise ou une langue.
+     * Chaque mot doit apparaître dans le nom, le pays, l'organisation, ou une expertise.
      *
      * @param  Builder<User>  $query
      */
@@ -126,13 +150,12 @@ class MemberDirectory
         foreach ($words as $word) {
             $like = '%'.addcslashes($word, '%_\\').'%';
             $countryCodes = DirectoryCatalog::codesMatching(DirectoryCatalog::countryNames(), $word);
-            $languageCodes = DirectoryCatalog::codesMatching(DirectoryCatalog::languages(), $word);
             $organizations = DirectoryCatalog::codesMatching(
                 collect(OrganizationType::cases())->mapWithKeys(fn (OrganizationType $type) => [$type->value => $type->label()])->all(),
                 $word,
             );
 
-            $query->where(function (Builder $query) use ($like, $countryCodes, $languageCodes, $organizations): void {
+            $query->where(function (Builder $query) use ($like, $countryCodes, $organizations): void {
                 $query->where('users.first_name', 'like', $like)
                     ->orWhere('users.last_name', 'like', $like)
                     ->orWhereIn('member_profiles.country_code', $countryCodes)
@@ -140,10 +163,7 @@ class MemberDirectory
                     ->orWhereExists(fn (QueryBuilder $sub) => $sub->from('expertise_member_profile')
                         ->join('expertises', 'expertises.id', '=', 'expertise_member_profile.expertise_id')
                         ->whereColumn('expertise_member_profile.member_profile_id', 'member_profiles.id')
-                        ->where('expertises.name', 'like', $like))
-                    ->orWhereExists(fn (QueryBuilder $sub) => $sub->from('member_languages')
-                        ->whereColumn('member_languages.member_profile_id', 'member_profiles.id')
-                        ->whereIn('member_languages.language_code', $languageCodes));
+                        ->where('expertises.name', 'like', $like));
             });
         }
     }
@@ -154,7 +174,7 @@ class MemberDirectory
      * @param  Builder<User>  $query
      * @param  array<string, mixed>  $filters
      */
-    private function applyFilters(Builder $query, array $filters): void
+    private function applyFilters(Builder $query, array $filters, User $viewer): void
     {
         if (! empty($filters['expertise'])) {
             $query->whereExists(fn (QueryBuilder $sub) => $sub->from('expertise_member_profile')
@@ -166,12 +186,6 @@ class MemberDirectory
             $query->whereIn('member_profiles.country_code', DirectoryCatalog::countryCodesIn($filters['region']));
         }
 
-        if (! empty($filters['language'])) {
-            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('member_languages')
-                ->whereColumn('member_languages.member_profile_id', 'member_profiles.id')
-                ->whereIn('member_languages.language_code', $filters['language']));
-        }
-
         if (! empty($filters['organization'])) {
             $query->whereIn('member_profiles.organization_type', $filters['organization']);
         }
@@ -179,15 +193,33 @@ class MemberDirectory
         if (! empty($filters['available'])) {
             $query->where('member_profiles.is_available', true);
         }
+
+        if (! empty($filters['favorites'])) {
+            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('favorites')
+                ->whereColumn('favorites.member_id', 'users.id')
+                ->where('favorites.user_id', $viewer->getKey()));
+        }
+
+        if (! empty($filters['upcoming'])) {
+            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('event_user')
+                ->join('events', 'events.id', '=', 'event_user.event_id')
+                ->whereColumn('event_user.user_id', 'users.id')
+                ->where('events.starts_at', '>=', now()));
+        }
     }
 
     /**
-     * Par nom (par défaut) ou par pays, dans l'ordre alphabétique des noms de pays en français.
+     * Par nom (par défaut), par pays (ordre alphabétique des noms en français) ou par prochain
+     * événement (le plus proche d'abord, médiatrices sans événement à la fin).
      *
      * @param  Builder<User>  $query
      */
     private function applySort(Builder $query, ?string $sort): void
     {
+        if ($sort === 'event') {
+            $query->orderByRaw('next_event_at IS NULL')->orderBy('next_event_at');
+        }
+
         if ($sort === 'country') {
             $codes = collect(DirectoryCatalog::countryNames())
                 ->sortBy(fn (string $name): string => Str::ascii($name))

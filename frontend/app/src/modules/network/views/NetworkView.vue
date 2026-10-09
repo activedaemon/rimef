@@ -1,9 +1,10 @@
 <script setup lang="ts">
-// Annuaire des médiatrices (maquette Réseau) : filtres, filtres actifs, barre de résultats,
-// grille ou liste de cartes, « Afficher plus », citation. La recherche par texte passe par
-// le champ du bandeau (meta.searchInPage) qui écrit ?q=… dans l'URL de la page.
+// Annuaire des médiatrices (maquette Réseau) : intro et citation, filtres, filtres actifs,
+// barre de résultats, grille ou liste de cartes, « Afficher plus ». La recherche par texte
+// passe par le champ du bandeau (meta.searchInPage) qui écrit ?q=… dans l'URL de la page.
 import { computed, onMounted, ref, watch } from 'vue';
 
+import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
@@ -11,7 +12,15 @@ import FilterMenu from '../components/FilterMenu.vue';
 import MemberCard from '../components/MemberCard.vue';
 import ResultsBar, { type DirectoryView } from '../components/ResultsBar.vue';
 import { useMemberDirectory } from '../composables/useMemberDirectory';
-import { FILTER_KEYS, FILTER_LABELS, type FilterKey, type FilterOption } from '../services/members';
+import {
+  FILTER_KEYS,
+  FILTER_LABELS,
+  TOGGLE_KEYS,
+  TOGGLES,
+  type FilterKey,
+  type FilterOption,
+  type ToggleKey,
+} from '../services/members';
 
 const directory = useMemberDirectory();
 const { query, filters } = directory;
@@ -20,18 +29,27 @@ function setSelection(key: FilterKey, values: string[]): void {
   directory.update({ selected: { ...query.value.selected, [key]: values } });
 }
 
-// « Plus de filtres » : seule la disponibilité pour l'instant (favoris et événements à venir)
-const MORE_OPTIONS: FilterOption[] = [
-  {
-    value: 'available',
-    label: 'Disponible pour collaboration',
-    hint: 'Profils ouverts à de nouveaux projets',
-  },
-];
+// « Plus de filtres » : critères oui / non (disponible, prochain événement, favoris)
+const MORE_OPTIONS: FilterOption[] = TOGGLE_KEYS.map((key) => ({
+  value: key,
+  label: TOGGLES[key].label,
+  hint: TOGGLES[key].hint,
+}));
 const more = computed({
-  get: () => (query.value.available ? ['available'] : []),
-  set: (values: string[]) => directory.update({ available: values.includes('available') }),
+  get: () => TOGGLE_KEYS.filter((key) => query.value.toggles[key]),
+  set: (values: string[]) => setToggles(values),
 });
+
+function setToggles(values: string[]): void {
+  directory.update({
+    toggles: Object.fromEntries(TOGGLE_KEYS.map((key) => [key, values.includes(key)])) as Record<
+      ToggleKey,
+      boolean
+    >,
+  });
+}
+
+const activeToggles = computed(() => TOGGLE_KEYS.filter((key) => query.value.toggles[key]));
 
 function removeFilter(key: FilterKey, value: string): void {
   setSelection(
@@ -78,26 +96,35 @@ onMounted(() => void directory.start());
       <PageIntro
         title="Les médiatrices"
         lead="Découvrez les membres du réseau RIMeF et trouvez les expertises utiles à vos projets."
-      />
-
-      <div class="network-filters" aria-label="Filtres" role="group">
-        <FilterMenu
-          v-for="key in FILTER_KEYS"
-          :key="key"
-          :label="FILTER_LABELS[key]"
-          :options="filters?.[key] ?? []"
-          :model-value="query.selected[key]"
-          @update:model-value="(values: string[]) => setSelection(key, values)"
-        />
-        <FilterMenu
-          v-model="more"
-          label="Plus de filtres"
-          icon="adjustments-horizontal"
-          section="Profil"
-          ghost
-          :options="MORE_OPTIONS"
-        />
-      </div>
+      >
+        <template #aside>
+          <QuoteBlock
+            variant="card"
+            text="Un réseau pensé par et pour les médiatrices francophones."
+            class="network-quote"
+          />
+        </template>
+        <template #below>
+          <div class="network-filters" aria-label="Filtres" role="group">
+            <FilterMenu
+              v-for="key in FILTER_KEYS"
+              :key="key"
+              :label="FILTER_LABELS[key]"
+              :options="filters?.[key] ?? []"
+              :model-value="query.selected[key]"
+              @update:model-value="(values: string[]) => setSelection(key, values)"
+            />
+            <FilterMenu
+              v-model="more"
+              label="Plus de filtres"
+              icon="adjustments-horizontal"
+              section="Profil"
+              ghost
+              :options="MORE_OPTIONS"
+            />
+          </div>
+        </template>
+      </PageIntro>
 
       <div v-if="directory.filtered.value" class="network-active" aria-live="polite">
         <q-chip
@@ -120,13 +147,14 @@ onMounted(() => void directory.start());
           @remove="removeFilter(filter.key, filter.value)"
         />
         <q-chip
-          v-if="query.available"
+          v-for="key in activeToggles"
+          :key="key"
           removable
           square
           class="network-active__chip"
-          label="Disponible pour collaboration"
-          remove-aria-label="Retirer le filtre Disponible pour collaboration"
-          @remove="more = []"
+          :label="TOGGLES[key].label"
+          :remove-aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
+          @remove="setToggles(more.filter((value) => value !== key))"
         />
       </div>
 
@@ -150,11 +178,9 @@ onMounted(() => void directory.start());
         text="Essayez un autre mot-clé ou retirez un filtre pour élargir la recherche."
         class="network-empty"
       >
-        <q-btn
+        <AppButton
           v-if="directory.filtered.value"
-          outline
-          no-caps
-          color="primary"
+          variant="outline"
           label="Réinitialiser les filtres"
           @click="directory.reset"
         />
@@ -169,7 +195,7 @@ onMounted(() => void directory.start());
           }"
         >
           <li v-for="member in directory.members.value" :key="member.id">
-            <MemberCard :member="member" />
+            <MemberCard :member="member" @toggle-favorite="directory.toggleFavorite(member)" />
           </li>
         </ul>
 
@@ -185,21 +211,14 @@ onMounted(() => void directory.start());
           <p class="network-more__count">
             {{ directory.members.value.length }} profils affichés sur {{ directory.total.value }}
           </p>
-          <q-btn
-            outline
-            no-caps
-            color="primary"
+          <AppButton
+            variant="outline"
             label="Afficher plus de médiatrices"
             :loading="directory.loading.value"
             @click="directory.loadMore"
           />
         </div>
       </template>
-
-      <QuoteBlock
-        text="Un réseau pensé par et pour les médiatrices francophones."
-        class="network-quote"
-      />
     </div>
   </q-page>
 </template>
@@ -209,7 +228,6 @@ onMounted(() => void directory.start());
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 14px;
 }
 
 .network-active {
@@ -289,8 +307,23 @@ onMounted(() => void directory.start());
   }
 }
 
-.network-quote {
-  margin-top: var(--s-12);
+// Citation compacte à droite de l'intro : même hauteur que le titre et sa phrase
+.network-quote.q-card {
+  padding: 24px 28px;
+
+  :deep(.quote-block__text) {
+    max-width: none;
+    font-size: 1.35rem;
+  }
+
+  :deep(.quote-block__cite) {
+    margin-top: 12px;
+  }
+
+  :deep(.quote-block__leaf) {
+    width: 90px;
+    height: 102px;
+  }
 }
 
 // Tablette

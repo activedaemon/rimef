@@ -10,6 +10,7 @@ import {
   FILTER_KEYS,
   fetchMemberFilters,
   fetchMembers,
+  setFavorite,
   isFiltered,
   queryFromRoute,
   routeFromQuery,
@@ -76,6 +77,22 @@ export function useMemberDirectory() {
     void router.replace({ query: routeFromQuery({ ...query.value, ...changes }) });
   }
 
+  /** Marque-page : affiché tout de suite, annulé si l'API refuse. */
+  async function toggleFavorite(member: Member): Promise<void> {
+    const favorite = !member.is_favorite;
+    replaceMember(member.id, { is_favorite: favorite });
+    try {
+      await setFavorite(member.id, favorite);
+    } catch (error) {
+      replaceMember(member.id, { is_favorite: !favorite });
+      notify.error(extractApiError(error, 'Le favori n’a pas pu être enregistré. Réessayez.'));
+    }
+  }
+
+  function replaceMember(id: number, changes: Partial<Member>): void {
+    members.value = members.value.map((item) => (item.id === id ? { ...item, ...changes } : item));
+  }
+
   function reset(): void {
     void router.replace({ query: {} });
   }
@@ -120,6 +137,7 @@ export function useMemberDirectory() {
     activeFilters,
     update,
     reset,
+    toggleFavorite,
     loadMore: () => load(page.value + 1),
     start: () => Promise.all([load(1), loadFilters()]),
   };

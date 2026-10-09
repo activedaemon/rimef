@@ -15,7 +15,6 @@ uses(RefreshDatabase::class, WithTenant::class);
  * Médiatrice (rôle member) avec, si un pays est donné, un profil rempli.
  *
  * @param  list<string>  $expertises
- * @param  list<string>  $languages
  */
 function mediator(
     string $firstName,
@@ -23,14 +22,13 @@ function mediator(
     ?string $country = null,
     ?OrganizationType $organization = null,
     array $expertises = [],
-    array $languages = [],
     bool $available = false,
 ): User {
     $user = User::factory()->create(['first_name' => $firstName, 'last_name' => $lastName]);
     $user->assignRole(Role::Member);
 
     if ($country !== null) {
-        $profile = MemberProfile::factory()->for($user)->speaking(...$languages)->create([
+        $profile = MemberProfile::factory()->for($user)->create([
             'country_code' => $country,
             'organization_type' => $organization ?? OrganizationType::CivilSociety,
             'is_available' => $available,
@@ -82,7 +80,7 @@ it('lists active mediators only, admins included when they are also members', fu
 });
 
 it('describes a mediator card', function () {
-    mediator('Aminata', 'Diallo', 'SN', OrganizationType::CivilSociety, ['Médiation communautaire', 'Femmes, paix et sécurité'], ['fr', 'wo'], true);
+    mediator('Aminata', 'Diallo', 'SN', OrganizationType::CivilSociety, ['Médiation communautaire', 'Femmes, paix et sécurité'], true);
 
     listMembers($this, ['q' => 'Aminata'])
         ->assertOk()
@@ -93,8 +91,10 @@ it('describes a mediator card', function () {
             'region' => 'Afrique de l’Ouest',
             'organization' => 'Société civile',
             'is_available' => true,
+            'is_favorite' => false,
+            'next_event' => null,
+            'photo_url' => null,
             'expertises' => ['Médiation communautaire', 'Femmes, paix et sécurité'],
-            'languages' => [['code' => 'fr', 'name' => 'Français'], ['code' => 'wo', 'name' => 'Wolof']],
         ]);
 });
 
@@ -106,32 +106,31 @@ it('shows a mediator without a profile with her name only', function () {
         ->assertJsonPath('data.0.expertises', []);
 });
 
-it('filters by expertise, region, language, organization and availability', function () {
+it('filters by expertise, region, organization and availability', function () {
     $justice = Expertise::firstOrCreate(['name' => 'Médiation et justice']);
-    mediator('Mariam', 'Keita', 'ML', OrganizationType::CivilSociety, ['Médiation et justice'], ['fr', 'bm'], true);
-    mediator('Claire', 'Dubois', 'FR', OrganizationType::Diplomacy, ['Multilatéralisme'], ['fr', 'en']);
-    mediator('Leïla', 'Bouzid', 'MA', OrganizationType::LocalAuthority, ['Gouvernance locale'], ['fr', 'ar']);
+    mediator('Mariam', 'Keita', 'ML', OrganizationType::CivilSociety, ['Médiation et justice'], true);
+    mediator('Claire', 'Dubois', 'FR', OrganizationType::Diplomacy, ['Multilatéralisme']);
+    mediator('Leïla', 'Bouzid', 'MA', OrganizationType::LocalAuthority, ['Gouvernance locale']);
 
     $names = fn (array $query) => listMembers($this, $query)->assertOk()->json('data.*.name');
 
     expect($names(['expertise' => [$justice->id]]))->toBe(['Mariam Keita'])
         ->and($names(['region' => ['west_africa', 'north_africa']]))->toBe(['Leïla Bouzid', 'Mariam Keita'])
-        ->and($names(['language' => ['en']]))->toBe(['Claire Dubois'])
         ->and($names(['organization' => ['diplomacy', 'local_authority']]))->toBe(['Leïla Bouzid', 'Claire Dubois'])
         ->and($names(['available' => 1]))->toBe(['Mariam Keita'])
-        ->and($names(['region' => ['europe'], 'language' => ['ar']]))->toBe([]);
+        ->and($names(['region' => ['europe'], 'organization' => ['local_authority']]))->toBe([]);
 });
 
-it('searches names, countries, expertises and languages, accents ignored', function () {
-    mediator('Aminata', 'Diallo', 'SN', expertises: ['Médiation communautaire'], languages: ['wo']);
-    mediator('Claire', 'Dubois', 'FR', expertises: ['Multilatéralisme'], languages: ['en']);
+it('searches names, countries, organizations and expertises, accents ignored', function () {
+    mediator('Aminata', 'Diallo', 'SN', expertises: ['Médiation communautaire']);
+    mediator('Claire', 'Dubois', 'FR', OrganizationType::Diplomacy, expertises: ['Multilatéralisme']);
 
     $names = fn (string $q) => listMembers($this, ['q' => $q])->assertOk()->json('data.*.name');
 
     expect($names('dubois'))->toBe(['Claire Dubois'])
         ->and($names('senegal'))->toBe(['Aminata Diallo'])
         ->and($names('Multilat'))->toBe(['Claire Dubois'])
-        ->and($names('wolof'))->toBe(['Aminata Diallo'])
+        ->and($names('diplomatie'))->toBe(['Claire Dubois'])
         ->and($names('Claire France'))->toBe(['Claire Dubois'])
         ->and($names('%'))->toBe([]);
 });
@@ -148,10 +147,10 @@ it('sorts by country name, mediators without a country last', function () {
 
 it('paginates by 12 and keeps the total of the directory', function () {
     foreach (range(1, 13) as $i) {
-        mediator('Médiatrice', "Nom{$i}", 'FR', languages: ['fr']);
+        mediator('Médiatrice', "Nom{$i}", 'FR');
     }
 
-    listMembers($this, ['language' => ['fr']])
+    listMembers($this, ['region' => ['europe']])
         ->assertOk()
         ->assertJsonCount(12, 'data')
         ->assertJsonPath('meta.total', 13)
@@ -166,9 +165,9 @@ it('rejects unknown filter values', function () {
 });
 
 it('lists the filter values carried by mediators with their counts', function () {
-    mediator('Aminata', 'Diallo', 'SN', OrganizationType::CivilSociety, ['Médiation communautaire'], ['fr', 'wo']);
-    mediator('Mariam', 'Keita', 'ML', OrganizationType::CivilSociety, ['Médiation communautaire'], ['fr']);
-    mediator('Claire', 'Dubois', 'FR', OrganizationType::Diplomacy, ['Multilatéralisme'], ['fr']);
+    mediator('Aminata', 'Diallo', 'SN', OrganizationType::CivilSociety, ['Médiation communautaire']);
+    mediator('Mariam', 'Keita', 'ML', OrganizationType::CivilSociety, ['Médiation communautaire']);
+    mediator('Claire', 'Dubois', 'FR', OrganizationType::Diplomacy, ['Multilatéralisme']);
     Expertise::firstOrCreate(['name' => 'Sans médiatrice']);
 
     $this->getJson($this->tenantUrl('/api/members/filters'))
@@ -178,10 +177,6 @@ it('lists the filter values carried by mediators with their counts', function ()
         ->assertJsonPath('data.region', [
             ['value' => 'west_africa', 'label' => 'Afrique de l’Ouest', 'count' => 2],
             ['value' => 'europe', 'label' => 'Europe', 'count' => 1],
-        ])
-        ->assertJsonPath('data.language', [
-            ['value' => 'fr', 'label' => 'Français', 'count' => 3],
-            ['value' => 'wo', 'label' => 'Wolof', 'count' => 1],
         ])
         ->assertJsonPath('data.organization', [
             ['value' => 'diplomacy', 'label' => 'Diplomatie', 'count' => 1],

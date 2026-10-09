@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\CurrentUserController;
+use App\Http\Controllers\Api\EventParticipationController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
@@ -38,9 +40,26 @@ Route::middleware([
 
     Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
         Route::get('/user', CurrentUserController::class)->name('user.current');
+        Route::get('/home', HomeController::class)->name('home');
+
+        Route::put('/events/{event}/participation', [EventParticipationController::class, 'store'])
+            ->whereNumber('event')
+            ->name('events.participation.store');
+        Route::delete('/events/{event}/participation', [EventParticipationController::class, 'destroy'])
+            ->whereNumber('event')
+            ->name('events.participation.destroy');
 
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::get('/members/filters', [MemberController::class, 'filters'])->name('members.filters');
+        Route::get('/members/{user}/photo', [MemberController::class, 'photo'])
+            ->whereNumber('user')
+            ->name('members.photo');
+        Route::put('/members/{user}/favorite', [MemberController::class, 'favorite'])
+            ->whereNumber('user')
+            ->name('members.favorite');
+        Route::delete('/members/{user}/favorite', [MemberController::class, 'unfavorite'])
+            ->whereNumber('user')
+            ->name('members.unfavorite');
     });
 });
 

@@ -92,10 +92,27 @@ node_modules/
 /backend/storage/framework/sessions/*
 /backend/storage/framework/views/*
 /backend/storage/logs/*
+# Fichiers des tenants (stancl : storage/tenant<id>/) : données des membres, jamais versionnées
+/backend/storage/tenant*/
 /backend/public/storage
 /backend/public/hot
 /backend/.phpunit.result.cache
 /backend/.phpunit.cache
+
+# ============================================================================
+# Photos des utilisateurs : celles de personnes réelles ne sont jamais versionnées
+# (backend/database/seeders/member-photos/, copiées dans le stockage du tenant)
+# ============================================================================
+/backend/database/seeders/member-photos/olivia-caeymaex.webp
+/backend/database/seeders/member-photos/achta-djibrine-sy.webp
+/backend/database/seeders/member-photos/delphine-borione.webp
+/backend/database/seeders/member-photos/marguerite-yoli-bi-kone.webp
+/backend/database/seeders/member-photos/catherine-samba-panza.webp
+/backend/database/seeders/member-photos/esther-omam.webp
+/backend/database/seeders/member-photos/fatima-maiga.webp
+/backend/database/seeders/member-photos/kalinda-magloire.webp
+/backend/database/seeders/member-photos/marie-joelle-zahar.webp
+/backend/database/seeders/member-photos/nelly-godelive-mbangu.webp
 
 # ============================================================================
 # Claude Code - paramètres locaux

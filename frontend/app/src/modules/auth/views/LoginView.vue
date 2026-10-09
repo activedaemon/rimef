@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import AppButton from '@/components/AppButton.vue';
 import { extractApiError } from '@/lib/http';
 import { safeRedirect } from '@/lib/redirect';
 import { useSession } from '@/stores/session';
@@ -99,15 +100,7 @@ async function submit(): Promise<void> {
       class="auth-form__remember"
     />
 
-    <q-btn
-      type="submit"
-      color="primary"
-      unelevated
-      no-caps
-      label="Se connecter"
-      class="auth-form__submit"
-      :loading="submitting"
-    />
+    <AppButton type="submit" label="Se connecter" class="auth-form__submit" :loading="submitting" />
 
     <nav class="auth-form__links" aria-label="Aide à la connexion">
       <router-link :to="{ name: 'forgot-password' }" class="auth-form__link">

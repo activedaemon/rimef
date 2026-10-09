@@ -8,7 +8,7 @@ use App\Enums\Region;
 use Illuminate\Support\Str;
 
 /**
- * Libellés des pays et des langues de l'annuaire (config/directory.php).
+ * Pays de l'annuaire et leur région (config/directory.php).
  */
 class DirectoryCatalog
 {
@@ -18,14 +18,6 @@ class DirectoryCatalog
     public static function countries(): array
     {
         return config('directory.countries');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public static function languages(): array
-    {
-        return config('directory.languages');
     }
 
     public static function countryName(?string $code): ?string
@@ -38,11 +30,6 @@ class DirectoryCatalog
         $region = $code === null ? null : (self::countries()[$code]['region'] ?? null);
 
         return $region === null ? null : Region::from($region);
-    }
-
-    public static function languageName(string $code): string
-    {
-        return self::languages()[$code] ?? Str::upper($code);
     }
 
     /**

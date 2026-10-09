@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Nouveautés du réseau (maquette Accueil) : avatar, phrase, date relative.
-import InitialsAvatar from '@/components/InitialsAvatar.vue';
+// Nouveautés du réseau (maquette Accueil) : dernières médiatrices inscrites, avec leur photo
+// et un lien vers leur fiche.
+import MemberAvatar from '@/components/MemberAvatar.vue';
 import type { NetworkNews } from '../services/home-feed';
 
 defineProps<{ news: NetworkNews[] }>();
@@ -12,13 +13,17 @@ defineProps<{ news: NetworkNews[] }>();
       <h2 id="news-title" class="card-title">Nouveautés du réseau</h2>
       <router-link :to="{ name: 'network' }" class="link-more">Voir tout</router-link>
     </div>
-    <ul class="home-block__list">
-      <li v-for="item in news" :key="item.id" class="news">
-        <InitialsAvatar :name="item.personName" />
+    <p v-if="!news.length" class="home-block__empty">Aucune nouveauté pour le moment.</p>
+    <ul v-else class="home-block__list">
+      <li v-for="item in news" :key="item.person.id" class="news">
+        <MemberAvatar :name="item.person.name" :photo="item.person.photo" />
         <div>
           <p class="news__text">
-            <router-link :to="{ name: 'network' }" class="news__name">
-              {{ item.personName }}
+            <router-link
+              :to="{ name: 'member', params: { id: item.person.id } }"
+              class="news__name"
+            >
+              {{ item.person.name }}
             </router-link>
             {{ item.action }}
           </p>
@@ -50,7 +55,7 @@ defineProps<{ news: NetworkNews[] }>();
 
     &:hover,
     &:focus-visible {
-      color: var(--petrol);
+      color: var(--link-hover);
     }
   }
 

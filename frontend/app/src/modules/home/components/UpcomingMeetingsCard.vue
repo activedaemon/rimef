@@ -13,14 +13,17 @@ defineProps<{ meetings: Meeting[] }>();
       <h2 id="meetings-title" class="card-title">Prochains rendez-vous</h2>
       <router-link :to="{ name: 'agenda' }" class="link-more">Voir tout</router-link>
     </div>
-    <ul class="home-block__list">
+    <p v-if="!meetings.length" class="home-block__empty">
+      Aucun rendez-vous à venir pour le moment.
+    </p>
+    <ul v-else class="home-block__list">
       <li v-for="meeting in meetings" :key="meeting.id" class="meeting">
         <DateTile :day="meeting.day" :month="meeting.month" />
         <div>
           <h3 class="home-block__item-title">
             <router-link :to="{ name: 'agenda' }">{{ meeting.title }}</router-link>
           </h3>
-          <p class="meeting__place">{{ meeting.place }}</p>
+          <p v-if="meeting.place" class="meeting__place">{{ meeting.place }}</p>
           <q-badge class="rimef-badge meeting__badge" color="sage-light" text-color="sage-ink">
             {{ mediatorCount(meeting.attendeeCount) }}
           </q-badge>

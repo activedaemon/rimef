@@ -17,10 +17,9 @@ describe('members query', () => {
       selected: {
         expertise: ['3', '5'],
         region: ['west_africa'],
-        language: [],
         organization: [],
       },
-      available: true,
+      toggles: { available: true, upcoming: false, favorites: false },
       sort: 'country',
     });
   });
@@ -33,14 +32,13 @@ describe('members query', () => {
   });
 
   it('writes only the criteria in use to the URL, and reads them back', () => {
-    const query = queryFromRoute({ language: ['fr', 'wo'], tri: 'pays' });
+    const query = queryFromRoute({ organization: ['diplomacy', 'research'], tri: 'pays' });
     const route = routeFromQuery({ ...query, q: '  justice ' });
 
-    expect(route).toEqual({ q: 'justice', language: ['fr', 'wo'], tri: 'pays' });
-    expect(queryFromRoute(route as Record<string, string | string[]>).selected.language).toEqual([
-      'fr',
-      'wo',
-    ]);
+    expect(route).toEqual({ q: 'justice', organization: ['diplomacy', 'research'], tri: 'pays' });
+    expect(
+      queryFromRoute(route as Record<string, string | string[]>).selected.organization
+    ).toEqual(['diplomacy', 'research']);
   });
 
   it('tells when the list is restricted', () => {
@@ -48,5 +46,14 @@ describe('members query', () => {
     expect(isFiltered(queryFromRoute({ q: 'claire' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ organization: 'diplomacy' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ disponible: '1' }))).toBe(true);
+    expect(isFiltered(queryFromRoute({ favoris: '1' }))).toBe(true);
+  });
+
+  it('reads and writes the yes / no criteria and the sort by event in French', () => {
+    const query = queryFromRoute({ evenement: '1', favoris: '1', tri: 'evenement' });
+
+    expect(query.toggles).toEqual({ available: false, upcoming: true, favorites: true });
+    expect(query.sort).toBe('event');
+    expect(routeFromQuery(query)).toEqual({ evenement: '1', favoris: '1', tri: 'evenement' });
   });
 });
