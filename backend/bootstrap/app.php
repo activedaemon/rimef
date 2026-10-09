@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->domain($domain)
                     ->group(base_path('routes/api.php'));
             }
+
+            // Outils de développement (prévisualisation et test des emails) :
+            // jamais exposés en production.
+            if (! app()->environment('production')) {
+                Route::group([], base_path('routes/dev.php'));
+            }
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

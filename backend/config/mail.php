@@ -115,4 +115,22 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Gabarit Markdown des emails
+    |--------------------------------------------------------------------------
+    |
+    | Thème à la charte RIMeF (resources/views/vendor/mail/html/themes/rimef.css),
+    | commun à toutes les notifications et à tous les Mailables Markdown.
+    |
+    */
+
+    'markdown' => [
+        'theme' => env('MAIL_MARKDOWN_THEME', 'rimef'),
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

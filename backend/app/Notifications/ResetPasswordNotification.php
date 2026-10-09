@@ -40,11 +40,9 @@ class ResetPasswordNotification extends ResetPassword
 
         return (new MailMessage)
             ->subject('Réinitialisation de votre mot de passe RIMeF')
-            ->greeting('Bonjour,')
             ->line('Vous recevez cet email car une réinitialisation du mot de passe a été demandée pour votre compte.')
             ->action('Choisir un nouveau mot de passe', $url)
             ->line("Ce lien est valable {$expireMinutes} minutes.")
-            ->line('Si vous n’êtes pas à l’origine de cette demande, ignorez cet email : votre mot de passe reste inchangé.')
-            ->salutation('L’équipe RIMeF');
+            ->line('Si vous n’êtes pas à l’origine de cette demande, ignorez cet email : votre mot de passe reste inchangé.');
     }
 }

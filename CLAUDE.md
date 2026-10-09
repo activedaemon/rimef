@@ -110,6 +110,8 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 | MySQL 8.4 | `rimef-mysql` | `127.0.0.1:9307` (rimef / rimef / base `rimef_central`) |
 | Mailpit | `rimef-mailpit` | UI `http://localhost:9826`, SMTP `9526` |
 
+- **Test des emails** (hors production) : `http://rimef.localhost:9280/api/dev/emails` pour prévisualiser chaque email et en envoyer un exemplaire vers Mailpit. Tout nouvel email s'ajoute au catalogue de `App\Http\Controllers\Dev\EmailPreviewController`.
+
 - Ports en **92xx** pour cohabiter avec Fruxa (91xx) sur le même poste.
 - MySQL stocke les dates en **UTC** ; la conversion dans le fuseau de l'utilisatrice se fait côté application.
 - L'utilisateur `rimef` peut créer et supprimer les bases `rimef_tenant_*` (`.docker/mysql/init/01-tenant-grants.sql`, appliqué à la création du volume uniquement).
