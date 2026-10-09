@@ -1,11 +1,15 @@
 <script setup lang="ts">
 // Événement à la une (maquette Accueil) : visuel, titre, dates, lieu, participantes,
-// actions. « J'y participe » est une bascule locale tant que l'agenda n'existe pas.
+// actions. « J'y participe » est enregistré par l'API (affiché tout de suite, annulé si refus).
 import { computed, ref } from 'vue';
 
-import InitialsAvatar from '@/components/InitialsAvatar.vue';
+import AppButton from '@/components/AppButton.vue';
+import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useNotify } from '@/composables/useNotify';
-import { mediatorCount, type FeaturedEvent } from '../services/home-feed';
+import { extractApiError } from '@/lib/http';
+import { mediatorCount } from '@/lib/wording';
+import { useSession } from '@/stores/session';
+import { setParticipation, type FeaturedEvent } from '../services/home-feed';
 
 const props = defineProps<{ event: FeaturedEvent }>();
 
@@ -13,18 +17,36 @@ const props = defineProps<{ event: FeaturedEvent }>();
 const VISIBLE_ATTENDEES = 4;
 
 const notify = useNotify();
-const participating = ref(false);
+const session = useSession();
+const participating = ref(props.event.isParticipating);
 
-const count = computed(() => props.event.attendeeCount + (participating.value ? 1 : 0));
-const hiddenCount = computed(() => props.event.attendeeCount - VISIBLE_ATTENDEES);
+// Le total de l'API compte déjà la personne connectée si elle participait au chargement
+const othersCount = props.event.attendeeCount - (props.event.isParticipating ? 1 : 0);
+const count = computed(() => othersCount + (participating.value ? 1 : 0));
 
-function toggleParticipation(): void {
+// « Vous » en premier quand elle participe, puis les autres participantes
+const others = computed(() =>
+  props.event.attendees
+    .filter((person) => person.id !== session.user?.id)
+    .slice(0, VISIBLE_ATTENDEES - (participating.value ? 1 : 0))
+);
+const hiddenCount = computed(
+  () => count.value - others.value.length - (participating.value ? 1 : 0)
+);
+
+async function toggleParticipation(): Promise<void> {
   participating.value = !participating.value;
-  notify.info(
-    participating.value
-      ? `Votre participation au ${props.event.title} est notée.`
-      : 'Participation retirée.'
-  );
+  try {
+    await setParticipation(props.event.id, participating.value);
+    notify.info(
+      participating.value
+        ? `Votre participation au ${props.event.title} est notée.`
+        : 'Participation retirée.'
+    );
+  } catch (error) {
+    participating.value = !participating.value;
+    notify.error(extractApiError(error, 'Votre participation n’a pas pu être enregistrée.'));
+  }
 }
 </script>
 
@@ -51,17 +73,22 @@ function toggleParticipation(): void {
         </h2>
         <div class="featured-event__meta">
           <span class="meta"><q-icon name="calendar" size="15px" />{{ event.dates }}</span>
-          <span class="meta"><q-icon name="map-pin" size="15px" />{{ event.place }}</span>
+          <span v-if="event.place" class="meta">
+            <q-icon name="map-pin" size="15px" />{{ event.place }}
+          </span>
         </div>
-        <p class="featured-event__description">{{ event.description }}</p>
+        <p v-if="event.description" class="featured-event__description">
+          {{ event.description }}
+        </p>
 
         <div class="featured-event__who">
           <div class="featured-event__stack">
-            <InitialsAvatar v-if="participating" name="Vous" />
-            <InitialsAvatar
-              v-for="name in event.attendees.slice(0, VISIBLE_ATTENDEES)"
-              :key="name"
-              :name="name"
+            <MemberAvatar v-if="participating" name="Vous" />
+            <MemberAvatar
+              v-for="person in others"
+              :key="person.id"
+              :name="person.name"
+              :photo="person.photo"
             />
             <span v-if="hiddenCount > 0" class="featured-event__more" aria-hidden="true">
               +{{ hiddenCount }}
@@ -73,17 +100,9 @@ function toggleParticipation(): void {
         </div>
 
         <div class="featured-event__actions">
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            label="Voir l’événement"
-            :to="{ name: 'agenda' }"
-          />
-          <q-btn
-            outline
-            no-caps
-            color="primary"
+          <AppButton label="Voir l’événement" :to="{ name: 'agenda' }" />
+          <AppButton
+            variant="outline"
             :icon="participating ? 'check' : undefined"
             :label="participating ? 'Je participe' : 'J’y participe'"
             :aria-pressed="participating"
@@ -143,7 +162,7 @@ function toggleParticipation(): void {
 
       &:hover,
       &:focus-visible {
-        color: var(--petrol);
+        color: var(--link-hover);
       }
     }
   }

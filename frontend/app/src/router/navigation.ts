@@ -12,7 +12,7 @@ export interface NavigationItem {
 
 export const MAIN_NAVIGATION: NavigationItem[] = [
   { label: 'Accueil', routeName: 'home', icon: 'home' },
-  { label: 'Réseau', routeName: 'network', icon: 'users' },
+  { label: 'Réseau', routeName: 'network', icon: 'users', activeFor: ['network', 'member'] },
   { label: 'Agenda', routeName: 'agenda', icon: 'calendar' },
   { label: 'Ressources', routeName: 'resources', icon: 'book' },
 ];

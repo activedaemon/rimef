@@ -13,7 +13,7 @@ import PageIntro from '@/components/PageIntro.vue';
       <EmptyState
         icon="pencil"
         title="La modification du profil arrive bientôt"
-        text="Vous pourrez compléter votre parcours, vos expertises et vos langues."
+        text="Vous pourrez compléter votre parcours et vos expertises."
       />
     </div>
   </q-page>

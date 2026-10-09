@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
@@ -61,6 +64,68 @@ class User extends Authenticatable
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => trim("{$this->first_name} {$this->last_name}"));
+    }
+
+    /**
+     * Profil de médiatrice affiché dans l'annuaire (comptes ayant le rôle member).
+     *
+     * @return HasOne<MemberProfile, $this>
+     */
+    public function memberProfile(): HasOne
+    {
+        return $this->hasOne(MemberProfile::class);
+    }
+
+    /**
+     * URL de la photo de la médiatrice (route protégée), versionnée par la date de mise à jour
+     * du profil pour un cache navigateur long ; null sans photo. Profil chargé au préalable.
+     */
+    public function photoUrl(): ?string
+    {
+        $profile = $this->memberProfile;
+
+        return $profile?->photo_path === null ? null : route('members.photo', [
+            'user' => $this->id,
+            'v' => $profile->updated_at?->getTimestamp(),
+        ], false);
+    }
+
+    /**
+     * Médiatrices enregistrées avec le marque-page.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function favorites(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'user_id', 'member_id')->withTimestamps();
+    }
+
+    /**
+     * Comptes qui ont enregistré cette médiatrice dans leurs favoris.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function favoredBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'member_id', 'user_id');
+    }
+
+    /**
+     * @return BelongsToMany<Event, $this>
+     */
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class);
+    }
+
+    /**
+     * Prochain événement, quand la requête sélectionne `next_event_id` (MemberDirectory).
+     *
+     * @return BelongsTo<Event, $this>
+     */
+    public function nextEvent(): BelongsTo
+    {
+        return $this->belongsTo(Event::class, 'next_event_id');
     }
 
     /**

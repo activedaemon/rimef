@@ -2,7 +2,8 @@
 // Recherche du bandeau (fiche SiteHeader) : champ à partir de 1080 px, bouton loupe en
 // dessous (la place manque à côté des onglets) qui ouvre le champ dans une fenêtre.
 // Texte d'invite et rubrique propres à chaque page (meta de la route) ; la recherche mène
-// à /recherche?q=…&rubrique=… — le moteur viendra avec les membres, événements et ressources.
+// à /recherche?q=…&rubrique=…, sauf sur les pages qui filtrent elles-mêmes leur liste
+// (meta.searchInPage, ex. l'annuaire) : les termes s'ajoutent alors à l'URL de la page.
 import { useQuasar } from 'quasar';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -46,6 +47,14 @@ watch(
 
 async function submit(): Promise<void> {
   const terms = query.value.trim();
+  if (route.meta.searchInPage) {
+    dialogOpen.value = false;
+    // Termes vides : la page affiche de nouveau toute sa liste
+    const others = { ...route.query };
+    delete others.q;
+    await router.replace({ query: terms ? { ...others, q: terms } : others });
+    return;
+  }
   if (terms === '') {
     return;
   }

@@ -16,5 +16,7 @@ declare module 'vue-router' {
     searchPlaceholder?: string;
     /** Rubrique transmise à la page de résultats. */
     searchScope?: SearchScope;
+    /** La recherche du bandeau filtre la page elle-même (?q=…) au lieu d'ouvrir /recherche. */
+    searchInPage?: boolean;
   }
 }

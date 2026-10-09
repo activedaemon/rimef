@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import AppButton from '@/components/AppButton.vue';
 import { extractApiError } from '@/lib/http';
 import { forgotPassword } from '../services/auth';
 
@@ -57,11 +58,8 @@ async function submit(): Promise<void> {
         />
       </div>
 
-      <q-btn
+      <AppButton
         type="submit"
-        color="primary"
-        unelevated
-        no-caps
         label="Recevoir le lien"
         class="auth-form__submit"
         :loading="submitting"

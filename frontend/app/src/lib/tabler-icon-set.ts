@@ -1,6 +1,7 @@
 // Icônes Tabler (police @tabler/icons-webfont) branchées sur Quasar.
 // - <q-icon name="search" />  → <i class="ti ti-search" />
 // - "ti ti-xxx" explicite      → conservé tel quel
+// - tracé SVG ("M18 7v14…|0 0 24 24"), "img:…", "svguse:…" → laissés à Quasar
 // - Les composants Quasar utilisent en interne des noms Material
 //   (arrow_drop_down, close…) : ils sont traduits vers leur équivalent Tabler.
 
@@ -42,7 +43,13 @@ const QUASAR_INTERNAL_TO_TABLER: Record<string, string> = {
   indeterminate_check_box: 'square-minus',
 };
 
-export function tablerIconMapFn(iconName: string): { cls: string } {
+/** Icônes que Quasar affiche lui-même : tracé SVG (commence par « M »), image, sprite SVG. */
+const QUASAR_NATIVE_ICON = /^(M|img:|svguse:)/;
+
+export function tablerIconMapFn(iconName: string): { cls: string } | undefined {
+  if (QUASAR_NATIVE_ICON.test(iconName)) {
+    return undefined;
+  }
   if (iconName.startsWith('ti ti-') || iconName.startsWith('ti-')) {
     return { cls: iconName.startsWith('ti ') ? iconName : `ti ${iconName}` };
   }

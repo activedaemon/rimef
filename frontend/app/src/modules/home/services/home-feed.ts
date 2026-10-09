@@ -1,123 +1,114 @@
-// Contenu de l'accueil : événement à la une, prochains rendez-vous, nouveautés, ressources.
+// Contenu de l'accueil (GET /api/home) : événement à la une, prochains rendez-vous, nouvelles
+// médiatrices. Les dates arrivent en UTC et sont mises en forme ici, pour les cartes.
+import { dayAndMonth, daysAgo, formatDateRange } from '@/lib/dates';
+import { ensureCsrf, http } from '@/lib/http';
+
+/** Médiatrice affichée en avatar, avec un lien vers sa fiche. */
+export interface Person {
+  id: number;
+  name: string;
+  photo: string | null;
+}
 
 export interface FeaturedEvent {
-  id: string;
+  id: number;
   title: string;
   dates: string;
-  place: string;
-  description: string;
-  /** Quelques participantes affichées en avatars ; attendeeCount donne le total. */
-  attendees: string[];
+  place: string | null;
+  description: string | null;
+  /** Quelques participantes (photos d'abord) ; attendeeCount donne le total. */
+  attendees: Person[];
   attendeeCount: number;
+  isParticipating: boolean;
 }
 
 export interface Meeting {
-  id: string;
+  id: number;
   day: string;
   month: string;
   title: string;
-  place: string;
+  place: string | null;
   attendeeCount: number;
 }
 
 export interface NetworkNews {
-  id: string;
-  personName: string;
-  /** Suite de la phrase après le nom : « a rejoint le réseau ». */
+  person: Person;
+  /** Suite de la phrase après le nom. */
   action: string;
   when: string;
-}
-
-export interface ResourceSummary {
-  id: string;
-  title: string;
-  type: string;
-  detail: string;
-  icon: string;
 }
 
 export interface HomeFeed {
   featuredEvent: FeaturedEvent | null;
   meetings: Meeting[];
   news: NetworkNews[];
-  resources: ResourceSummary[];
 }
 
-// DÉMONSTRATION — contenus repris de la maquette, à remplacer par l'API quand l'agenda,
-// les membres et les ressources existeront. Les noms sont ceux des médiatrices fondatrices
-// (présentation locale uniquement) : activités et participations sont fictives.
-// À retirer avant toute mise en ligne ou diffusion de captures.
-const DEMO_FEED: HomeFeed = {
-  featuredEvent: {
-    id: 'demo-paris-peace-forum',
-    title: 'Paris Peace Forum',
-    dates: '12–13 novembre 2026',
-    place: 'Paris, France',
-    description: 'Un espace de dialogue pour des solutions multilatérales aux défis globaux.',
-    attendees: ['Delphine Borione', 'Kalinda Magloire', 'Fatima Maïga', 'Esther Omam'],
-    attendeeCount: 8,
-  },
-  meetings: [
-    {
-      id: 'demo-eu-cop',
-      day: '18',
-      month: 'OCT',
-      title: 'EU Community of Practice',
-      place: 'Bruxelles, Belgique',
-      attendeeCount: 5,
-    },
-    {
-      id: 'demo-dakar',
-      day: '26',
-      month: 'OCT',
-      title: 'Médiation et processus de paix',
-      place: 'Dakar, Sénégal',
-      attendeeCount: 3,
-    },
-  ],
-  news: [
-    {
-      id: 'demo-n1',
-      personName: 'Marie-Joëlle Zahar',
-      action: 'a rejoint le réseau comme médiatrice fondatrice',
-      when: 'Il y a 2 jours',
-    },
-    {
-      id: 'demo-n2',
-      personName: 'Achta Djibrine Sy',
-      action: 'a participé à l’atelier de lancement à Paris',
-      when: 'Il y a 3 jours',
-    },
-    {
-      id: 'demo-n3',
-      personName: 'Nelly Godelive Mbangu',
-      action: 'est intervenue lors du lancement à Sciences Po',
-      when: 'Il y a 4 jours',
-    },
-  ],
-  resources: [
-    {
-      id: 'demo-r1',
-      title: 'Femmes médiatrices : des actrices clés pour des paix durables',
-      type: 'Rapport',
-      detail: 'Avril 2026',
-      icon: 'file-text',
-    },
-    {
-      id: 'demo-r2',
-      title: 'Paroles de médiatrices',
-      type: 'Podcast',
-      detail: '34 min',
-      icon: 'microphone',
-    },
-  ],
-};
+interface ApiPerson {
+  id: number;
+  name: string;
+  photo_url: string | null;
+}
+
+interface ApiEvent {
+  id: number;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  place: string | null;
+  attendee_count: number;
+}
+
+interface ApiHome {
+  featured_event:
+    | (ApiEvent & { description: string | null; is_participating: boolean; attendees: ApiPerson[] })
+    | null;
+  meetings: ApiEvent[];
+  news: (ApiPerson & { joined_at: string })[];
+}
+
+const toPerson = (person: ApiPerson): Person => ({
+  id: person.id,
+  name: person.name,
+  photo: person.photo_url,
+});
 
 export async function fetchHomeFeed(): Promise<HomeFeed> {
-  return DEMO_FEED;
+  const { data } = await http.get<{ data: ApiHome }>('/home');
+  const { featured_event: featured, meetings, news } = data.data;
+
+  return {
+    featuredEvent: featured && {
+      id: featured.id,
+      title: featured.title,
+      dates: formatDateRange(featured.starts_at, featured.ends_at),
+      place: featured.place,
+      description: featured.description,
+      attendees: featured.attendees.map(toPerson),
+      attendeeCount: featured.attendee_count,
+      isParticipating: featured.is_participating,
+    },
+    meetings: meetings.map((meeting) => ({
+      id: meeting.id,
+      ...dayAndMonth(meeting.starts_at),
+      title: meeting.title,
+      place: meeting.place,
+      attendeeCount: meeting.attendee_count,
+    })),
+    news: news.map((item) => ({
+      person: toPerson(item),
+      action: 'a rejoint le réseau',
+      when: daysAgo(item.joined_at),
+    })),
+  };
 }
 
-/** Accord de « médiatrice » selon le nombre. */
-export function mediatorCount(count: number): string {
-  return `${count} médiatrice${count > 1 ? 's' : ''}`;
+/** « J'y participe » : inscrit ou désinscrit la personne connectée. */
+export async function setParticipation(eventId: number, participating: boolean): Promise<void> {
+  await ensureCsrf();
+  if (participating) {
+    await http.put(`/events/${eventId}/participation`);
+  } else {
+    await http.delete(`/events/${eventId}/participation`);
+  }
 }

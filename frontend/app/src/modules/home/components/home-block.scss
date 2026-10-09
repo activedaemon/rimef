@@ -13,6 +13,13 @@
     list-style: none;
   }
 
+  // Bloc sans contenu : une phrase discrète à la place de la liste
+  &__empty {
+    margin-top: 16px;
+    font-size: var(--fs-sm);
+    color: var(--muted);
+  }
+
   &__item-title {
     // noinspection CssNoGenericFontName
     font-family: var(--font-ui);
@@ -27,7 +34,7 @@
 
       &:hover,
       &:focus-visible {
-        color: var(--petrol);
+        color: var(--link-hover);
       }
     }
   }

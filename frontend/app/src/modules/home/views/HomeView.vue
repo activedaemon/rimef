@@ -1,9 +1,11 @@
 <script setup lang="ts">
 // Accueil (maquette) : bandeau, événement à la une et citation, trois blocs
-// (rendez-vous, nouveautés, ressources), bandeau éditorial.
+// (rendez-vous, nouveautés, ressources), bandeau éditorial. Contenu : GET /api/home.
 import { onMounted, ref } from 'vue';
 
 import QuoteBlock from '@/components/QuoteBlock.vue';
+import { useNotify } from '@/composables/useNotify';
+import { extractApiError } from '@/lib/http';
 import { useSession } from '@/stores/session';
 import EditorialBand from '../components/EditorialBand.vue';
 import FeaturedEventCard from '../components/FeaturedEventCard.vue';
@@ -14,10 +16,15 @@ import UpcomingMeetingsCard from '../components/UpcomingMeetingsCard.vue';
 import { fetchHomeFeed, type HomeFeed } from '../services/home-feed';
 
 const session = useSession();
+const notify = useNotify();
 const feed = ref<HomeFeed | null>(null);
 
 onMounted(async () => {
-  feed.value = await fetchHomeFeed();
+  try {
+    feed.value = await fetchHomeFeed();
+  } catch (error) {
+    notify.error(extractApiError(error, 'L’accueil n’a pas pu être chargé. Réessayez.'));
+  }
 });
 </script>
 
@@ -26,10 +33,14 @@ onMounted(async () => {
     <HomeHero :first-name="session.user?.first_name ?? ''" />
 
     <div v-if="feed" class="container home__main">
-      <div class="home__feature-row">
+      <!-- Sans événement à la une, la citation prend toute la largeur -->
+      <div
+        class="home__feature-row"
+        :class="{ 'home__feature-row--quote-only': !feed.featuredEvent }"
+      >
         <FeaturedEventCard v-if="feed.featuredEvent" :event="feed.featuredEvent" />
         <QuoteBlock
-          variant="card"
+          :variant="feed.featuredEvent ? 'card' : 'banner'"
           tone="ivory"
           text="Des processus de paix inclusifs, pour une paix plus durable."
         />
@@ -38,7 +49,7 @@ onMounted(async () => {
       <div class="home__blocks">
         <UpcomingMeetingsCard :meetings="feed.meetings" />
         <NetworkNewsCard :news="feed.news" />
-        <ResourcesCard :resources="feed.resources" class="home__last-block" />
+        <ResourcesCard class="home__last-block" />
       </div>
 
       <EditorialBand class="home__band" />
@@ -60,6 +71,10 @@ onMounted(async () => {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 24px;
+
+    &--quote-only {
+      grid-template-columns: 1fr;
+    }
   }
 
   &__blocks {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import { useSession } from '@/stores/session';
@@ -10,10 +11,8 @@ const session = useSession();
   <q-page class="inner-page">
     <div class="container">
       <PageIntro :title="session.user?.name ?? 'Mon profil'" :eyebrow="session.roleLabel">
-        <q-btn
-          outline
-          color="primary"
-          no-caps
+        <AppButton
+          variant="outline"
           icon="pencil"
           label="Modifier mon profil"
           :to="{ name: 'profile-edit' }"
@@ -35,7 +34,7 @@ const session = useSession();
       <EmptyState
         icon="id-badge-2"
         title="Votre parcours arrive bientôt"
-        text="Expertises, langues et événements auxquels vous participez seront affichés ici."
+        text="Expertises et événements auxquels vous participez seront affichés ici."
       />
     </div>
   </q-page>

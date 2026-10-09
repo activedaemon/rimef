@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Bandeau éditorial (maquette Accueil) : valeurs du réseau en italique serif sur pétrole sombre,
 // invitation à compléter son profil (la maquette proposait « Rejoindre le réseau »).
+import AppButton from '@/components/AppButton.vue';
 import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 </script>
 
@@ -14,9 +15,8 @@ import { LEAF_PATH, leafTransform } from '@/lib/leaf';
       <path :d="LEAF_PATH" :transform="leafTransform(10, 118, -52, 120, 42)" fill="#8FA89C" />
     </svg>
     <p class="editorial-band__text">Solidarité mutuelle et mentorat intergénérationnel.</p>
-    <q-btn
-      unelevated
-      no-caps
+    <AppButton
+      variant="light"
       label="Compléter mon profil"
       :to="{ name: 'profile-edit' }"
       class="editorial-band__button"
@@ -67,12 +67,6 @@ import { LEAF_PATH, leafTransform } from '@/lib/leaf';
   &__button {
     position: relative;
     z-index: 1;
-    background: var(--paper);
-    color: var(--petrol-dark);
-
-    &:hover {
-      background: var(--ivory);
-    }
   }
 
   &__leaf {
