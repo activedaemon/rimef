@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// En-tête de la fiche (fiche ProfileHeader) : portrait, nom, badge, fonction, lieu, région,
+// En-tête de la fiche (fiche ProfileHeader) : portrait orné de deux feuilles, nom, badge, fonction, lieu, région,
 // organisation, citation ; les actions (favori, modifier…) arrivent par le slot « actions ».
 import { useQuasar } from 'quasar';
 import { computed } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
+import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 import type { MemberProfile } from '../services/members';
 
 const props = defineProps<{ profile: MemberProfile }>();
@@ -22,6 +23,20 @@ const place = computed(() =>
   <section class="profile-header" aria-labelledby="profile-name">
     <div class="profile-header__portrait">
       <MemberAvatar :name="profile.name" :photo="profile.photo_url" :size="portraitSize" />
+      <svg class="profile-header__leaves" viewBox="0 0 90 72" aria-hidden="true">
+        <path
+          :d="LEAF_PATH"
+          :transform="leafTransform(8, 66, -38, 64, 22)"
+          fill="#C86F55"
+          opacity="0.9"
+        />
+        <path
+          :d="LEAF_PATH"
+          :transform="leafTransform(6, 68, -78, 48, 17)"
+          fill="#8FA89C"
+          opacity="0.9"
+        />
+      </svg>
     </div>
 
     <div class="profile-header__identity">
@@ -71,6 +86,20 @@ const place = computed(() =>
   gap: 36px;
   align-items: start;
   padding-block: 26px 30px;
+
+  &__portrait {
+    position: relative;
+  }
+
+  // Ornement de la maquette, en bas à gauche du portrait
+  &__leaves {
+    position: absolute;
+    bottom: -8px;
+    left: -26px;
+    width: 74px;
+    height: 60px;
+    pointer-events: none;
+  }
 
   &__portrait :deep(.member-avatar) {
     box-shadow:
@@ -151,6 +180,11 @@ const place = computed(() =>
     grid-template-columns: auto 1fr;
     gap: 28px;
 
+    // Marge de page de 24 px : l'ornement ne doit pas sortir de l'écran
+    &__leaves {
+      left: -20px;
+    }
+
     &__actions {
       grid-column: 2;
       flex-direction: row;
@@ -176,6 +210,13 @@ const place = computed(() =>
           0 0 0 3px var(--paper),
           0 0 0 4px var(--border);
       }
+    }
+
+    &__leaves {
+      bottom: -6px;
+      left: -14px;
+      width: 44px;
+      height: 36px;
     }
 
     &__identity {
