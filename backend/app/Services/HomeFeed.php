@@ -109,10 +109,10 @@ class HomeFeed
     }
 
     /**
-     * @return array{id: int, name: string, photo_url: string|null}
+     * @return array{id: int, slug: string, name: string, photo_url: string|null}
      */
     private function person(User $user): array
     {
-        return ['id' => $user->id, 'name' => $user->name, 'photo_url' => $user->photoUrl()];
+        return ['id' => $user->id, 'slug' => $user->slug, 'name' => $user->name, 'photo_url' => $user->photoUrl()];
     }
 }

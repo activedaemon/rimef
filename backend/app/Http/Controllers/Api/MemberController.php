@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListMembersRequest;
+use App\Http\Resources\MemberProfileResource;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
 use App\Services\MemberDirectory;
@@ -38,6 +39,19 @@ class MemberController extends Controller
     public function filters(): JsonResponse
     {
         return response()->json(['data' => $this->directory->facets()]);
+    }
+
+    /**
+     * Fiche d'une médiatrice de l'annuaire, retrouvée par son slug (/reseau/aminata-diallo).
+     */
+    public function show(Request $request, User $user): MemberProfileResource
+    {
+        abort_unless($this->directory->isListed($user), 404);
+
+        $user->load(['memberProfile.expertises', 'memberProfile.zones']);
+        $user->setAttribute('is_favorite', $request->user()->favorites()->whereKey($user->getKey())->exists());
+
+        return new MemberProfileResource($user);
     }
 
     /**

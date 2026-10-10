@@ -51,6 +51,9 @@ Route::middleware([
 
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::get('/members/filters', [MemberController::class, 'filters'])->name('members.filters');
+        Route::get('/members/{user:slug}', [MemberController::class, 'show'])
+            ->where('user', '[a-z0-9-]+')
+            ->name('members.show');
         Route::get('/members/{user}/photo', [MemberController::class, 'photo'])
             ->whereNumber('user')
             ->name('members.photo');

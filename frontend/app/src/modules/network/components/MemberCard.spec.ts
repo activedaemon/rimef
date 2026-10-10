@@ -7,6 +7,7 @@ import MemberCard from './MemberCard.vue';
 
 const AMINATA: Member = {
   id: 7,
+  slug: 'aminata-diallo',
   name: 'Aminata Diallo',
   country: { code: 'SN', name: 'Sénégal' },
   region: 'Afrique de l’Ouest',
@@ -23,7 +24,7 @@ describe('MemberCard', () => {
     const { wrapper } = await mountApp(MemberCard, { props: { member: AMINATA } });
 
     expect(wrapper.find('h3 a').text()).toBe('Aminata Diallo');
-    expect(wrapper.find('h3 a').attributes('href')).toBe('/reseau/7');
+    expect(wrapper.find('h3 a').attributes('href')).toBe('/reseau/aminata-diallo');
     expect(wrapper.text()).toContain('Sénégal');
     expect(wrapper.findAll('.member-card__expertises li').map((li) => li.text())).toEqual([
       'Médiation communautaire',

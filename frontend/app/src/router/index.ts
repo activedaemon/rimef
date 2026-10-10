@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
             meta: { title: 'Réseau', searchInPage: true },
           },
           {
-            path: ':id(\\d+)',
+            path: ':slug([a-z0-9-]+)',
             name: 'member',
             component: () => import('@modules/network/views/MemberProfileView.vue'),
             meta: { title: 'Profil médiatrice' },

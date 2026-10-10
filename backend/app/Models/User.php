@@ -9,6 +9,7 @@ use BackedEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,11 +18,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role as RoleModel;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
  * Compte d'un membre du réseau (base du tenant).
+ *
+ * Le slug (prénom-nom, unique) sert d'adresse à la fiche : /reseau/aminata-diallo.
  *
  * Le compte superadmin est protégé : il ne peut être ni supprimé, ni désactivé, ni privé
  * de son rôle (ProtectedSuperAdminException).
@@ -40,6 +44,12 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
+        static::saving(function (User $user): void {
+            if ($user->slug === null || $user->isDirty(['first_name', 'last_name'])) {
+                $user->slug = $user->uniqueSlug();
+            }
+        });
+
         static::updating(function (User $user): void {
             if ($user->isDirty('is_active') && ! $user->is_active && $user->isSuperAdmin()) {
                 throw ProtectedSuperAdminException::cannotDeactivate();
@@ -138,6 +148,27 @@ class User extends Authenticatable
         }
 
         return parent::delete();
+    }
+
+    /**
+     * Prénom-nom sans accents ; un homonyme reçoit le premier suffixe libre (-2, -3…).
+     */
+    private function uniqueSlug(): string
+    {
+        $base = Str::slug($this->name) ?: 'membre';
+
+        $taken = static::query()
+            ->whereKeyNot($this->getKey())
+            ->where(fn (Builder $query) => $query->where('slug', $base)->orWhere('slug', 'like', "{$base}-%"))
+            ->pluck('slug')
+            ->flip();
+
+        $slug = $base;
+        for ($suffix = 2; $taken->has($slug); $suffix++) {
+            $slug = "{$base}-{$suffix}";
+        }
+
+        return $slug;
     }
 
     public function isSuperAdmin(): bool

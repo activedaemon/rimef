@@ -9,6 +9,8 @@ export interface AuthenticatedUser {
   id: number;
   first_name: string;
   last_name: string;
+  /** Prénom-nom dans l'URL de sa fiche (/reseau/aminata-diallo). */
+  slug: string;
   /** Nom complet (« Prénom Nom »). */
   name: string;
   email: string;

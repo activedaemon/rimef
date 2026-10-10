@@ -58,10 +58,6 @@ function moveFocus(event: KeyboardEvent): void {
           <q-item-section avatar><q-icon name="user" size="16px" /></q-item-section>
           <q-item-section>Voir mon profil</q-item-section>
         </q-item>
-        <q-item v-close-popup clickable role="menuitem" :to="{ name: 'profile-edit' }">
-          <q-item-section avatar><q-icon name="pencil" size="16px" /></q-item-section>
-          <q-item-section>Modifier mon profil</q-item-section>
-        </q-item>
         <q-separator class="account-menu__separator" />
         <q-item v-close-popup clickable role="menuitem" :disable="loggingOut" @click="logout">
           <q-item-section avatar><q-icon name="logout" size="16px" /></q-item-section>

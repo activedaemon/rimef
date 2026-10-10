@@ -11,11 +11,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Profil de médiatrice affiché dans l'annuaire (un par compte ayant le rôle member).
  */
-#[Fillable(['country_code', 'organization_type', 'is_available', 'photo_path'])]
+#[Fillable([
+    'country_code', 'city', 'organization_type', 'job_title', 'tagline', 'bio', 'experience_since',
+    'audiences', 'is_available', 'photo_path',
+])]
 class MemberProfile extends Model
 {
     /** @use HasFactory<MemberProfileFactory> */
@@ -26,6 +30,7 @@ class MemberProfile extends Model
         return [
             'organization_type' => OrganizationType::class,
             'is_available' => 'boolean',
+            'experience_since' => 'integer',
         ];
     }
 
@@ -47,5 +52,23 @@ class MemberProfile extends Model
         return $this->belongsToMany(Expertise::class)
             ->withPivot('position')
             ->orderByPivot('position');
+    }
+
+    /**
+     * Zones d'intervention (pays) dans l'ordre choisi par la médiatrice.
+     *
+     * @return HasMany<MemberZone, $this>
+     */
+    public function zones(): HasMany
+    {
+        return $this->hasMany(MemberZone::class)->orderBy('position');
+    }
+
+    /**
+     * Années d'expérience en médiation, d'après l'année de début ; null si elle n'est pas renseignée.
+     */
+    public function yearsOfExperience(): ?int
+    {
+        return $this->experience_since === null ? null : max(0, now()->year - $this->experience_since);
     }
 }

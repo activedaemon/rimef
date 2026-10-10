@@ -6,6 +6,8 @@ import { ensureCsrf, http } from '@/lib/http';
 /** Médiatrice affichée en avatar, avec un lien vers sa fiche. */
 export interface Person {
   id: number;
+  /** Prénom-nom dans l'URL de sa fiche. */
+  slug: string;
   name: string;
   photo: string | null;
 }
@@ -46,6 +48,7 @@ export interface HomeFeed {
 
 interface ApiPerson {
   id: number;
+  slug: string;
   name: string;
   photo_url: string | null;
 }
@@ -69,6 +72,7 @@ interface ApiHome {
 
 const toPerson = (person: ApiPerson): Person => ({
   id: person.id,
+  slug: person.slug,
   name: person.name,
   photo: person.photo_url,
 });

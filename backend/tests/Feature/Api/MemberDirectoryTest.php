@@ -86,6 +86,7 @@ it('describes a mediator card', function () {
         ->assertOk()
         ->assertJsonPath('data.0', [
             'id' => User::where('last_name', 'Diallo')->value('id'),
+            'slug' => 'aminata-diallo',
             'name' => 'Aminata Diallo',
             'country' => ['code' => 'SN', 'name' => 'Sénégal'],
             'region' => 'Afrique de l’Ouest',
