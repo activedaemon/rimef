@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// En-tête (fiche SiteHeader) : logo, navigation principale, menu du compte.
+// En-tête (fiche SiteHeader) : logo, navigation principale, recherche, cloche, menu du compte.
 // Sous 720 px, la navigation passe dans le tiroir (bouton menu) et la barre d'onglets.
 // Navigation en q-tabs / q-route-tab (onde, soulignement animé) : choix assumé, les
 // lecteurs d'écran annoncent des « onglets » ; la zone reste une <nav> libellée.
@@ -7,6 +7,7 @@ import AppLogo from '@/components/brand/AppLogo.vue';
 import { MAIN_NAVIGATION } from '@/router/navigation';
 import AccountMenu from './AccountMenu.vue';
 import HeaderSearch from './HeaderSearch.vue';
+import NotificationBell from './NotificationBell.vue';
 
 defineEmits<{ 'open-drawer': [] }>();
 </script>
@@ -50,6 +51,7 @@ defineEmits<{ 'open-drawer': [] }>();
 
       <div class="app-header__tools">
         <HeaderSearch />
+        <NotificationBell />
         <AccountMenu />
       </div>
     </div>

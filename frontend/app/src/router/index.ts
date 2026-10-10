@@ -87,6 +87,25 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        // Messagerie interne : « Mes messages » puis une conversation
+        path: 'messages',
+        component: RouterView,
+        children: [
+          {
+            path: '',
+            name: 'messages',
+            component: () => import('@modules/messages/views/ConversationsView.vue'),
+            meta: { title: 'Mes messages' },
+          },
+          {
+            path: ':id(\\d+)',
+            name: 'conversation',
+            component: () => import('@modules/messages/views/ConversationView.vue'),
+            meta: { title: 'Conversation' },
+          },
+        ],
+      },
+      {
         path: 'recherche',
         name: 'search',
         component: () => import('@modules/search/views/SearchView.vue'),

@@ -182,6 +182,29 @@ services:
     networks: [rimef-net]
 
   # ===========================================================================
+  # BACKEND - File d'attente (emails et tâches de fond)
+  # ===========================================================================
+  # Même image que rimef-php. Le worker garde le code en mémoire : après une
+  # modification du backend, `make queue-restart`.
+  rimef-queue:
+    build:
+      context: ..
+      dockerfile: .docker/backend/php/Dockerfile
+    container_name: rimef-queue
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    working_dir: /var/www/html
+    command: ["php", "artisan", "queue:work", "--tries=3", "--backoff=10", "--max-time=3600"]
+    volumes:
+      - ../backend:/var/www/html
+    environment:
+      TZ: UTC
+    depends_on:
+      rimef-mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [rimef-net]
+
+  # ===========================================================================
   # BACKEND - Nginx (vhost Laravel)
   # ===========================================================================
   rimef-nginx:

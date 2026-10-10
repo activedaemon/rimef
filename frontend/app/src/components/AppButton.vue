@@ -2,6 +2,7 @@
 // Bouton de la charte (fiche Button), sur q-btn : toutes ses props passent telles quelles
 // (label, icon, to, type, loading…). Hauteur 44 px (zone tactile), texte 13 px graisse 500.
 // - primary : action principale de la zone (pétrole)
+// - accent : action d'appel forte, ex. « Contacter » (terracotta)
 // - outline : action secondaire (fond paper, contour pétrole)
 // - light : sur fond sombre ou photo (fond paper, sans bordure)
 // - quiet : action discrète, ex. « Annuler » (fond paper, filet)
@@ -9,7 +10,7 @@
 // Sans onde au clic : la charte ne prévoit que des changements de couleur.
 withDefaults(
   defineProps<{
-    variant?: 'primary' | 'outline' | 'light' | 'quiet';
+    variant?: 'primary' | 'accent' | 'outline' | 'light' | 'quiet';
     size?: 'md' | 'sm';
   }>(),
   { variant: 'primary', size: 'md' }
@@ -61,6 +62,17 @@ withDefaults(
 
     &:hover {
       background: var(--petrol-dark);
+    }
+  }
+
+  // Terracotta foncé : le terracotta de la maquette (#C86F55) n'atteint pas le contraste AA
+  // avec un texte blanc de 13 px
+  &--accent {
+    background: var(--terracotta-ink);
+    color: var(--paper);
+
+    &:hover {
+      background: #86412e;
     }
   }
 

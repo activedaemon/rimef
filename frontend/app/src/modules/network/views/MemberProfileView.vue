@@ -1,19 +1,25 @@
 <script setup lang="ts">
-// Fiche d'une médiatrice (/reseau/aminata-diallo). Contacter et le menu « … » de la maquette
-// arriveront avec la messagerie et les notifications ; seul le favori est proposé pour l'instant.
-import { computed } from 'vue';
+// Fiche d'une médiatrice (/reseau/aminata-diallo) : Contacter (messagerie du réseau) et favori,
+// sauf sur sa propre fiche. Le menu « … » de la maquette arrivera plus tard.
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import AppButton from '@/components/AppButton.vue';
 import BackLink from '@/components/BackLink.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import { useSession } from '@/stores/session';
+import ContactDialog from '../components/ContactDialog.vue';
 import MemberProfileSheet from '../components/MemberProfileSheet.vue';
 import { useMemberProfile } from '../composables/useMemberProfile';
 
 const route = useRoute();
+const session = useSession();
 const { profile, loading, notFound, toggleFavorite } = useMemberProfile(() =>
   typeof route.params.slug === 'string' ? route.params.slug : null
 );
+
+const isSelf = computed(() => profile.value?.id === session.user?.id);
+const contactOpen = ref(false);
 
 const favoriteLabel = computed(() =>
   profile.value?.is_favorite ? 'Dans mes favoris' : 'Ajouter aux favoris'
@@ -27,7 +33,8 @@ const favoriteLabel = computed(() =>
     </div>
 
     <MemberProfileSheet v-if="profile" :profile="profile">
-      <template #actions>
+      <template v-if="!isSelf" #actions>
+        <AppButton variant="accent" icon="mail" label="Contacter" @click="contactOpen = true" />
         <AppButton
           variant="quiet"
           icon="bookmark"
@@ -51,6 +58,8 @@ const favoriteLabel = computed(() =>
         text="Ce profil n’existe pas ou n’est plus visible dans l’annuaire."
       />
     </div>
+
+    <ContactDialog v-if="profile && !isSelf" v-model="contactOpen" :profile="profile" />
   </q-page>
 </template>
 

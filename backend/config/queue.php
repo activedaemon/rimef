@@ -37,7 +37,10 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'connection' => env('DB_QUEUE_CONNECTION'),
+            // Base centrale, même depuis un tenant : sans connexion explicite, une tâche créée
+            // dans un tenant irait dans sa base, hors de portée du worker. QueueTenancyBootstrapper
+            // ré-identifie le tenant à l'exécution.
+            'connection' => env('DB_QUEUE_CONNECTION', env('DB_CONNECTION', 'sqlite')),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),

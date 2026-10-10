@@ -3,6 +3,7 @@ import { flushPromises } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as auth from '@modules/auth/services/auth';
+import { useInbox } from '@/stores/inbox';
 import { useSession } from '@/stores/session';
 import { mountApp } from '@/testing/mount-app';
 import AccountMenu from './AccountMenu.vue';
@@ -50,6 +51,19 @@ describe('AccountMenu', () => {
     // q-menu est rendu dans le body (téléportation)
     expect(document.body.textContent).toContain('Aminata Diallo');
     expect(document.body.textContent).toContain('Administratrice');
+    wrapper.unmount();
+  });
+
+  it('links to my messages with the unread count', async () => {
+    const { wrapper } = await openMenu();
+    useInbox().unreadMessages = 4;
+    await flushPromises();
+
+    const item = Array.from(document.body.querySelectorAll<HTMLElement>('.q-item')).find((entry) =>
+      entry.textContent?.includes('Mes messages')
+    );
+    expect(item?.getAttribute('href')).toBe('/messages');
+    expect(item?.textContent).toContain('4');
     wrapper.unmount();
   });
 

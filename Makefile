@@ -4,10 +4,10 @@
 
 .PHONY: help start stop down restart ps info \
         artisan composer migrate fresh clear-cache tinker test pint shell-php shell-nginx \
-        tenants-seed tenants-migrate tenants-db-seed \
+        tenants-seed tenants-migrate tenants-db-seed queue-restart \
         npm npm-sup front-check front-test shell-front shell-sup \
         shell-mysql \
-        logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit
+        logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit logs-queue
 
 # Couleurs
 BLUE    := \033[0;34m
@@ -184,6 +184,10 @@ tenants-db-seed: ## @back Alimenter les bases tenant (rôles + admin de dev en l
 	@$(COMPOSE) exec rimef-php php artisan tenants:seed
 	@echo "$(GREEN)Tenants alimentés$(NC)"
 
+queue-restart: ## @back Relancer le worker de la file d'attente (après une modification du backend)
+	@$(COMPOSE) exec rimef-php php artisan queue:restart
+	@echo "$(GREEN)Worker relancé (redémarrage automatique du conteneur)$(NC)"
+
 clear-cache: ## @back Vider les caches Laravel (config, route, view, event, compiled — sans toucher à la table cache)
 	@echo "$(BLUE)Vidage des caches Laravel...$(NC)"
 	@$(COMPOSE) exec rimef-php php artisan config:clear -q
@@ -227,6 +231,9 @@ logs-frontend: ## @logs Voir les logs des deux applications frontend
 
 logs-backend: ## @logs Voir les logs du backend (PHP-FPM + Nginx)
 	@$(COMPOSE) logs -f --tail=100 rimef-php rimef-nginx
+
+logs-queue: ## @logs Voir uniquement les logs de la file d'attente (emails)
+	@$(COMPOSE) logs -f --tail=100 rimef-queue
 
 logs-mysql: ## @logs Voir uniquement les logs de MySQL
 	@$(COMPOSE) logs -f --tail=100 rimef-mysql

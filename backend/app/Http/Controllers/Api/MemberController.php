@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ContactSubject;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ContactMemberRequest;
 use App\Http\Requests\ListMembersRequest;
 use App\Http\Resources\MemberProfileResource;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
 use App\Services\MemberDirectory;
+use App\Services\Messaging;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -52,6 +55,25 @@ class MemberController extends Controller
         $user->setAttribute('is_favorite', $request->user()->favorites()->whereKey($user->getKey())->exists());
 
         return new MemberProfileResource($user);
+    }
+
+    /**
+     * Fenêtre « Contacter » : premier message (ou suivant) de la conversation avec la médiatrice.
+     */
+    public function contact(ContactMemberRequest $request, User $user, Messaging $messaging): JsonResponse
+    {
+        abort_unless($this->directory->isListed($user), 404);
+        abort_if($user->is($request->user()), 422, 'Vous ne pouvez pas vous écrire à vous-même.');
+
+        $conversation = $messaging->conversationBetween($request->user(), $user);
+        $messaging->send(
+            $conversation,
+            $request->user(),
+            $request->validated('body'),
+            ContactSubject::from($request->validated('subject')),
+        );
+
+        return response()->json(['data' => ['conversation_id' => $conversation->id]], 201);
     }
 
     /**

@@ -129,6 +129,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Conversations de la messagerie interne.
+     *
+     * @return BelongsToMany<Conversation, $this>
+     */
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class)->withPivot(['last_read_message_id', 'emailed_at']);
+    }
+
+    /**
      * Prochain événement, quand la requête sélectionne `next_event_id` (MemberDirectory).
      *
      * @return BelongsTo<Event, $this>
