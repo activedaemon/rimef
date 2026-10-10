@@ -55,7 +55,7 @@ const photoFailed = ref(false);
 
     <div class="member-card__body">
       <h3 class="member-card__name">
-        <router-link :to="{ name: 'member', params: { id: member.id } }">
+        <router-link :to="{ name: 'member', params: { slug: member.slug } }">
           {{ member.name }}
         </router-link>
       </h3>

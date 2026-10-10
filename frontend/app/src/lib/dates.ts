@@ -39,3 +39,25 @@ export function daysAgo(iso: string, now: Date = new Date()): string {
   const text = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' }).format(-days, 'day');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+/** Liste des messages et cloche : « 14:32 » aujourd’hui, « Hier », « 12 oct. », « 12 oct. 2025 ». */
+export function shortMoment(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (date.toDateString() === now.toDateString()) {
+    return new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' }).format(date);
+  }
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return 'Hier';
+  return new Intl.DateTimeFormat(LOCALE, {
+    day: 'numeric',
+    month: 'short',
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+  }).format(date);
+}
+
+/** Heure complète d'un message : « 10 octobre 2026 à 14:32 ». */
+export function fullMoment(iso: string): string {
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: 'long', timeStyle: 'short' }).format(
+    new Date(iso)
+  );
+}

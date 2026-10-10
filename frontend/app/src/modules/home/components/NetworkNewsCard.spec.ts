@@ -10,7 +10,12 @@ describe('NetworkNewsCard', () => {
       props: {
         news: [
           {
-            person: { id: 30, name: 'Esther Omam', photo: '/api/members/30/photo?v=1' },
+            person: {
+              id: 30,
+              slug: 'esther-omam',
+              name: 'Esther Omam',
+              photo: '/api/members/30/photo?v=1',
+            },
             action: 'a rejoint le réseau',
             when: 'Aujourd’hui',
           },
@@ -18,7 +23,7 @@ describe('NetworkNewsCard', () => {
       },
     });
 
-    expect(wrapper.find('.news__name').attributes('href')).toBe('/reseau/30');
+    expect(wrapper.find('.news__name').attributes('href')).toBe('/reseau/esther-omam');
     expect(wrapper.find('.news').text()).toContain('Esther Omam a rejoint le réseau');
     expect(wrapper.find('img').attributes('src')).toBe('/api/members/30/photo?v=1');
     wrapper.unmount();

@@ -15,6 +15,7 @@ const aminata: auth.AuthenticatedUser = {
   id: 1,
   first_name: 'Aminata',
   last_name: 'Diallo',
+  slug: 'aminata-diallo',
   name: 'Aminata Diallo',
   email: 'aminata@example.org',
   roles: ['member'],

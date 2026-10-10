@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Dev;
 
+use App\Enums\ContactSubject;
 use App\Http\Controllers\Controller;
 use App\Mail\MailBrand;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +40,10 @@ class EmailPreviewController extends Controller
         'password-reset' => [
             'name' => 'Réinitialisation du mot de passe',
             'source' => ResetPasswordNotification::class,
+        ],
+        'new-message' => [
+            'name' => 'Nouveau message (messagerie du réseau)',
+            'source' => NewMessageNotification::class,
         ],
     ];
 
@@ -182,6 +188,17 @@ class EmailPreviewController extends Controller
     {
         return match ($template) {
             'password-reset' => new ResetPasswordNotification('demo-token-123'),
+            // Email seul : le destinataire fictif n'existe pas en base (pas d'entrée de cloche)
+            'new-message' => new NewMessageNotification(
+                conversationId: 1,
+                senderName: 'Fatou Ndiaye',
+                senderPhotoUrl: null,
+                subject: ContactSubject::CoMediation,
+                excerpt: 'Bonjour Aminata, je prépare un dialogue communautaire à Ziguinchor et j’aimerais bénéficier de votre regard sur l’implication des femmes leaders…',
+                unreadCount: 1,
+                url: url(NewMessageNotification::path(1)),
+                channels: ['mail'],
+            ),
         };
     }
 

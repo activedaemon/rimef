@@ -27,6 +27,7 @@ class MemberResource extends JsonResource
 
         return [
             'id' => $this->id,
+            'slug' => $this->slug,
             'name' => $this->name,
             'country' => $profile?->country_code === null ? null : [
                 'code' => $profile->country_code,

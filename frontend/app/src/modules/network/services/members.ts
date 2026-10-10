@@ -5,6 +5,8 @@ import { ensureCsrf, http } from '@/lib/http';
 
 export interface Member {
   id: number;
+  /** Prénom-nom dans l'URL de la fiche (/reseau/aminata-diallo). */
+  slug: string;
   name: string;
   country: { code: string; name: string } | null;
   region: string | null;
@@ -15,6 +17,28 @@ export interface Member {
   next_event: { id: number; title: string; starts_at: string } | null;
   photo_url: string | null;
   expertises: string[];
+}
+
+/** Fiche d'une médiatrice (écran Profil médiatrice) ; champs vides tant que le profil n'est pas complété. */
+export interface MemberProfile {
+  id: number;
+  slug: string;
+  name: string;
+  first_name: string;
+  photo_url: string | null;
+  country: { code: string; name: string } | null;
+  city: string | null;
+  region: string | null;
+  organization: string | null;
+  job_title: string | null;
+  tagline: string | null;
+  bio: string | null;
+  years_of_experience: number | null;
+  audiences: string | null;
+  is_available: boolean;
+  is_favorite: boolean;
+  expertises: string[];
+  zones: { code: string; name: string }[];
 }
 
 export interface MemberPage {
@@ -167,6 +191,16 @@ export async function fetchMemberFilters(): Promise<MemberFilters> {
     filters[key] = data.data[key].map((option) => ({ ...option, value: String(option.value) }));
   }
   return filters;
+}
+
+export async function fetchMemberProfile(
+  slug: string,
+  signal?: AbortSignal
+): Promise<MemberProfile> {
+  const { data } = await http.get<{ data: MemberProfile }>(`/members/${encodeURIComponent(slug)}`, {
+    signal,
+  });
+  return data.data;
 }
 
 /** Ajoute ou retire une médiatrice des favoris de la personne connectée. */

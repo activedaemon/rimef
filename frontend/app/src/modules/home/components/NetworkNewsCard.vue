@@ -20,7 +20,7 @@ defineProps<{ news: NetworkNews[] }>();
         <div>
           <p class="news__text">
             <router-link
-              :to="{ name: 'member', params: { id: item.person.id } }"
+              :to="{ name: 'member', params: { slug: item.person.slug } }"
               class="news__name"
             >
               {{ item.person.name }}

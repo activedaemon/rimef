@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import { useInboxRefresh } from '@/composables/useInboxRefresh';
 import AppDrawer from './components/AppDrawer.vue';
 import AppFooter from './components/AppFooter.vue';
 import AppHeader from './components/AppHeader.vue';
 import AppTabBar from './components/AppTabBar.vue';
 
 const drawerOpen = ref(false);
+useInboxRefresh();
 </script>
 
 <template>

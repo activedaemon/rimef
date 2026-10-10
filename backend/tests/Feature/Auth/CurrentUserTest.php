@@ -26,6 +26,7 @@ it('returns the logged in member with her roles', function () {
             'id' => $member->id,
             'first_name' => 'Aminata',
             'last_name' => 'Diallo',
+            'slug' => 'aminata-diallo',
             'name' => 'Aminata Diallo',
             'email' => 'aminata@example.org',
             'roles' => ['member'],

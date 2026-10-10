@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
             meta: { title: 'Réseau', searchInPage: true },
           },
           {
-            path: ':id(\\d+)',
+            path: ':slug([a-z0-9-]+)',
             name: 'member',
             component: () => import('@modules/network/views/MemberProfileView.vue'),
             meta: { title: 'Profil médiatrice' },
@@ -83,6 +83,25 @@ const routes: RouteRecordRaw[] = [
               title: 'Modifier mon profil',
               searchPlaceholder: 'Rechercher une médiatrice, un événement…',
             },
+          },
+        ],
+      },
+      {
+        // Messagerie interne : « Mes messages » puis une conversation
+        path: 'messages',
+        component: RouterView,
+        children: [
+          {
+            path: '',
+            name: 'messages',
+            component: () => import('@modules/messages/views/ConversationsView.vue'),
+            meta: { title: 'Mes messages' },
+          },
+          {
+            path: ':id(\\d+)',
+            name: 'conversation',
+            component: () => import('@modules/messages/views/ConversationView.vue'),
+            meta: { title: 'Conversation' },
           },
         ],
       },
