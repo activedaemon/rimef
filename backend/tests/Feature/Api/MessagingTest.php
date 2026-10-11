@@ -206,6 +206,160 @@ it('pages the messages, most recent first', function () {
         ->assertJsonPath('meta.has_more', false);
 });
 
+it('lets the author edit her message for 15 minutes', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Bonjour Aminata, dispnible ?']);
+    $conversation = Conversation::sole();
+    $message = $conversation->messages()->sole();
+    $url = $this->tenantUrl("/api/conversations/{$conversation->id}/messages/{$message->id}");
+
+    $this->actingAs($this->fatou)
+        ->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
+        ->assertJsonPath('data.0.can_edit', true)
+        ->assertJsonPath('data.0.is_edited', false);
+
+    $this->patchJson($url, ['body' => 'Bonjour Aminata, disponible ?'])
+        ->assertOk()
+        ->assertJsonPath('data.body', 'Bonjour Aminata, disponible ?')
+        ->assertJsonPath('data.is_edited', true);
+
+    // La cloche d'Aminata reprend le texte corrigé
+    expect($this->aminata->notifications()->sole()->data['text'])->toBe('Bonjour Aminata, disponible ?');
+
+    $this->travel(16)->minutes();
+    $this->patchJson($url, ['body' => 'Trop tard'])->assertUnprocessable();
+    $this->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
+        ->assertJsonPath('data.0.can_edit', false);
+});
+
+it('lets only the author edit or delete a message', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo');
+    $conversation = Conversation::sole();
+    $message = $conversation->messages()->sole();
+    $url = $this->tenantUrl("/api/conversations/{$conversation->id}/messages/{$message->id}");
+    $outsider = User::factory()->create();
+    $outsider->assignRole(Role::Member);
+
+    $this->actingAs($this->aminata)->patchJson($url, ['body' => 'Piraté'])->assertForbidden();
+    $this->actingAs($this->aminata)->deleteJson($url)->assertForbidden();
+    $this->actingAs($outsider)->patchJson($url, ['body' => 'Piraté'])->assertNotFound();
+    $this->actingAs($outsider)->deleteJson($url)->assertNotFound();
+    $this->actingAs($this->fatou)->patchJson($url, ['body' => ''])->assertJsonValidationErrors(['body']);
+
+    expect($message->fresh()->body)->toBe('Bonjour Aminata, seriez-vous disponible en novembre ?');
+});
+
+it('deletes a message: « Message supprimé » for both, text erased, not unread any more', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Premier']);
+    $this->travel(1)->seconds();
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Second, à supprimer']);
+    $conversation = Conversation::sole();
+    $second = $conversation->messages()->latest('id')->first();
+    $url = $this->tenantUrl("/api/conversations/{$conversation->id}/messages/{$second->id}");
+
+    $this->actingAs($this->fatou)->deleteJson($url)
+        ->assertOk()
+        ->assertJsonPath('data.is_deleted', true)
+        ->assertJsonPath('data.body', null)
+        ->assertJsonPath('data.can_edit', false);
+    $this->deleteJson($url)->assertUnprocessable();
+    $this->patchJson($url, ['body' => 'Retour'])->assertUnprocessable();
+
+    expect($second->fresh()->body)->toBe('');
+
+    $this->actingAs($this->aminata)
+        ->getJson($this->tenantUrl('/api/conversations'))
+        ->assertJsonPath('data.0.last_message.excerpt', 'Message supprimé')
+        ->assertJsonPath('data.0.unread_count', 1);
+    $this->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
+        ->assertJsonPath('data.0.is_deleted', true)
+        ->assertJsonPath('data.0.body', null);
+    $this->getJson($this->tenantUrl('/api/notifications/unread-count'))->assertJsonPath('data.messages', 1);
+
+    // La cloche ne compte plus que le premier message
+    $entry = $this->aminata->notifications()->sole();
+    expect($entry->data['title'])->toBe('Nouveau message de Fatou Ndiaye')
+        ->and($entry->data['text'])->toBe('Premier');
+});
+
+it('removes the bell entry when the only unread message is deleted', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo');
+    $conversation = Conversation::sole();
+    $message = $conversation->messages()->sole();
+
+    $this->actingAs($this->fatou)
+        ->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages/{$message->id}"))
+        ->assertOk();
+
+    expect($this->aminata->notifications()->count())->toBe(0);
+});
+
+it('deletes a conversation for me only, the other keeps it', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Premier']);
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Second']);
+    $conversation = Conversation::sole();
+
+    $this->actingAs($this->aminata)
+        ->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}"))
+        ->assertNoContent();
+
+    $this->getJson($this->tenantUrl('/api/conversations'))
+        ->assertJsonCount(0, 'data')
+        ->assertJsonPath('meta.total_conversations', 0);
+    $this->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))->assertJsonCount(0, 'data');
+    $this->getJson($this->tenantUrl('/api/notifications/unread-count'))
+        ->assertJsonPath('data.messages', 0)
+        ->assertJsonPath('data.notifications', 0);
+    $this->getJson($this->tenantUrl('/api/members/fatou-ndiaye'))->assertJsonPath('data.conversation', null);
+
+    // Fatou garde tout
+    $this->actingAs($this->fatou)
+        ->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
+        ->assertJsonCount(2, 'data');
+    expect($conversation->messages()->count())->toBe(2);
+});
+
+it('shows the conversation again with only the new messages', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Ancien']);
+    $conversation = Conversation::sole();
+    $this->actingAs($this->aminata)->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}"));
+
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Nouveau']);
+
+    $this->actingAs($this->aminata)
+        ->getJson($this->tenantUrl('/api/conversations'))
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.unread_count', 1);
+    $this->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.body', 'Nouveau');
+});
+
+it('erases the messages deleted by both, then the conversation', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Premier']);
+    $conversation = Conversation::sole();
+    $this->actingAs($this->aminata)->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}"));
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Après la suppression d’Aminata']);
+
+    // Fatou supprime à son tour : seul le premier message a été supprimé par les deux
+    $this->actingAs($this->fatou)->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}"))->assertNoContent();
+    expect($conversation->messages()->pluck('body')->all())->toBe(['Après la suppression d’Aminata']);
+
+    $this->actingAs($this->aminata)->deleteJson($this->tenantUrl("/api/conversations/{$conversation->id}"))->assertNoContent();
+    expect(Conversation::count())->toBe(0)
+        ->and(DB::table('messages')->count())->toBe(0)
+        ->and(DB::table('conversation_user')->count())->toBe(0);
+});
+
+it('does not let a non participant delete a conversation', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo');
+    $outsider = User::factory()->create();
+    $outsider->assignRole(Role::Member);
+
+    $this->actingAs($outsider)
+        ->deleteJson($this->tenantUrl('/api/conversations/'.Conversation::sole()->id))
+        ->assertNotFound();
+});
+
 it('sends one email per conversation until it is read, and keeps one bell entry', function () {
     Notification::fake();
 

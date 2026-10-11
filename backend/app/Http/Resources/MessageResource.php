@@ -22,9 +22,13 @@ class MessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'body' => $this->body,
+            // Message supprimé : plus de texte, seulement « Message supprimé » dans le fil
+            'body' => $this->isDeleted() ? null : $this->body,
             'sent_at' => $this->created_at->toIso8601String(),
-            'is_mine' => $this->user_id === $request->user()->getKey(),
+            'is_mine' => $this->isFrom($request->user()),
+            'is_edited' => $this->edited_at !== null,
+            'is_deleted' => $this->isDeleted(),
+            'can_edit' => $this->isEditableBy($request->user()),
         ];
     }
 }

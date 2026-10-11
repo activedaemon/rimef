@@ -201,3 +201,16 @@ it('gives the conversation already started with each mediator', function () {
     expect($data['aminata-diallo'])->toBe($conversation->id)
         ->and($data['fatou-ndiaye'])->toBeNull();
 });
+
+it('forgets the conversation that the viewer deleted', function () {
+    $viewer = mediator('Claire', 'Dubois');
+    $aminata = mediator('Aminata', 'Diallo');
+    $messaging = app(Messaging::class);
+    $conversation = $messaging->conversationBetween($viewer, $aminata);
+    $messaging->send($conversation, $aminata, 'Bonjour');
+    $messaging->clearFor($conversation, $viewer);
+
+    $this->actingAs($viewer)
+        ->getJson($this->tenantUrl('/api/members?q=Aminata'))
+        ->assertJsonPath('data.0.conversation_id', null);
+});

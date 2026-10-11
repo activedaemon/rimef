@@ -75,6 +75,9 @@ Route::middleware([
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])
             ->whereNumber('conversation')
             ->name('conversations.show');
+        Route::delete('/conversations/{conversation}', [ConversationController::class, 'clear'])
+            ->whereNumber('conversation')
+            ->name('conversations.clear');
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])
             ->whereNumber('conversation')
             ->name('conversations.messages');
@@ -82,6 +85,14 @@ Route::middleware([
             ->whereNumber('conversation')
             ->middleware('throttle:30,1')
             ->name('conversations.messages.store');
+        Route::patch('/conversations/{conversation}/messages/{message}', [ConversationController::class, 'update'])
+            ->whereNumber(['conversation', 'message'])
+            ->middleware('throttle:30,1')
+            ->name('conversations.messages.update');
+        Route::delete('/conversations/{conversation}/messages/{message}', [ConversationController::class, 'destroy'])
+            ->whereNumber(['conversation', 'message'])
+            ->middleware('throttle:30,1')
+            ->name('conversations.messages.destroy');
         Route::put('/conversations/{conversation}/read', [ConversationController::class, 'read'])
             ->whereNumber('conversation')
             ->name('conversations.read');

@@ -132,3 +132,24 @@
     border-radius: var(--radius-md) var(--radius-md) 0 0;
   }
 }
+
+// Menus « … » de la messagerie (message, conversation) : entrées de 40 px, icône atténuée
+.message-menu {
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-float);
+
+  .q-item {
+    min-height: 40px;
+    font-size: var(--fs-sm);
+    border-radius: var(--radius-xs);
+  }
+
+  .q-item__section--avatar {
+    min-width: 0;
+    padding-right: 10px;
+    color: var(--muted);
+  }
+}

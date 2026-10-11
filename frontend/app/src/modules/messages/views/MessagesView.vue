@@ -14,12 +14,16 @@ import { useRoute, useRouter } from 'vue-router';
 import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
+import { useNotify } from '@/composables/useNotify';
+import { extractApiError } from '@/lib/http';
+import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 import { useInbox } from '@/stores/inbox';
 import ConversationHeader from '../components/ConversationHeader.vue';
 import ConversationList from '../components/ConversationList.vue';
 import ConversationThread from '../components/ConversationThread.vue';
 import NewMessageDialog from '../components/NewMessageDialog.vue';
 import {
+  deleteConversation,
   fetchConversation,
   fetchConversations,
   type Conversation,
@@ -49,6 +53,7 @@ const loading = ref(false);
 const failed = ref(false);
 const filter = ref<ConversationFilter>('all');
 const newMessageOpen = ref(false);
+const notify = useNotify();
 let controller: AbortController | null = null;
 
 const search = computed(() => (typeof route.query.q === 'string' ? route.query.q.trim() : ''));
@@ -152,6 +157,31 @@ function back(): void {
   void router.push({ name: 'messages', query: route.query });
 }
 
+/** Suppression de la conversation ouverte, pour moi seulement (après confirmation). */
+const confirmDelete = ref(false);
+const deleting = ref(false);
+
+async function deleteActive(): Promise<void> {
+  const conversation = active.value;
+  if (!conversation || deleting.value) return;
+  deleting.value = true;
+  try {
+    await deleteConversation(conversation.id);
+    confirmDelete.value = false;
+    conversations.value = conversations.value.filter((other) => other.id !== conversation.id);
+    total.value = Math.max(0, total.value - 1);
+    if (conversation.unread_count > 0) unreadTotal.value = Math.max(0, unreadTotal.value - 1);
+    fallback.value = null;
+    notify.success('Conversation supprimée.');
+    void inbox.refresh(true);
+    await router.replace({ name: 'messages', query: route.query });
+  } catch (error) {
+    notify.error(extractApiError(error, 'La conversation n’a pas pu être supprimée.'));
+  } finally {
+    deleting.value = false;
+  }
+}
+
 function clearSearch(): void {
   const query = { ...route.query };
   delete query.q;
@@ -166,12 +196,25 @@ function onRead(): void {
   }
 }
 
+/** Extrait de la liste, comme l'API (ConversationResource). */
+function excerptOf(message: Message): string {
+  return message.is_deleted
+    ? 'Message supprimé'
+    : (message.body ?? '').replace(/\s+/g, ' ').slice(0, 120);
+}
+
+/** Dernier message modifié ou supprimé : l'extrait de la liste suit. */
+function onUpdated(message: Message, isLast: boolean): void {
+  const lastMessage = active.value?.last_message;
+  if (isLast && lastMessage) lastMessage.excerpt = excerptOf(message);
+}
+
 /** Réponse envoyée : la conversation passe en tête avec son nouvel extrait. */
 function onSent(message: Message): void {
   const conversation = active.value;
   if (!conversation) return;
   conversation.last_message = {
-    excerpt: message.body.replace(/\s+/g, ' ').slice(0, 120),
+    excerpt: excerptOf(message),
     sent_at: message.sent_at,
     is_mine: true,
   };
@@ -219,11 +262,24 @@ watch(activeId, async (id, previous) => {
 <template>
   <q-page class="inner-page messages-page" :class="{ 'messages-page--open': isOpenOnPhone }">
     <div class="container">
-      <PageIntro
-        v-show="!isOpenOnPhone"
-        title="Mes messages"
-        lead="Vos échanges avec les membres du réseau."
-      />
+      <div v-show="!isOpenOnPhone" class="messages-intro">
+        <PageIntro title="Mes messages" lead="Vos échanges avec les membres du réseau." />
+        <!-- Ornement de la maquette (.ms-intro .leaf) : terracotta et sauge -->
+        <svg class="messages-intro__leaf" viewBox="0 0 120 96" aria-hidden="true">
+          <path
+            :d="LEAF_PATH"
+            :transform="leafTransform(112, 90, -150, 92, 32)"
+            fill="var(--terracotta)"
+            opacity=".85"
+          />
+          <path
+            :d="LEAF_PATH"
+            :transform="leafTransform(114, 92, -112, 70, 25)"
+            fill="var(--leaf-sage)"
+            opacity=".85"
+          />
+        </svg>
+      </div>
 
       <q-card flat class="rimef-card inbox">
         <ConversationList
@@ -257,6 +313,7 @@ watch(activeId, async (id, previous) => {
               :contact="active.contact"
               :show-back="$q.screen.lt.sm"
               @back="back"
+              @delete="confirmDelete = true"
             />
             <ConversationThread
               ref="thread"
@@ -267,6 +324,7 @@ watch(activeId, async (id, previous) => {
               :can-reply="active.contact !== null"
               @read="onRead"
               @sent="onSent"
+              @updated="onUpdated"
               @not-found="notFound = true"
             />
           </template>
@@ -329,12 +387,48 @@ watch(activeId, async (id, previous) => {
     </div>
 
     <NewMessageDialog v-model="newMessageOpen" @open="onNewMessage" />
+
+    <q-dialog v-model="confirmDelete">
+      <q-card
+        class="message-dialog inbox__confirm"
+        role="alertdialog"
+        aria-labelledby="delete-conversation-title"
+      >
+        <h2 id="delete-conversation-title">Supprimer la conversation ?</h2>
+        <p>
+          La conversation avec {{ active?.contact?.name ?? 'ce compte' }} disparaîtra de vos
+          messages.
+          <template v-if="active?.contact">
+            {{ active.contact.name.split(' ')[0] }} la conservera, sauf si elle la supprime aussi.
+          </template>
+        </p>
+        <div class="inbox__confirm-actions">
+          <AppButton v-close-popup variant="quiet" label="Annuler" />
+          <AppButton variant="accent" label="Supprimer" :loading="deleting" @click="deleteActive" />
+        </div>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <style lang="scss" scoped>
 .messages-page {
   padding-bottom: 64px;
+}
+
+// Intro avec l'ornement de feuilles à droite (maquette .ms-intro .leaf)
+.messages-intro {
+  position: relative;
+
+  &__leaf {
+    position: absolute;
+    top: 18px;
+    right: 0;
+    width: 120px;
+    height: 96px;
+    opacity: 0.9;
+    pointer-events: none;
+  }
 }
 
 // Cadre deux colonnes de hauteur fixe : chaque colonne défile seule
@@ -393,6 +487,25 @@ watch(activeId, async (id, previous) => {
   }
 }
 
+// Confirmation de suppression de la conversation
+.inbox__confirm {
+  h2 {
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin-top: 8px;
+    color: var(--ink-2);
+  }
+
+  &-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: var(--s-5);
+  }
+}
+
 @media (max-width: 1080px) {
   .inbox {
     grid-template-columns: minmax(270px, 1fr) minmax(0, 1.6fr);
@@ -403,6 +516,18 @@ watch(activeId, async (id, previous) => {
 @media (max-width: 719px) {
   .messages-page {
     padding-bottom: 28px;
+  }
+
+  .messages-intro {
+    :deep(.page-intro__title) {
+      padding-right: 70px;
+    }
+
+    &__leaf {
+      top: 10px;
+      width: 72px;
+      height: 58px;
+    }
   }
 
   .inbox {

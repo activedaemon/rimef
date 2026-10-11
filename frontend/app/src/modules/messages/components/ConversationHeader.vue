@@ -1,13 +1,13 @@
 <script setup lang="ts">
 // En-tête de la conversation ouverte (maquette Mes messages) : portrait, nom, badge, lieu et
-// lien vers sa fiche. Sur téléphone, bouton retour vers la liste.
+// lien vers sa fiche, menu « … » (Supprimer la conversation). Sur téléphone, bouton retour.
 import { useTemplateRef } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import type { ConversationContact } from '../services/messages';
 
 defineProps<{ contact: ConversationContact | null; showBack?: boolean }>();
-const emit = defineEmits<{ back: [] }>();
+const emit = defineEmits<{ back: []; delete: [] }>();
 
 // Focus sur le nom à l'ouverture de la conversation (lecteurs d'écran, clavier)
 const title = useTemplateRef<HTMLElement>('title');
@@ -55,6 +55,23 @@ defineExpose({ focusTitle: () => title.value?.focus() });
     >
       Voir son profil
     </router-link>
+    <q-btn
+      flat
+      round
+      dense
+      icon="dots"
+      aria-label="Options de la conversation"
+      class="conversation-header__options"
+    >
+      <q-menu anchor="bottom right" self="top right" class="message-menu">
+        <q-list dense>
+          <q-item v-close-popup clickable @click="emit('delete')">
+            <q-item-section avatar><q-icon name="trash" size="16px" /></q-item-section>
+            <q-item-section>Supprimer la conversation</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-btn>
   </header>
 </template>
 
@@ -86,6 +103,13 @@ defineExpose({ focusTitle: () => title.value?.focus() });
 
   .meta {
     margin-top: 2px;
+  }
+
+  &__options {
+    min-width: 44px;
+    min-height: 44px;
+    margin-right: -10px;
+    color: var(--ink-2);
   }
 }
 

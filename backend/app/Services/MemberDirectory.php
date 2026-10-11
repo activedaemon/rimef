@@ -134,7 +134,8 @@ class MemberDirectory
      * @return Builder<User>
      */
     /**
-     * Conversation de $viewer avec la médiatrice de la ligne, si elles ont déjà échangé.
+     * Conversation de $viewer avec la médiatrice de la ligne, si elles ont déjà échangé
+     * (et que $viewer ne l'a pas supprimée sans nouveau message depuis).
      */
     private function conversationWith(User $viewer): QueryBuilder
     {
@@ -145,7 +146,9 @@ class MemberDirectory
             ->whereColumn('theirs.user_id', 'users.id')
             ->whereColumn('theirs.user_id', '!=', 'mine.user_id')
             ->whereExists(fn (QueryBuilder $messages) => $messages->from('messages')
-                ->whereColumn('messages.conversation_id', 'mine.conversation_id'))
+                ->whereColumn('messages.conversation_id', 'mine.conversation_id')
+                // Conversation supprimée pour $viewer : seulement s'il y a eu un message depuis
+                ->whereRaw('messages.id > coalesce(mine.cleared_message_id, 0)'))
             ->limit(1);
     }
 

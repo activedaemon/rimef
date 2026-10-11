@@ -27,10 +27,18 @@ export interface Conversation {
 
 export interface Message {
   id: number;
-  body: string;
+  /** null pour un message supprimé (« Message supprimé »). */
+  body: string | null;
   sent_at: string;
   is_mine: boolean;
+  is_edited: boolean;
+  is_deleted: boolean;
+  /** Modifiable par moi : mon message, envoyé il y a moins de 15 minutes, non supprimé. */
+  can_edit: boolean;
 }
+
+/** Délai de modification d'un message après son envoi (Message::EDIT_WINDOW_MINUTES). */
+export const EDIT_WINDOW_MS = 15 * 60_000;
 
 export interface ConversationPage {
   data: Conversation[];
@@ -90,6 +98,35 @@ export async function markConversationRead(id: number): Promise<void> {
 export async function sendMessage(id: number, body: string): Promise<Message> {
   await ensureCsrf();
   const { data } = await http.post<{ data: Message }>(`/conversations/${id}/messages`, { body });
+  return data.data;
+}
+
+/** Suppression de la conversation pour moi : l'autre participante la garde. */
+export async function deleteConversation(id: number): Promise<void> {
+  await ensureCsrf();
+  await http.delete(`/conversations/${id}`);
+}
+
+/** Modification de mon message (15 minutes après l'envoi). */
+export async function editMessage(
+  conversationId: number,
+  id: number,
+  body: string
+): Promise<Message> {
+  await ensureCsrf();
+  const { data } = await http.patch<{ data: Message }>(
+    `/conversations/${conversationId}/messages/${id}`,
+    { body }
+  );
+  return data.data;
+}
+
+/** Suppression de mon message : « Message supprimé » pour les deux participantes. */
+export async function deleteMessage(conversationId: number, id: number): Promise<Message> {
+  await ensureCsrf();
+  const { data } = await http.delete<{ data: Message }>(
+    `/conversations/${conversationId}/messages/${id}`
+  );
   return data.data;
 }
 

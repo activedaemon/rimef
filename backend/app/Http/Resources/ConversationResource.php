@@ -42,7 +42,9 @@ class ConversationResource extends JsonResource
                 'has_profile' => $other->is_active && $other->hasRole('member'),
             ],
             'last_message' => $last === null ? null : [
-                'excerpt' => Str::limit((string) preg_replace('/\s+/u', ' ', $last->body), 120),
+                'excerpt' => $last->isDeleted()
+                    ? 'Message supprimé'
+                    : Str::limit((string) preg_replace('/\s+/u', ' ', $last->body), 120),
                 'sent_at' => $last->created_at->toIso8601String(),
                 'is_mine' => $last->user_id === $me->getKey(),
             ],

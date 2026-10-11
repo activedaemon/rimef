@@ -11,9 +11,11 @@ const drafts = new Map<number, string>();
 // messages » sont actualisés. Un message envoyé s'affiche aussitôt (« Envoi en cours… ») ;
 // en cas d'échec, il reste dans le fil avec « Réessayer ». refreshNewer() ajoute en bas les
 // messages reçus depuis le chargement (appelée par Mes messages, sans temps réel).
+// Mes messages ont un menu « … » : Modifier (15 minutes après l'envoi, en place) et Supprimer
+// (après confirmation, « Message supprimé » pour les deux) ; émet `updated` pour la liste.
 import { isAxiosError } from 'axios';
 import { QCard } from 'quasar';
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
 import { useNotify } from '@/composables/useNotify';
@@ -21,7 +23,10 @@ import { dayLabel, fullMoment, timeOfDay } from '@/lib/dates';
 import { extractApiError } from '@/lib/http';
 import { useInbox } from '@/stores/inbox';
 import {
+  EDIT_WINDOW_MS,
   MAX_MESSAGE_LENGTH,
+  deleteMessage,
+  editMessage,
   fetchMessages,
   markConversationRead,
   sendMessage,
@@ -39,7 +44,13 @@ const props = withDefaults(
   }>(),
   { canReply: true, variant: 'card' }
 );
-const emit = defineEmits<{ read: []; 'not-found': []; sent: [message: Message] }>();
+const emit = defineEmits<{
+  read: [];
+  'not-found': [];
+  sent: [message: Message];
+  /** Message modifié ou supprimé ; `isLast` : c'est le dernier du fil (extrait de la liste). */
+  updated: [message: Message, isLast: boolean];
+}>();
 
 type ThreadMessage = Message & { state?: 'pending' | 'failed' };
 
@@ -146,10 +157,90 @@ async function refreshNewer(): Promise<void> {
 
 defineExpose({ refreshNewer });
 
+// L'entrée « Modifier » disparaît d'elle-même 15 minutes après l'envoi
+const now = ref(Date.now());
+const clock = setInterval(() => (now.value = Date.now()), 30_000);
+onBeforeUnmount(() => clearInterval(clock));
+
+function canEdit(message: ThreadMessage): boolean {
+  return message.can_edit && now.value - new Date(message.sent_at).getTime() < EDIT_WINDOW_MS;
+}
+
+function hasActions(message: ThreadMessage): boolean {
+  return message.is_mine && !message.is_deleted && !message.state && message.id > 0;
+}
+
+function isLast(message: ThreadMessage): boolean {
+  return messages.value.at(-1)?.id === message.id;
+}
+
+/** Remplace le message dans le fil (réponse de l'API, ou retour en arrière). */
+function replace(id: number, next: ThreadMessage): void {
+  const index = messages.value.findIndex((message) => message.id === id);
+  if (index !== -1) messages.value.splice(index, 1, next);
+}
+
+const editingId = ref<number | null>(null);
+const editDraft = ref('');
+const savingEdit = ref(false);
+
+function startEdit(message: ThreadMessage): void {
+  editingId.value = message.id;
+  editDraft.value = message.body ?? '';
+}
+
+function cancelEdit(): void {
+  editingId.value = null;
+}
+
+async function saveEdit(message: ThreadMessage): Promise<void> {
+  const body = editDraft.value.trim();
+  if (body === '' || savingEdit.value) return;
+  if (body === message.body) return cancelEdit();
+  const previous = { ...message };
+  replace(message.id, { ...message, body, is_edited: true });
+  editingId.value = null;
+  savingEdit.value = true;
+  try {
+    const saved = await editMessage(props.conversationId, message.id, body);
+    replace(message.id, saved);
+    emit('updated', saved, isLast(saved));
+  } catch (error) {
+    replace(message.id, previous);
+    notify.error(extractApiError(error, 'Le message n’a pas pu être modifié.'));
+  } finally {
+    savingEdit.value = false;
+  }
+}
+
+const toDelete = ref<ThreadMessage | null>(null);
+const confirmOpen = computed({
+  get: () => toDelete.value !== null,
+  set: (value) => {
+    if (!value) toDelete.value = null;
+  },
+});
+
+async function confirmDelete(): Promise<void> {
+  const message = toDelete.value;
+  if (!message) return;
+  toDelete.value = null;
+  const previous = { ...message };
+  replace(message.id, { ...message, body: null, is_deleted: true, can_edit: false });
+  try {
+    const deleted = await deleteMessage(props.conversationId, message.id);
+    replace(message.id, deleted);
+    emit('updated', deleted, isLast(deleted));
+  } catch (error) {
+    replace(message.id, previous);
+    notify.error(extractApiError(error, 'Le message n’a pas pu être supprimé.'));
+  }
+}
+
 async function deliver(message: ThreadMessage): Promise<void> {
   message.state = 'pending';
   try {
-    const saved = await sendMessage(props.conversationId, message.body);
+    const saved = await sendMessage(props.conversationId, message.body ?? '');
     const index = messages.value.indexOf(message);
     if (index !== -1) messages.value.splice(index, 1, saved);
     emit('sent', saved);
@@ -165,6 +256,9 @@ async function send(): Promise<void> {
     body: draft.value.trim(),
     sent_at: new Date().toISOString(),
     is_mine: true,
+    is_edited: false,
+    is_deleted: false,
+    can_edit: false,
     state: 'pending',
   });
   draft.value = '';
@@ -225,11 +319,36 @@ watch(() => props.conversationId, load, { immediate: true });
             :class="[
               message.is_mine ? 'message--mine' : 'message--theirs',
               message.state && `message--${message.state}`,
+              { 'message--deleted': message.is_deleted },
             ]"
           >
             <span class="sr-only">{{ message.is_mine ? 'Vous' : contactName }} :</span>
-            <div class="message__bubble">
-              <p class="message__body">{{ message.body }}</p>
+            <form
+              v-if="editingId === message.id"
+              class="message__edit"
+              @submit.prevent="saveEdit(message)"
+            >
+              <q-input
+                v-model="editDraft"
+                type="textarea"
+                rows="3"
+                outlined
+                dense
+                autofocus
+                :maxlength="MAX_MESSAGE_LENGTH"
+                aria-label="Modifier votre message"
+                @keydown.esc.prevent="cancelEdit"
+                @keydown.ctrl.enter.prevent="saveEdit(message)"
+                @keydown.meta.enter.prevent="saveEdit(message)"
+              />
+              <div class="message__edit-actions">
+                <AppButton variant="quiet" label="Annuler" @click="cancelEdit" />
+                <AppButton type="submit" label="Enregistrer" :disable="!editDraft.trim()" />
+              </div>
+            </form>
+            <div v-else class="message__bubble">
+              <p v-if="message.is_deleted" class="message__body">Message supprimé</p>
+              <p v-else class="message__body">{{ message.body }}</p>
             </div>
             <p class="message__foot">
               <template v-if="message.state === 'pending'">
@@ -247,9 +366,40 @@ watch(() => props.conversationId, load, { immediate: true });
                   @click="deliver(message)"
                 />
               </template>
-              <time v-else :datetime="message.sent_at" :title="fullMoment(message.sent_at)">
-                {{ timeOfDay(message.sent_at) }}
-              </time>
+              <template v-else>
+                <time :datetime="message.sent_at" :title="fullMoment(message.sent_at)">
+                  {{ timeOfDay(message.sent_at) }}
+                </time>
+                <span v-if="message.is_edited && !message.is_deleted"> · modifié</span>
+                <q-btn
+                  v-if="hasActions(message) && editingId !== message.id"
+                  flat
+                  round
+                  dense
+                  size="sm"
+                  icon="dots"
+                  aria-label="Options du message"
+                  class="message__options"
+                >
+                  <q-menu anchor="bottom right" self="top right" class="message-menu">
+                    <q-list dense>
+                      <q-item
+                        v-if="canEdit(message)"
+                        v-close-popup
+                        clickable
+                        @click="startEdit(message)"
+                      >
+                        <q-item-section avatar><q-icon name="pencil" size="16px" /></q-item-section>
+                        <q-item-section>Modifier</q-item-section>
+                      </q-item>
+                      <q-item v-close-popup clickable @click="toDelete = message">
+                        <q-item-section avatar><q-icon name="trash" size="16px" /></q-item-section>
+                        <q-item-section>Supprimer</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+              </template>
             </p>
           </li>
         </ol>
@@ -280,6 +430,21 @@ watch(() => props.conversationId, load, { immediate: true });
         <kbd>Entrée</kbd> pour envoyer
       </p>
     </form>
+
+    <q-dialog v-model="confirmOpen">
+      <q-card
+        class="message-dialog thread__confirm"
+        role="alertdialog"
+        aria-labelledby="delete-title"
+      >
+        <h2 id="delete-title">Supprimer ce message ?</h2>
+        <p>Il sera remplacé par « Message supprimé » pour {{ contactName }}.</p>
+        <div class="thread__confirm-actions">
+          <AppButton v-close-popup variant="quiet" label="Annuler" />
+          <AppButton variant="accent" label="Supprimer" @click="confirmDelete" />
+        </div>
+      </q-card>
+    </q-dialog>
   </component>
 </template>
 
@@ -332,15 +497,25 @@ watch(() => props.conversationId, load, { immediate: true });
     padding-top: 16px;
   }
 
-  // Séparateur de jour : petit libellé centré (maquette .ms-day)
+  // Séparateur de jour (maquette .ms-day) : libellé centré entre deux filets
   &__day-label {
-    margin: 18px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 14px 0 10px;
     font-family: var(--font-ui);
     font-size: var(--fs-xs);
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.4;
     color: var(--muted);
-    text-align: center;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
   }
 
   &__messages {
@@ -444,6 +619,52 @@ watch(() => props.conversationId, load, { immediate: true });
     }
   }
 
+  // Message supprimé : bulle en pointillés, texte droit, petit et grisé (pas d'italique :
+  // seules les graisses droites d'Inter sont chargées)
+  &--deleted &__bubble {
+    padding: 5px 12px 6px;
+    color: var(--muted);
+    background: transparent !important;
+    border: 1px dashed var(--border-hover) !important;
+  }
+
+  &--deleted &__body {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+  }
+
+  &__edit {
+    display: grid;
+    gap: 8px;
+    width: min(560px, 76vw);
+
+    // Trois lignes visibles dès l'ouverture ; au-delà, défilement dans le champ
+    // Sélecteurs plus forts que les règles Quasar des champs denses (hauteur 40 px)
+    :deep(.q-field--dense .q-field__control) {
+      height: auto;
+    }
+
+    :deep(.q-textarea .q-field__native) {
+      min-height: 84px;
+      line-height: 1.5;
+      resize: none;
+    }
+  }
+
+  &__edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  // Bouton « … » de mes messages : discret, zone tactile de 32 px dans le pied de bulle
+  &__options {
+    min-width: 32px;
+    min-height: 32px;
+    margin: -8px -6px -8px 2px;
+    color: var(--muted);
+  }
+
   &__retry {
     min-height: 0;
     padding: 0 2px;
@@ -451,6 +672,25 @@ watch(() => props.conversationId, load, { immediate: true });
     font-weight: 600;
     color: var(--terracotta-ink);
     text-decoration: underline;
+  }
+}
+
+// Confirmation de suppression
+.thread__confirm {
+  h2 {
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin-top: 8px;
+    color: var(--ink-2);
+  }
+
+  &-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: var(--s-5);
   }
 }
 

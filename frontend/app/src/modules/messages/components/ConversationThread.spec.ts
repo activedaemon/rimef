@@ -12,6 +12,8 @@ vi.mock('../services/messages', async (importOriginal) => ({
   fetchMessages: vi.fn(),
   markConversationRead: vi.fn(),
   sendMessage: vi.fn(),
+  editMessage: vi.fn(),
+  deleteMessage: vi.fn(),
 }));
 vi.mock('@modules/notifications/services/notifications', () => ({
   fetchUnreadCounts: vi.fn().mockResolvedValue({ notifications: 0, messages: 0 }),
@@ -22,6 +24,9 @@ const message = (id: number, body: string, isMine: boolean, sentAt: string): mes
   body,
   sent_at: sentAt,
   is_mine: isMine,
+  is_edited: false,
+  is_deleted: false,
+  can_edit: isMine,
 });
 
 async function mountThread(props: { canReply?: boolean; conversationId?: number } = {}) {
@@ -146,6 +151,104 @@ describe('ConversationThread', () => {
     const { wrapper } = await mountThread();
 
     expect(wrapper.emitted('not-found')).toHaveLength(1);
+    wrapper.unmount();
+  });
+  it('edits my message in place within 15 minutes, then shows « modifié »', async () => {
+    vi.mocked(messages.fetchMessages).mockResolvedValue({
+      messages: [message(1, 'Bonjour, dispnible ?', true, '2026-10-10T11:15:00')],
+      hasMore: false,
+    });
+    vi.mocked(messages.editMessage).mockResolvedValue({
+      ...message(1, 'Bonjour, disponible ?', true, '2026-10-10T11:15:00'),
+      is_edited: true,
+    });
+    const { wrapper } = await mountThread();
+
+    await wrapper.find('[aria-label="Options du message"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll<HTMLElement>('.message-menu .q-item'))
+      .find((item) => item.textContent?.includes('Modifier'))!
+      .click();
+    await flushPromises();
+
+    await wrapper.find('.message__edit textarea').setValue('Bonjour, disponible ?');
+    await wrapper.find('.message__edit').trigger('submit');
+    await flushPromises();
+
+    expect(messages.editMessage).toHaveBeenCalledWith(3, 1, 'Bonjour, disponible ?');
+    expect(wrapper.find('.message__body').text()).toBe('Bonjour, disponible ?');
+    expect(wrapper.find('.message__foot').text()).toContain('modifié');
+    expect(wrapper.emitted('updated')?.[0]?.[1]).toBe(true);
+    wrapper.unmount();
+  });
+
+  it('no longer offers to edit after 15 minutes, only to delete', async () => {
+    vi.mocked(messages.fetchMessages).mockResolvedValue({
+      messages: [message(1, 'Ancien', true, '2026-10-10T11:00:00')],
+      hasMore: false,
+    });
+    const { wrapper } = await mountThread();
+
+    await wrapper.find('[aria-label="Options du message"]').trigger('click');
+    await flushPromises();
+    const labels = Array.from(document.body.querySelectorAll('.message-menu .q-item')).map((item) =>
+      item.textContent?.trim()
+    );
+    expect(labels).toEqual(['Supprimer']);
+    wrapper.unmount();
+  });
+
+  it('deletes my message after confirmation, and restores it if the deletion fails', async () => {
+    vi.mocked(messages.fetchMessages).mockResolvedValue({
+      messages: [
+        message(2, 'À supprimer', true, '2026-10-10T11:15:00'),
+        message(1, 'Bonjour', false, '2026-10-10T09:00:00'),
+      ],
+      hasMore: false,
+    });
+    vi.mocked(messages.deleteMessage).mockRejectedValueOnce(new Error('offline'));
+    const { wrapper } = await mountThread();
+
+    const remove = async () => {
+      await wrapper.find('[aria-label="Options du message"]').trigger('click');
+      await flushPromises();
+      Array.from(document.body.querySelectorAll<HTMLElement>('.message-menu .q-item'))
+        .find((item) => item.textContent?.includes('Supprimer'))!
+        .click();
+      await flushPromises();
+      expect(document.body.textContent).toContain('Supprimer ce message ?');
+      Array.from(document.body.querySelectorAll<HTMLButtonElement>('.thread__confirm button'))
+        .find((button) => button.textContent?.includes('Supprimer'))!
+        .click();
+      await flushPromises();
+    };
+
+    await remove();
+    expect(wrapper.findAll('.message__body').at(-1)!.text()).toBe('À supprimer');
+
+    vi.mocked(messages.deleteMessage).mockResolvedValueOnce({
+      ...message(2, '', true, '2026-10-10T11:15:00'),
+      body: null,
+      is_deleted: true,
+      can_edit: false,
+    });
+    await remove();
+    const last = wrapper.findAll('.message').at(-1)!;
+    expect(last.classes()).toContain('message--deleted');
+    expect(last.find('.message__body').text()).toBe('Message supprimé');
+    expect(last.find('[aria-label="Options du message"]').exists()).toBe(false);
+    expect(messages.deleteMessage).toHaveBeenCalledWith(3, 2);
+    wrapper.unmount();
+  });
+
+  it('offers no options on the messages of the contact', async () => {
+    vi.mocked(messages.fetchMessages).mockResolvedValue({
+      messages: [message(1, 'Bonjour', false, '2026-10-10T11:15:00')],
+      hasMore: false,
+    });
+    const { wrapper } = await mountThread();
+
+    expect(wrapper.find('[aria-label="Options du message"]').exists()).toBe(false);
     wrapper.unmount();
   });
 });

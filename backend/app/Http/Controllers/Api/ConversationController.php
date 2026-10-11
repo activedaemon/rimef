@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListConversationsRequest;
 use App\Http\Requests\SendMessageRequest;
+use App\Http\Requests\UpdateMessageRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
@@ -41,7 +42,7 @@ class ConversationController extends Controller
     {
         $me = $request->user();
 
-        $query = $me->conversations()
+        $query = $this->visibleConversations($me)
             ->with(['participants.memberProfile', 'participants.roles', 'latestMessage'])
             ->withCount(['messages as unread_count' => fn (Builder $query) => $this->unread($query, $me)])
             ->orderByDesc('conversations.last_message_at')
@@ -55,7 +56,7 @@ class ConversationController extends Controller
 
         return ConversationResource::collection($query->paginate(self::PER_PAGE)->withQueryString())
             ->additional(['meta' => [
-                'total_conversations' => $me->conversations()->count(),
+                'total_conversations' => $this->visibleConversations($me)->count(),
                 'unread_conversations' => $me->conversations()
                     ->whereHas('messages', fn (Builder $query) => $this->unread($query, $me))
                     ->count(),
@@ -74,7 +75,10 @@ class ConversationController extends Controller
     public function messages(Request $request, int $conversation): JsonResponse
     {
         $before = $request->integer('before');
-        $messages = $this->find($request->user(), $conversation)->messages()
+        $found = $this->find($request->user(), $conversation);
+        $messages = $found->messages()
+            // Conversation supprimée pour moi : seuls les messages suivants me sont montrés
+            ->where('id', '>', (int) $found->pivot->cleared_message_id)
             ->when($before > 0, fn (Builder $query) => $query->where('id', '<', $before))
             ->orderByDesc('id')
             ->limit(self::MESSAGES_PER_PAGE + 1)
@@ -108,6 +112,27 @@ class ConversationController extends Controller
     }
 
     /**
+     * Mes conversations ayant au moins un message que je n'ai pas supprimé.
+     *
+     * @return BelongsToMany<Conversation, User>
+     */
+    private function visibleConversations(User $me): BelongsToMany
+    {
+        return $me->conversations()->whereHas('messages', fn (Builder $query) => $this->visible($query));
+    }
+
+    /**
+     * Messages postérieurs à ma suppression de la conversation (requête jointe à conversation_user de $me).
+     *
+     * @param  Builder<Message>  $query
+     * @return Builder<Message>
+     */
+    private function visible(Builder $query): Builder
+    {
+        return $query->whereRaw('messages.id > coalesce(conversation_user.cleared_message_id, 0)');
+    }
+
+    /**
      * Messages reçus après le dernier lu (requête jointe à conversation_user de $me).
      *
      * @param  Builder<Message>  $query
@@ -117,7 +142,9 @@ class ConversationController extends Controller
     {
         return $query
             ->where(fn (Builder $query) => $query->whereNull('messages.user_id')->orWhere('messages.user_id', '!=', $me->getKey()))
-            ->whereRaw('messages.id > coalesce(conversation_user.last_read_message_id, 0)');
+            ->whereNull('messages.deleted_at')
+            ->whereRaw('messages.id > coalesce(conversation_user.last_read_message_id, 0)')
+            ->whereRaw('messages.id > coalesce(conversation_user.cleared_message_id, 0)');
     }
 
     /**
@@ -143,8 +170,52 @@ class ConversationController extends Controller
                         ->orWhereHas('memberProfile', fn (Builder $profile) => $profile
                             ->where('city', 'like', $like)
                             ->orWhereIn('country_code', $countryCodes))))
-                ->orWhereHas('messages', fn (Builder $message) => $message->where('body', 'like', $like)));
+                ->orWhereHas('messages', fn (Builder $message) => $this->visible($message)->where('body', 'like', $like)));
         }
+    }
+
+    /**
+     * Suppression de la conversation pour moi : l'autre participante la garde.
+     */
+    public function clear(Request $request, int $conversation): Response
+    {
+        $this->messaging->clearFor($this->find($request->user(), $conversation), $request->user());
+
+        return response()->noContent();
+    }
+
+    /**
+     * Modification par l'autrice, pendant 15 minutes après l'envoi.
+     */
+    public function update(UpdateMessageRequest $request, int $conversation, int $message): MessageResource
+    {
+        $found = $this->ownMessage($request->user(), $conversation, $message);
+        abort_unless($found->isEditableBy($request->user()), 422, 'Ce message ne peut plus être modifié.');
+
+        return new MessageResource($this->messaging->edit($found, $request->validated('body')));
+    }
+
+    /**
+     * Suppression par l'autrice : « Message supprimé » pour les deux participantes.
+     */
+    public function destroy(Request $request, int $conversation, int $message): MessageResource
+    {
+        $found = $this->ownMessage($request->user(), $conversation, $message);
+        abort_if($found->isDeleted(), 422, 'Ce message a déjà été supprimé.');
+
+        return new MessageResource($this->messaging->delete($found));
+    }
+
+    /**
+     * Message d'une conversation de $user (404 sinon), dont elle est l'autrice (403 sinon).
+     */
+    private function ownMessage(User $user, int $conversation, int $message): Message
+    {
+        /** @var Message $found */
+        $found = $this->find($user, $conversation)->messages()->findOrFail($message);
+        abort_unless($found->isFrom($user), 403, 'Vous ne pouvez modifier que vos propres messages.');
+
+        return $found;
     }
 
     private function find(User $user, int $id): Conversation

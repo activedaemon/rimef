@@ -16,6 +16,7 @@ vi.mock('../services/messages', async (importOriginal) => ({
   markConversationRead: vi.fn(),
   sendMessage: vi.fn(),
   searchRecipients: vi.fn(),
+  deleteConversation: vi.fn(),
 }));
 vi.mock('@modules/notifications/services/notifications', () => ({
   fetchUnreadCounts: vi.fn().mockResolvedValue({ notifications: 0, messages: 0 }),
@@ -73,7 +74,17 @@ describe('MessagesView', () => {
       page([conversation(3, 'Fatou Ndiaye', 2), conversation(4, 'Leïla Bouzid', 0, true)])
     );
     vi.mocked(messages.fetchMessages).mockResolvedValue({
-      messages: [{ id: 1, body: 'Bonjour', sent_at: '2026-10-10T08:57:00Z', is_mine: false }],
+      messages: [
+        {
+          id: 1,
+          body: 'Bonjour',
+          sent_at: '2026-10-10T08:57:00Z',
+          is_mine: false,
+          is_edited: false,
+          is_deleted: false,
+          can_edit: false,
+        },
+      ],
       hasMore: false,
     });
     vi.mocked(messages.markConversationRead).mockResolvedValue();
@@ -179,15 +190,35 @@ describe('MessagesView', () => {
       page([
         {
           ...conversation(3, 'Fatou Ndiaye', 1),
-          last_message: { excerpt: 'Treize', sent_at: '2026-10-10T09:30:00Z', is_mine: false },
+          last_message: {
+            excerpt: 'Treize',
+            sent_at: '2026-10-10T09:30:00Z',
+            is_mine: false,
+          },
         },
         conversation(4, 'Leïla Bouzid', 0, true),
       ])
     );
     vi.mocked(messages.fetchMessages).mockResolvedValue({
       messages: [
-        { id: 2, body: 'Treize', sent_at: '2026-10-10T09:30:00Z', is_mine: false },
-        { id: 1, body: 'Bonjour', sent_at: '2026-10-10T08:57:00Z', is_mine: false },
+        {
+          id: 2,
+          body: 'Treize',
+          sent_at: '2026-10-10T09:30:00Z',
+          is_mine: false,
+          is_edited: false,
+          is_deleted: false,
+          can_edit: false,
+        },
+        {
+          id: 1,
+          body: 'Bonjour',
+          sent_at: '2026-10-10T08:57:00Z',
+          is_mine: false,
+          is_edited: false,
+          is_deleted: false,
+          can_edit: false,
+        },
       ],
       hasMore: false,
     });
@@ -219,5 +250,33 @@ describe('MessagesView', () => {
     vi.advanceTimersByTime(21_000);
     expect(notificationService.fetchUnreadCounts).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
+  });
+
+  it('deletes the open conversation for me after confirmation, then goes back to the list', async () => {
+    vi.mocked(messages.deleteConversation).mockResolvedValue();
+    const { wrapper, router } = await openPage('/messages/3');
+
+    await wrapper.find('[aria-label="Options de la conversation"]').trigger('click');
+    await flushPromises();
+    Array.from(document.body.querySelectorAll<HTMLElement>('.message-menu .q-item'))
+      .find((item) => item.textContent?.includes('Supprimer la conversation'))!
+      .click();
+    await flushPromises();
+
+    expect(document.body.textContent).toContain(
+      'Fatou la conservera, sauf si elle la supprime aussi.'
+    );
+    Array.from(document.body.querySelectorAll<HTMLButtonElement>('.inbox__confirm button'))
+      .find((button) => button.textContent?.includes('Supprimer'))!
+      .click();
+    await flushPromises();
+
+    expect(messages.deleteConversation).toHaveBeenCalledWith(3);
+    expect(router.currentRoute.value.name).toBe('messages');
+    expect(wrapper.findAll('.conversation-row').map((row) => row.text())).not.toContain(
+      expect.stringContaining('Fatou Ndiaye')
+    );
+    expect(wrapper.find('#conversation-list-title').text()).toBe('Conversations1');
+    wrapper.unmount();
   });
 });
