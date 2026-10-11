@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\EventType;
 use App\Enums\Region;
+use App\Models\Concerns\HasUniqueSlug;
 use App\Support\DirectoryCatalog;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -15,12 +16,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Événement du réseau (forum, sommet, atelier…) de l'Agenda : sur place (ville, pays) ou en ligne.
+ *
+ * Le slug (titre-année, unique) sert d'adresse à la fiche : /agenda/paris-peace-forum-2026.
  */
 #[Fillable(['title', 'type', 'starts_at', 'ends_at', 'city', 'country_code', 'is_online', 'description', 'is_featured'])]
 class Event extends Model
 {
     /** @use HasFactory<EventFactory> */
-    use HasFactory;
+    use HasFactory, HasUniqueSlug;
 
     /** Valeur du filtre « Région » pour les événements en ligne (aux côtés des régions du monde). */
     public const ONLINE_REGION = 'online';
@@ -52,6 +55,24 @@ class Event extends Model
     public function themes(): BelongsToMany
     {
         return $this->belongsToMany(Expertise::class);
+    }
+
+    /**
+     * Slug : titre et année de début, les éditions successives d'un même événement restant distinctes.
+     */
+    protected function slugSource(): string
+    {
+        return "{$this->title} {$this->starts_at?->year}";
+    }
+
+    protected function slugFallback(): string
+    {
+        return 'evenement';
+    }
+
+    protected function slugDependsOn(): array
+    {
+        return ['title', 'starts_at'];
     }
 
     /**

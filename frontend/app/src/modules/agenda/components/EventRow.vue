@@ -35,7 +35,7 @@ const peopleText = computed(() => {
   return `${mediatorNoun(count)} ${verb}`;
 });
 
-const to = computed(() => ({ name: 'event', params: { id: props.event.id } }));
+const to = computed(() => ({ name: 'event', params: { slug: props.event.slug } }));
 </script>
 
 <template>

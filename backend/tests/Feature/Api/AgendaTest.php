@@ -4,6 +4,7 @@ use App\Enums\EventType;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\Expertise;
+use App\Models\MemberProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -90,6 +91,7 @@ it('describes an event with its first three mediators and their number', functio
     $response = listEvents($this)->assertOk();
 
     $response->assertJsonPath('data.0.title', 'Paris Peace Forum')
+        ->assertJsonPath('data.0.slug', 'paris-peace-forum-2026')
         ->assertJsonPath('data.0.type', ['value' => 'international_forum', 'label' => 'Forum international'])
         ->assertJsonPath('data.0.place', 'Paris, France')
         ->assertJsonPath('data.0.is_online', false)
@@ -128,7 +130,7 @@ it('reads months and days in the time zone of the viewer', function () {
         ->and($titles(['day' => '2026-12-01', 'timezone' => 'Europe/Paris']))->toBe(['Minuit à Paris']);
 });
 
-it('keeps my events, crowded events, and searches titles, places, themes and mediators', function () {
+it('keeps crowded events, and searches titles, places, themes and mediators', function () {
     $crowded = agendaEvent('Grand forum', '2026-11-12 09:00', ['city' => 'Paris', 'country_code' => 'FR']);
     $crowded->participants()->attach(collect(range(1, 5))->map(fn (int $i) => agendaMember("Médiatrice{$i}")->id));
     $small = agendaEvent('Petit atelier', '2026-10-20 09:00', ['city' => 'Dakar', 'country_code' => 'SN'], ['Médiation communautaire']);
@@ -136,13 +138,38 @@ it('keeps my events, crowded events, and searches titles, places, themes and med
 
     $titles = fn (array $query) => listEvents($this, $query)->assertOk()->json('data.*.title');
 
-    expect($titles(['participating' => 1]))->toBe(['Petit atelier'])
-        ->and($titles(['crowd' => 1]))->toBe(['Grand forum'])
+    expect($titles(['crowd' => 1]))->toBe(['Grand forum'])
         ->and($titles(['q' => 'senegal']))->toBe(['Petit atelier'])
         ->and($titles(['q' => 'communautaire']))->toBe(['Petit atelier'])
         ->and($titles(['q' => 'diallo']))->toBe(['Petit atelier'])
         ->and($titles(['q' => 'forum paris']))->toBe(['Grand forum'])
         ->and($titles(['sort' => 'attendees']))->toBe(['Grand forum', 'Petit atelier']);
+});
+
+it('keeps events with my favorites, in my intervention zones or on my themes', function () {
+    $profile = MemberProfile::factory()->for($this->viewer)->create(['country_code' => 'FR']);
+    $profile->zones()->create(['country_code' => 'SN', 'position' => 0]);
+    $profile->expertises()->attach(Expertise::firstOrCreate(['name' => 'Gouvernance locale']), ['position' => 0]);
+    $aminata = agendaMember('Aminata', 'Diallo');
+    $this->viewer->favorites()->attach($aminata);
+
+    agendaEvent('Forum de Paris', '2026-11-12 09:00', ['country_code' => 'FR'])->participants()->attach($aminata);
+    agendaEvent('Atelier de Dakar', '2026-10-26 09:00', ['country_code' => 'SN']);
+    agendaEvent('Atelier de Rabat', '2026-12-05 09:00', ['country_code' => 'MA'], ['Gouvernance locale']);
+
+    $titles = fn (array $query) => listEvents($this, $query)->assertOk()->json('data.*.title');
+
+    expect($titles(['favorites' => 1]))->toBe(['Forum de Paris'])
+        ->and($titles(['my_zones' => 1]))->toBe(['Atelier de Dakar'])
+        ->and($titles(['my_themes' => 1]))->toBe(['Atelier de Rabat']);
+
+    $this->getJson($this->tenantUrl('/api/events/filters'))
+        ->assertJsonPath('data.toggles', ['my_zones' => true, 'my_themes' => true]);
+});
+
+it('offers the personal criteria only to a profile that fills them in', function () {
+    $this->getJson($this->tenantUrl('/api/events/filters'))
+        ->assertJsonPath('data.toggles', ['my_zones' => false, 'my_themes' => false]);
 });
 
 it('paginates by 10', function () {

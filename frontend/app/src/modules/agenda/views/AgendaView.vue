@@ -57,11 +57,15 @@ const month = computed({
 });
 
 // « Plus de filtres » : critères oui / non
-const MORE_OPTIONS: FilterOption[] = TOGGLE_KEYS.map((key) => ({
-  value: key,
-  label: TOGGLES[key].label,
-  hint: TOGGLES[key].hint,
-}));
+// Zones et thématiques : seulement si le profil les renseigne (ou si le critère est déjà coché)
+const moreOptions = computed<FilterOption[]>(() =>
+  TOGGLE_KEYS.filter(
+    (key) =>
+      (key !== 'my_zones' && key !== 'my_themes') ||
+      filters.value?.toggles[key] ||
+      query.value.toggles[key]
+  ).map((key) => ({ value: key, label: TOGGLES[key].label, hint: TOGGLES[key].hint }))
+);
 const more = computed({
   get: () => TOGGLE_KEYS.filter((key) => query.value.toggles[key]),
   set: (values: string[]) => setToggles(values),
@@ -177,7 +181,7 @@ onMounted(() => void agenda.start());
               label="Plus de filtres"
               icon="adjustments-horizontal"
               ghost
-              :options="MORE_OPTIONS"
+              :options="moreOptions"
             />
           </div>
 

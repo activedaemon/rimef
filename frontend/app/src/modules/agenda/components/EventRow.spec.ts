@@ -7,6 +7,7 @@ import EventRow from './EventRow.vue';
 
 const FORUM: AgendaEvent = {
   id: 3,
+  slug: 'paris-peace-forum-2026',
   title: 'Paris Peace Forum',
   type: { value: 'international_forum', label: 'Forum international' },
   starts_at: '2026-11-12T08:00:00Z',
@@ -30,7 +31,7 @@ describe('EventRow', () => {
 
     expect(wrapper.find('.date-tile__day').text()).toBe('12');
     expect(wrapper.find('.date-tile__note').text()).toBe('2 jours');
-    expect(wrapper.find('h3 a').attributes('href')).toBe('/agenda/3');
+    expect(wrapper.find('h3 a').attributes('href')).toBe('/agenda/paris-peace-forum-2026');
     expect(wrapper.text()).toContain('Paris, France');
     expect(wrapper.text()).toContain('Forum international');
     expect(wrapper.find('.event-row__more').text()).toBe('+6');

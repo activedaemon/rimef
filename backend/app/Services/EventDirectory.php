@@ -16,6 +16,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -38,7 +39,7 @@ class EventDirectory
     public const PERIODS = ['upcoming', 'past', 'mine'];
 
     /**
-     * @param  array{period?: string, q?: string|null, type?: list<string>, region?: list<string>, theme?: list<int>, month?: string, day?: string, participating?: bool, online?: bool, crowd?: bool, sort?: string|null, timezone?: string}  $filters
+     * @param  array{period?: string, q?: string|null, type?: list<string>, region?: list<string>, theme?: list<int>, month?: string, day?: string, favorites?: bool, my_zones?: bool, my_themes?: bool, online?: bool, crowd?: bool, sort?: string|null, timezone?: string}  $filters
      * @return LengthAwarePaginator<int, Event>
      */
     public function search(array $filters, User $viewer): LengthAwarePaginator
@@ -71,10 +72,11 @@ class EventDirectory
     }
 
     /**
-     * Valeurs des filtres pour l'onglet $period (avec leur nombre d'événements) et
-     * nombre d'événements de chaque onglet.
+     * Valeurs des filtres pour l'onglet $period (avec leur nombre d'événements), nombre
+     * d'événements de chaque onglet, et critères personnels utilisables par $viewer (« Dans mes
+     * zones d'intervention » et « Sur mes thématiques » demandent un profil qui les renseigne).
      *
-     * @return array{type: list<array{value: string, label: string, count: int}>, region: list<array{value: string, label: string, count: int}>, theme: list<array{value: int, label: string, count: int}>, month: list<array{value: string, label: string, count: int}>, periods: array<string, int>}
+     * @return array{type: list<array{value: string, label: string, count: int}>, region: list<array{value: string, label: string, count: int}>, theme: list<array{value: int, label: string, count: int}>, month: list<array{value: string, label: string, count: int}>, periods: array<string, int>, toggles: array{my_zones: bool, my_themes: bool}}
      */
     public function facets(string $period, User $viewer, string $timezone): array
     {
@@ -111,6 +113,10 @@ class EventDirectory
             'periods' => collect(self::PERIODS)
                 ->mapWithKeys(fn (string $name): array => [$name => $this->inPeriod($name, $viewer)->count()])
                 ->all(),
+            'toggles' => [
+                'my_zones' => $this->zonesOf($viewer)->exists(),
+                'my_themes' => $this->expertisesOf($viewer)->exists(),
+            ],
         ];
     }
 
@@ -239,8 +245,24 @@ class EventDirectory
             $this->overlapping($query, $day->startOfDay(), $day->endOfDay());
         }
 
-        if (! empty($filters['participating'])) {
-            $query->whereHas('participants', fn (Builder $query) => $query->whereKey($viewer->getKey()));
+        // Une médiatrice des favoris de $viewer y participe
+        if (! empty($filters['favorites'])) {
+            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('event_user')
+                ->join('favorites', 'favorites.member_id', '=', 'event_user.user_id')
+                ->whereColumn('event_user.event_id', 'events.id')
+                ->where('favorites.user_id', $viewer->getKey()));
+        }
+
+        // Dans un pays des zones d'intervention de $viewer
+        if (! empty($filters['my_zones'])) {
+            $query->whereIn('events.country_code', $this->zonesOf($viewer)->select('member_zones.country_code'));
+        }
+
+        // Une thématique fait partie des expertises de $viewer
+        if (! empty($filters['my_themes'])) {
+            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('event_expertise')
+                ->whereColumn('event_expertise.event_id', 'events.id')
+                ->whereIn('event_expertise.expertise_id', $this->expertisesOf($viewer)->select('expertise_member_profile.expertise_id')));
         }
 
         if (! empty($filters['online'])) {
@@ -250,6 +272,26 @@ class EventDirectory
         if (! empty($filters['crowd'])) {
             $query->whereHas('participants', fn (Builder $query) => $this->listed($query), '>=', self::CROWD);
         }
+    }
+
+    /**
+     * Pays des zones d'intervention de $viewer (vide sans profil de médiatrice).
+     */
+    private function zonesOf(User $viewer): QueryBuilder
+    {
+        return DB::table('member_zones')
+            ->join('member_profiles', 'member_profiles.id', '=', 'member_zones.member_profile_id')
+            ->where('member_profiles.user_id', $viewer->getKey());
+    }
+
+    /**
+     * Expertises de $viewer (vide sans profil de médiatrice).
+     */
+    private function expertisesOf(User $viewer): QueryBuilder
+    {
+        return DB::table('expertise_member_profile')
+            ->join('member_profiles', 'member_profiles.id', '=', 'expertise_member_profile.member_profile_id')
+            ->where('member_profiles.user_id', $viewer->getKey());
     }
 
     /**

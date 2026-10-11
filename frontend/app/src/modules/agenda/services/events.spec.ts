@@ -14,6 +14,7 @@ import type { AgendaEvent } from './events';
 function event(id: number, startsAt: string): AgendaEvent {
   return {
     id,
+    slug: `evenement-${id}`,
     title: `Événement ${id}`,
     type: null,
     starts_at: startsAt,
@@ -46,7 +47,7 @@ describe('agenda query', () => {
       selected: { type: ['workshop', 'summit'], region: ['online'], theme: [] },
       month: '2026-11',
       day: '',
-      toggles: { participating: false, online: true, crowd: false },
+      toggles: { favorites: false, my_zones: false, my_themes: false, online: true, crowd: false },
       sort: 'attendees',
       page: 2,
     });
@@ -85,7 +86,7 @@ describe('agenda query', () => {
   it('tells when the list of the tab is restricted', () => {
     expect(isFiltered(queryFromRoute({ onglet: 'passes' }))).toBe(false);
     expect(isFiltered(queryFromRoute({ mois: '2026-11' }))).toBe(true);
-    expect(isFiltered(queryFromRoute({ 'je-participe': '1' }))).toBe(true);
+    expect(isFiltered(queryFromRoute({ 'mes-zones': '1' }))).toBe(true);
   });
 });
 

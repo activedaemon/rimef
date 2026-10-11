@@ -26,6 +26,7 @@ class EventResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'slug' => $this->slug,
             'title' => $this->title,
             'type' => $this->type === null ? null : ['value' => $this->type->value, 'label' => $this->type->label()],
             'starts_at' => $this->starts_at->toIso8601String(),

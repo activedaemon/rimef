@@ -22,6 +22,7 @@ vi.mock('../services/home-feed', () => ({
 
 const EVENT: FeaturedEvent = {
   id: 3,
+  slug: 'paris-peace-forum-2026',
   title: 'Paris Peace Forum',
   dates: '12–13 novembre 2026',
   place: 'Paris, France',

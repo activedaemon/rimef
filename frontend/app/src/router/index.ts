@@ -60,7 +60,7 @@ const routes: RouteRecordRaw[] = [
             meta: { title: 'Agenda', searchInPage: true },
           },
           {
-            path: ':id(\\d+)',
+            path: ':slug([a-z0-9-]+)',
             name: 'event',
             component: () => import('@modules/agenda/views/EventView.vue'),
             meta: { title: 'Événement' },

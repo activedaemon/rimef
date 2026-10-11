@@ -19,6 +19,7 @@ const VISIBLE_ATTENDEES = 4;
 const notify = useNotify();
 const session = useSession();
 const participating = ref(props.event.isParticipating);
+const eventLink = computed(() => ({ name: 'event', params: { slug: props.event.slug } }));
 
 // Le total de l'API compte déjà la personne connectée si elle participait au chargement
 const othersCount = props.event.attendeeCount - (props.event.isParticipating ? 1 : 0);
@@ -58,18 +59,13 @@ async function toggleParticipation(): Promise<void> {
     </p>
 
     <div class="featured-event__body">
-      <router-link
-        :to="{ name: 'agenda' }"
-        class="featured-event__visual"
-        tabindex="-1"
-        aria-hidden="true"
-      >
+      <router-link :to="eventLink" class="featured-event__visual" tabindex="-1" aria-hidden="true">
         <q-icon name="calendar-event" size="48px" />
       </router-link>
 
       <div class="featured-event__content">
         <h2 id="featured-title" class="featured-event__title">
-          <router-link :to="{ name: 'agenda' }">{{ event.title }}</router-link>
+          <router-link :to="eventLink">{{ event.title }}</router-link>
         </h2>
         <div class="featured-event__meta">
           <span class="meta"><q-icon name="calendar" size="15px" />{{ event.dates }}</span>
@@ -100,7 +96,7 @@ async function toggleParticipation(): Promise<void> {
         </div>
 
         <div class="featured-event__actions">
-          <AppButton label="Voir l’événement" :to="{ name: 'agenda' }" />
+          <AppButton label="Voir l’événement" :to="eventLink" />
           <AppButton
             variant="outline"
             :icon="participating ? 'check' : undefined"

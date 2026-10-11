@@ -4,12 +4,12 @@ namespace App\Models;
 
 use App\Enums\Role;
 use App\Exceptions\ProtectedSuperAdminException;
+use App\Models\Concerns\HasUniqueSlug;
 use App\Notifications\ResetPasswordNotification;
 use BackedEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role as RoleModel;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -35,7 +34,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasUniqueSlug, Notifiable;
 
     use HasRoles {
         removeRole as protected removeRoleUnprotected;
@@ -44,12 +43,6 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
-        static::saving(function (User $user): void {
-            if ($user->slug === null || $user->isDirty(['first_name', 'last_name'])) {
-                $user->slug = $user->uniqueSlug();
-            }
-        });
-
         static::updating(function (User $user): void {
             if ($user->isDirty('is_active') && ! $user->is_active && $user->isSuperAdmin()) {
                 throw ProtectedSuperAdminException::cannotDeactivate();
@@ -161,24 +154,21 @@ class User extends Authenticatable
     }
 
     /**
-     * Prénom-nom sans accents ; un homonyme reçoit le premier suffixe libre (-2, -3…).
+     * Slug : prénom-nom sans accents.
      */
-    private function uniqueSlug(): string
+    protected function slugSource(): string
     {
-        $base = Str::slug($this->name) ?: 'membre';
+        return $this->name;
+    }
 
-        $taken = static::query()
-            ->whereKeyNot($this->getKey())
-            ->where(fn (Builder $query) => $query->where('slug', $base)->orWhere('slug', 'like', "{$base}-%"))
-            ->pluck('slug')
-            ->flip();
+    protected function slugFallback(): string
+    {
+        return 'membre';
+    }
 
-        $slug = $base;
-        for ($suffix = 2; $taken->has($slug); $suffix++) {
-            $slug = "{$base}-{$suffix}";
-        }
-
-        return $slug;
+    protected function slugDependsOn(): array
+    {
+        return ['first_name', 'last_name'];
     }
 
     public function isSuperAdmin(): bool

@@ -13,6 +13,8 @@ export interface Attendee {
 
 export interface AgendaEvent {
   id: number;
+  /** Adresse de la fiche : /agenda/paris-peace-forum-2026. */
+  slug: string;
   title: string;
   type: { value: string; label: string } | null;
   /** ISO 8601, UTC. */
@@ -70,17 +72,32 @@ export const FILTER_LABELS: Record<FilterKey, string> = {
 export interface EventFilters extends Record<FilterKey, FilterOption[]> {
   month: FilterOption[];
   periods: Record<Period, number>;
+  /** Critères personnels utilisables : ils demandent des zones et des expertises au profil. */
+  toggles: Record<PersonalToggleKey, boolean>;
 }
 
 /** Critères oui / non de « Plus de filtres » (paramètre d'API = la clé). */
-export const TOGGLE_KEYS = ['participating', 'online', 'crowd'] as const;
+export const TOGGLE_KEYS = ['favorites', 'my_zones', 'my_themes', 'online', 'crowd'] as const;
 export type ToggleKey = (typeof TOGGLE_KEYS)[number];
 
+/** Critères tirés du profil, proposés seulement s'il les renseigne. */
+export type PersonalToggleKey = 'my_zones' | 'my_themes';
+
 export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: string }> = {
-  participating: {
-    label: 'Événements où je participe',
-    hint: 'Ceux que vous avez confirmés',
-    route: 'je-participe',
+  favorites: {
+    label: 'Avec mes favorites',
+    hint: 'Une médiatrice de vos favoris y participe',
+    route: 'mes-favorites',
+  },
+  my_zones: {
+    label: 'Dans mes zones d’intervention',
+    hint: 'Dans un pays où vous intervenez',
+    route: 'mes-zones',
+  },
+  my_themes: {
+    label: 'Sur mes thématiques',
+    hint: 'Liées à vos expertises',
+    route: 'mes-thematiques',
   },
   online: { label: 'Format en ligne', hint: 'Formations et webinaires', route: 'en-ligne' },
   crowd: {
@@ -205,6 +222,7 @@ export async function fetchEventFilters(period: Period): Promise<EventFilters> {
   const { data } = await http.get<{
     data: Record<FilterKey | 'month', (FilterOption & { value: string | number })[]> & {
       periods: Record<Period, number>;
+      toggles: Record<PersonalToggleKey, boolean>;
     };
   }>('/events/filters', { params: { period, timezone: timezone() } });
 
@@ -218,6 +236,7 @@ export async function fetchEventFilters(period: Period): Promise<EventFilters> {
     theme: asText(data.data.theme),
     month: asText(data.data.month),
     periods: data.data.periods,
+    toggles: data.data.toggles,
   };
 }
 
