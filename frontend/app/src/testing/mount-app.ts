@@ -15,6 +15,7 @@ const Blank = { template: '<div />' };
 const ROUTE_NAMES = [
   ['/', 'home'],
   ['/reseau/:slug', 'member'],
+  ['/agenda/:id', 'event'],
   ['/messages', 'messages'],
   ['/messages/:id', 'conversation'],
   ['/recherche', 'search'],

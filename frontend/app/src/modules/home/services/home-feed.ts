@@ -1,7 +1,7 @@
 // Contenu de l'accueil (GET /api/home) : événement à la une, prochains rendez-vous, nouvelles
 // médiatrices. Les dates arrivent en UTC et sont mises en forme ici, pour les cartes.
 import { dayAndMonth, daysAgo, formatDateRange } from '@/lib/dates';
-import { ensureCsrf, http } from '@/lib/http';
+import { http } from '@/lib/http';
 
 /** Médiatrice affichée en avatar, avec un lien vers sa fiche. */
 export interface Person {
@@ -107,12 +107,5 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
   };
 }
 
-/** « J'y participe » : inscrit ou désinscrit la personne connectée. */
-export async function setParticipation(eventId: number, participating: boolean): Promise<void> {
-  await ensureCsrf();
-  if (participating) {
-    await http.put(`/events/${eventId}/participation`);
-  } else {
-    await http.delete(`/events/${eventId}/participation`);
-  }
-}
+/** « J'y participe » : même appel que l'Agenda. */
+export { setParticipation } from '@modules/agenda/services/events';

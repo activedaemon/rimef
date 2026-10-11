@@ -103,7 +103,7 @@ class HomeFeed
             'title' => $event->title,
             'starts_at' => $event->starts_at->toIso8601String(),
             'ends_at' => $event->ends_at?->toIso8601String(),
-            'place' => $event->place,
+            'place' => $event->placeLabel(),
             'attendee_count' => (int) $event->attendee_count,
         ];
     }

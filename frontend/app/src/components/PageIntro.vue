@@ -4,16 +4,35 @@
 // - « below » : sous le texte, dans la même colonne (ex. filtres de l'annuaire) ;
 // - « aside » : à droite, sur toute la hauteur du texte et de « below » (ex. citation).
 // Sur téléphone, l'ordre devient : texte, aside, below.
-defineProps<{ title: string; lead?: string; eyebrow?: string }>();
+// leaf : ornement de feuilles (terracotta et sauge) juste après le texte (maquettes Agenda, Messages).
+import { LEAF_PATH, leafTransform } from '@/lib/leaf';
+
+defineProps<{ title: string; lead?: string; eyebrow?: string; leaf?: boolean }>();
 </script>
 
 <template>
   <header class="page-intro" :class="{ 'page-intro--with-aside': $slots.aside }">
-    <div class="page-intro__text">
-      <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
-      <h1 class="page-intro__title">{{ title }}</h1>
-      <p v-if="lead" class="page-intro__lead">{{ lead }}</p>
-      <slot />
+    <div class="page-intro__head">
+      <div class="page-intro__text">
+        <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
+        <h1 class="page-intro__title">{{ title }}</h1>
+        <p v-if="lead" class="page-intro__lead">{{ lead }}</p>
+        <slot />
+      </div>
+      <svg v-if="leaf" class="page-intro__leaf" viewBox="0 0 120 96" aria-hidden="true">
+        <path
+          :d="LEAF_PATH"
+          :transform="leafTransform(112, 90, -150, 92, 32)"
+          fill="var(--terracotta)"
+          opacity=".85"
+        />
+        <path
+          :d="LEAF_PATH"
+          :transform="leafTransform(114, 92, -112, 70, 25)"
+          fill="var(--leaf-sage)"
+          opacity=".85"
+        />
+      </svg>
     </div>
     <div v-if="$slots.aside" class="page-intro__aside">
       <slot name="aside" />
@@ -42,9 +61,26 @@ defineProps<{ title: string; lead?: string; eyebrow?: string }>();
     column-gap: var(--s-8);
   }
 
+  // Texte et, s'il y a lieu, l'ornement de feuilles centré à sa droite
+  &__head {
+    display: flex;
+    grid-area: text;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  &__leaf {
+    flex: none;
+    width: 120px;
+    height: 96px;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
   &__text {
     display: grid;
-    grid-area: text;
+    min-width: 0;
     align-content: start;
     justify-items: start;
     gap: var(--s-3);
@@ -87,6 +123,11 @@ defineProps<{ title: string; lead?: string; eyebrow?: string }>();
 @media (max-width: 719px) {
   .page-intro {
     padding-block: var(--s-8) var(--s-6);
+
+    &__leaf {
+      width: 72px;
+      height: 58px;
+    }
 
     &--with-aside {
       grid-template-areas:

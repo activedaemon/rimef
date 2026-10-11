@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // Filtre en pilule (fiche FilterChip) : menu déroulant sur ordinateur, feuille en bas
-// d'écran sous 720 px. Les cases forment un brouillon : « Afficher les résultats » l'applique
-// et ferme la liste ; fermer autrement (clic à côté, Échap, croix) ne change rien.
+// d'écran sous 720 px. Chaque case s'applique aussitôt et la liste reste ouverte ; on la ferme
+// en cliquant à côté, avec Échap ou la croix de la feuille. no-route-dismiss : Quasar ferme
+// sinon menus et feuilles à chaque changement d'URL, donc à chaque filtre (?region=…).
 import { useQuasar } from 'quasar';
 import { computed, ref } from 'vue';
 
-import type { FilterOption } from '../services/members';
+import type { FilterOption } from '@/lib/filters';
 import FilterOptions from './FilterOptions.vue';
 
 withDefaults(
@@ -17,8 +18,12 @@ withDefaults(
     icon?: string;
     /** Sur-titre de la liste (« Profil »). */
     section?: string;
+    /** Une seule valeur (boutons radio) ; la pilule affiche alors son libellé, sans compteur. */
+    single?: boolean;
+    /** Libellé de la valeur choisie, affiché à la place de label (filtre à valeur unique). */
+    valueLabel?: string;
   }>(),
-  { ghost: false, icon: undefined, section: undefined }
+  { ghost: false, icon: undefined, section: undefined, single: false, valueLabel: undefined }
 );
 
 const selected = defineModel<string[]>({ required: true });
@@ -27,15 +32,8 @@ const $q = useQuasar();
 const open = ref(false);
 
 const isSheet = computed(() => $q.screen.lt.sm);
-const count = computed(() => selected.value.length);
-
-function apply(values: string[]): void {
-  open.value = false;
-  const changed =
-    values.length !== selected.value.length ||
-    values.some((value) => !selected.value.includes(value));
-  if (changed) selected.value = values;
-}
+// Valeur vide (« Toutes les dates ») : rien n'est filtré
+const count = computed(() => selected.value.filter((value) => value !== '').length);
 </script>
 
 <template>
@@ -55,14 +53,15 @@ function apply(values: string[]): void {
       @click="open = !open"
     >
       <q-icon v-if="icon" :name="icon" size="14px" class="filter-chip__icon" />
-      <span>{{ label }}</span>
-      <span v-if="count" class="filter-chip__count">{{ count }}</span>
+      <span>{{ valueLabel || label }}</span>
+      <span v-if="count && !single" class="filter-chip__count">{{ count }}</span>
       <q-icon v-if="!ghost" name="chevron-down" size="14px" class="filter-chip__chevron" />
 
       <q-menu
         v-if="!isSheet"
         v-model="open"
         no-parent-event
+        no-route-dismiss
         anchor="bottom left"
         self="top left"
         :offset="[0, 6]"
@@ -70,22 +69,22 @@ function apply(values: string[]): void {
         role="dialog"
         :aria-label="label"
       >
-        <FilterOptions :selected="selected" :options="options" :section="section" @apply="apply" />
+        <FilterOptions v-model="selected" :options="options" :section="section" :single="single" />
       </q-menu>
     </q-btn>
 
-    <q-dialog v-if="isSheet" v-model="open" position="bottom">
+    <q-dialog v-if="isSheet" v-model="open" position="bottom" no-route-dismiss>
       <q-card class="filter-sheet" role="dialog" :aria-label="label">
         <div class="filter-sheet__head">
           <h2 class="filter-sheet__title">{{ label }}</h2>
           <q-btn v-close-popup flat round dense icon="x" aria-label="Fermer" />
         </div>
         <FilterOptions
-          :selected="selected"
+          v-model="selected"
           :options="options"
           :section="section"
+          :single="single"
           comfortable
-          @apply="apply"
         />
       </q-card>
     </q-dialog>
