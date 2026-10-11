@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Dev;
 
-use App\Enums\ContactSubject;
 use App\Http\Controllers\Controller;
 use App\Mail\MailBrand;
 use App\Models\User;
@@ -193,7 +192,6 @@ class EmailPreviewController extends Controller
                 conversationId: 1,
                 senderName: 'Fatou Ndiaye',
                 senderPhotoUrl: null,
-                subject: ContactSubject::CoMediation,
                 excerpt: 'Bonjour Aminata, je prépare un dialogue communautaire à Ziguinchor et j’aimerais bénéficier de votre regard sur l’implication des femmes leaders…',
                 unreadCount: 1,
                 url: url(NewMessageNotification::path(1)),

@@ -25,7 +25,8 @@ class MemberDirectory
     public const PER_PAGE = 12;
 
     /**
-     * Pour chaque médiatrice : `is_favorite` (marque-page de $viewer) et son prochain événement.
+     * Pour chaque médiatrice : `is_favorite` (marque-page de $viewer), son prochain événement et
+     * `conversation_id`, la conversation engagée avec $viewer (fenêtre « Nouveau message »).
      *
      * @param  array{q?: string|null, expertise?: list<int>, region?: list<string>, organization?: list<string>, available?: bool, favorites?: bool, upcoming?: bool, sort?: string|null}  $filters
      * @return LengthAwarePaginator<int, User>
@@ -38,6 +39,7 @@ class MemberDirectory
             ->addSelect([
                 'next_event_id' => $this->nextEvent()->select('events.id'),
                 'next_event_at' => $this->nextEvent()->select('events.starts_at'),
+                'conversation_id' => $this->conversationWith($viewer),
             ])
             ->withExists(['favoredBy as is_favorite' => fn (Builder $favorite) => $favorite->whereKey($viewer->getKey())])
             ->with(['memberProfile.expertises', 'nextEvent']);
@@ -131,6 +133,22 @@ class MemberDirectory
     /**
      * @return Builder<User>
      */
+    /**
+     * Conversation de $viewer avec la médiatrice de la ligne, si elles ont déjà échangé.
+     */
+    private function conversationWith(User $viewer): QueryBuilder
+    {
+        return DB::table('conversation_user as mine')
+            ->select('mine.conversation_id')
+            ->join('conversation_user as theirs', 'theirs.conversation_id', '=', 'mine.conversation_id')
+            ->where('mine.user_id', $viewer->getKey())
+            ->whereColumn('theirs.user_id', 'users.id')
+            ->whereColumn('theirs.user_id', '!=', 'mine.user_id')
+            ->whereExists(fn (QueryBuilder $messages) => $messages->from('messages')
+                ->whereColumn('messages.conversation_id', 'mine.conversation_id'))
+            ->limit(1);
+    }
+
     private function members(): Builder
     {
         return User::query()

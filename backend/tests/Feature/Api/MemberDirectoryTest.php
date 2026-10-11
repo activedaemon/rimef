@@ -5,6 +5,7 @@ use App\Enums\Role;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
 use App\Models\User;
+use App\Services\Messaging;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Tests\Concerns\WithTenant;
@@ -93,6 +94,7 @@ it('describes a mediator card', function () {
             'organization' => 'Société civile',
             'is_available' => true,
             'is_favorite' => false,
+            'conversation_id' => null,
             'next_event' => null,
             'photo_url' => null,
             'expertises' => ['Médiation communautaire', 'Femmes, paix et sécurité'],
@@ -183,4 +185,19 @@ it('lists the filter values carried by mediators with their counts', function ()
             ['value' => 'diplomacy', 'label' => 'Diplomatie', 'count' => 1],
             ['value' => 'civil_society', 'label' => 'Société civile', 'count' => 2],
         ]);
+});
+
+it('gives the conversation already started with each mediator', function () {
+    $viewer = mediator('Claire', 'Dubois');
+    $aminata = mediator('Aminata', 'Diallo');
+    mediator('Fatou', 'Ndiaye');
+    $messaging = app(Messaging::class);
+    $conversation = $messaging->conversationBetween($viewer, $aminata);
+    $messaging->send($conversation, $viewer, 'Bonjour');
+
+    $data = collect($this->actingAs($viewer)->getJson($this->tenantUrl('/api/members?sort=name'))->json('data'))
+        ->pluck('conversation_id', 'slug');
+
+    expect($data['aminata-diallo'])->toBe($conversation->id)
+        ->and($data['fatou-ndiaye'])->toBeNull();
 });

@@ -4,24 +4,16 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\ContactSubject;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Message de la messagerie interne. `subject` : objet choisi dans la fenêtre « Contacter ».
+ * Message de la messagerie interne.
  */
-#[Fillable(['user_id', 'subject', 'body'])]
+#[Fillable(['user_id', 'body'])]
 class Message extends Model
 {
-    protected function casts(): array
-    {
-        return [
-            'subject' => ContactSubject::class,
-        ];
-    }
-
     /**
      * @return BelongsTo<Conversation, $this>
      */

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Enums\ContactSubject;
 use App\Models\Message;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,7 +29,6 @@ class NewMessageNotification extends Notification implements ShouldQueue
         public readonly int $conversationId,
         public readonly string $senderName,
         public readonly ?string $senderPhotoUrl,
-        public readonly ?ContactSubject $subject,
         public readonly string $excerpt,
         public readonly int $unreadCount,
         public readonly string $url,
@@ -48,7 +46,6 @@ class NewMessageNotification extends Notification implements ShouldQueue
             conversationId: $message->conversation_id,
             senderName: $sender->name ?? 'Une membre',
             senderPhotoUrl: $sender?->photoUrl(),
-            subject: $message->subject,
             excerpt: Str::limit((string) preg_replace('/\s+/u', ' ', $message->body), 160),
             unreadCount: $unreadCount,
             url: url(self::path($message->conversation_id)),
@@ -82,16 +79,10 @@ class NewMessageNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject("Nouveau message de {$this->senderName} sur RIMeF")
+        return (new MailMessage)
+            ->subject("{$this->senderName} vous a écrit sur RIMeF")
             ->greeting("Bonjour {$notifiable->first_name},")
-            ->line("{$this->senderName} vous a écrit sur la messagerie du réseau.");
-
-        if ($this->subject !== null) {
-            $mail->line("**Objet :** {$this->subject->label()}");
-        }
-
-        return $mail
+            ->line("{$this->senderName} vous a écrit sur la messagerie du réseau.")
             ->line("> {$this->excerpt}")
             ->action('Lire et répondre', $this->url)
             ->line('Vous ne recevrez pas d’autre email pour cette conversation tant que vous ne l’aurez pas ouverte.');
@@ -113,6 +104,25 @@ class NewMessageNotification extends Notification implements ShouldQueue
             'path' => self::path($this->conversationId),
             'sender_name' => $this->senderName,
             'photo_url' => $this->senderPhotoUrl,
+            'message_count' => $this->unreadCount,
         ];
+    }
+
+    /**
+     * Titre d'une entrée déjà lue : « 3 nouveaux messages de … » n'est plus vrai une fois la
+     * conversation ouverte. Les entrées antérieures à `message_count` se fient au titre.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function readTitle(array $data): string
+    {
+        $sender = $data['sender_name'] ?? null;
+        if (! is_string($sender)) {
+            return (string) ($data['title'] ?? '');
+        }
+
+        $count = (int) ($data['message_count'] ?? (preg_match('/^\d+ /', (string) ($data['title'] ?? '')) ? 2 : 1));
+
+        return $count > 1 ? "Messages de {$sender}" : "Message de {$sender}";
     }
 }

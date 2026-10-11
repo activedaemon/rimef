@@ -23,7 +23,6 @@ class MessageResource extends JsonResource
         return [
             'id' => $this->id,
             'body' => $this->body,
-            'subject' => $this->subject?->label(),
             'sent_at' => $this->created_at->toIso8601String(),
             'is_mine' => $this->user_id === $request->user()->getKey(),
         ];

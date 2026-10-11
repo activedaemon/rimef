@@ -61,7 +61,7 @@ it('renders the new message email without any address', function () {
     $this->get('http://rimef.localhost/api/dev/emails/preview/new-message')
         ->assertOk()
         ->assertSee('Fatou Ndiaye vous a écrit sur la messagerie du réseau.')
-        ->assertSee('Proposition de co-médiation')
+        ->assertSee('dialogue communautaire à Ziguinchor')
         ->assertSee('Lire et répondre')
         ->assertSee('/messages/1', false)
         ->assertDontSee('@example.org');

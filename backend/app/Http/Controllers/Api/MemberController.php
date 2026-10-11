@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\ContactSubject;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ContactMemberRequest;
 use App\Http\Requests\ListMembersRequest;
@@ -47,12 +46,13 @@ class MemberController extends Controller
     /**
      * Fiche d'une médiatrice de l'annuaire, retrouvée par son slug (/reseau/aminata-diallo).
      */
-    public function show(Request $request, User $user): MemberProfileResource
+    public function show(Request $request, User $user, Messaging $messaging): MemberProfileResource
     {
         abort_unless($this->directory->isListed($user), 404);
 
         $user->load(['memberProfile.expertises', 'memberProfile.zones']);
         $user->setAttribute('is_favorite', $request->user()->favorites()->whereKey($user->getKey())->exists());
+        $user->setAttribute('conversation', $messaging->summaryBetween($request->user(), $user));
 
         return new MemberProfileResource($user);
     }
@@ -66,12 +66,7 @@ class MemberController extends Controller
         abort_if($user->is($request->user()), 422, 'Vous ne pouvez pas vous écrire à vous-même.');
 
         $conversation = $messaging->conversationBetween($request->user(), $user);
-        $messaging->send(
-            $conversation,
-            $request->user(),
-            $request->validated('body'),
-            ContactSubject::from($request->validated('subject')),
-        );
+        $messaging->send($conversation, $request->user(), $request->validated('body'));
 
         return response()->json(['data' => ['conversation_id' => $conversation->id]], 201);
     }

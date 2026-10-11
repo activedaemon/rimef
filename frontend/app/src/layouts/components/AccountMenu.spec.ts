@@ -14,7 +14,7 @@ vi.mock('@modules/auth/services/auth', () => ({
   logout: vi.fn(),
 }));
 
-async function openMenu() {
+async function openMenu(overrides: Partial<auth.AuthenticatedUser> = {}) {
   const result = await mountApp(AccountMenu);
   useSession().user = {
     id: 1,
@@ -24,6 +24,8 @@ async function openMenu() {
     name: 'Aminata Diallo',
     email: 'aminata@example.org',
     roles: ['admin'],
+    photo_url: null,
+    ...overrides,
   };
   await flushPromises();
   await result.wrapper.find('button').trigger('click');
@@ -42,6 +44,14 @@ describe('AccountMenu', () => {
 
     expect(wrapper.find('button').attributes('aria-label')).toBe('Mon compte, Aminata Diallo');
     expect(wrapper.find('button').text()).toBe('AD');
+    wrapper.unmount();
+  });
+
+  it('shows her photo when she has one', async () => {
+    const { wrapper } = await openMenu({ photo_url: '/api/members/1/photo?v=1' });
+
+    expect(wrapper.find('button img').attributes('src')).toBe('/api/members/1/photo?v=1');
+    expect(wrapper.find('button').text()).toBe('');
     wrapper.unmount();
   });
 

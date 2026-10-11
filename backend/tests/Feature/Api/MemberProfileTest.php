@@ -5,6 +5,7 @@ use App\Enums\Role;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
 use App\Models\User;
+use App\Services\Messaging;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\WithTenant;
@@ -59,6 +60,7 @@ it('shows the profile of a mediator found by her slug', function () {
             'years_of_experience' => 15,
             'audiences' => 'Femmes, jeunes',
             'is_favorite' => false,
+            'conversation' => null,
             'expertises' => ['Médiation communautaire'],
             'zones' => [['code' => 'SN', 'name' => 'Sénégal'], ['code' => 'ML', 'name' => 'Mali']],
         ]]);
@@ -70,6 +72,26 @@ it('tells whether the mediator is in the favorites of the viewer', function () {
     $this->actingAs($this->viewer)
         ->getJson($this->tenantUrl('/api/members/aminata-diallo'))
         ->assertJsonPath('data.is_favorite', true);
+});
+
+it('gives the conversation with the viewer and its unread messages', function () {
+    $messaging = app(Messaging::class);
+    $conversation = $messaging->conversationBetween($this->viewer, $this->mediator);
+    $messaging->send($conversation, $this->viewer, 'Bonjour Aminata');
+    $messaging->send($conversation, $this->mediator, 'Bonjour !');
+    $messaging->send($conversation, $this->mediator, 'Avec plaisir.');
+
+    $this->actingAs($this->viewer)
+        ->getJson($this->tenantUrl('/api/members/aminata-diallo'))
+        ->assertJsonPath('data.conversation', ['id' => $conversation->id, 'unread_count' => 2]);
+
+    $messaging->markAsRead($conversation, $this->viewer);
+    $this->getJson($this->tenantUrl('/api/members/aminata-diallo'))
+        ->assertJsonPath('data.conversation.unread_count', 0);
+
+    // Sa propre fiche : pas d'onglet Messages
+    $this->getJson($this->tenantUrl("/api/members/{$this->viewer->slug}"))
+        ->assertJsonPath('data.conversation', null);
 });
 
 it('shows only the identity of a mediator without a profile', function () {

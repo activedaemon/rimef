@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Enums\ContactSubject;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -18,8 +17,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Messagerie interne : conversations par paire de membres, messages, lecture et notifications.
  *
- * Pour chaque destinataire : une seule entrée de cloche par conversation non lue (remplacée à
- * chaque message) et un seul email tant que la conversation n'a pas été ouverte.
+ * Pour chaque destinataire : une seule entrée de cloche par conversation (remplacée à chaque
+ * message, qu'elle ait été lue ou non) et un seul email tant que la conversation n'a pas été
+ * ouverte.
  */
 class Messaging
 {
@@ -34,13 +34,12 @@ class Messaging
         return $conversation;
     }
 
-    public function send(Conversation $conversation, User $sender, string $body, ?ContactSubject $subject = null): Message
+    public function send(Conversation $conversation, User $sender, string $body): Message
     {
-        $message = DB::transaction(function () use ($conversation, $sender, $body, $subject): Message {
+        $message = DB::transaction(function () use ($conversation, $sender, $body): Message {
             /** @var Message $message */
             $message = $conversation->messages()->create([
                 'user_id' => $sender->getKey(),
-                'subject' => $subject,
                 'body' => $body,
             ]);
 
@@ -87,6 +86,38 @@ class Messaging
             ->count();
     }
 
+    /**
+     * Conversation engagée entre la personne connectée et une autre membre (onglet Messages
+     * d'une fiche), avec ses messages non lus ; null si elles n'ont jamais échangé.
+     *
+     * @return array{id: int, unread_count: int}|null
+     */
+    public function summaryBetween(User $viewer, User $other): ?array
+    {
+        if ($viewer->is($other)) {
+            return null;
+        }
+
+        $conversation = Conversation::query()
+            ->where('pair_key', Conversation::pairKey($viewer, $other))
+            ->whereHas('messages')
+            ->first();
+
+        if ($conversation === null) {
+            return null;
+        }
+
+        $lastRead = (int) $conversation->participants()->whereKey($viewer->getKey())->value('last_read_message_id');
+
+        return [
+            'id' => $conversation->id,
+            'unread_count' => $conversation->messages()
+                ->where(fn (Builder $query) => $query->whereNull('user_id')->orWhere('user_id', '!=', $viewer->getKey()))
+                ->where('id', '>', $lastRead)
+                ->count(),
+        ];
+    }
+
     private function notifyRecipients(Conversation $conversation, Message $message): void
     {
         $recipients = $conversation->participants()
@@ -101,7 +132,7 @@ class Messaging
                 ->count();
             $withEmail = $recipient->pivot->emailed_at === null;
 
-            $this->bellEntries($recipient, $conversation)->whereNull('read_at')->delete();
+            $this->bellEntries($recipient, $conversation)->delete();
             $recipient->notify(NewMessageNotification::for($message, $unread, $withEmail));
 
             if ($withEmail) {

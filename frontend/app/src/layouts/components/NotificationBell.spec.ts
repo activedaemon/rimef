@@ -59,6 +59,71 @@ describe('NotificationBell', () => {
 
     expect(notifications.markNotificationRead).toHaveBeenCalledWith('a1');
     expect(router.currentRoute.value.fullPath).toBe('/messages/3');
+
+    wrapper.unmount();
+  });
+
+  it('keeps the notifications when everything is marked as read, without the new style', async () => {
+    vi.mocked(notifications.markAllNotificationsRead).mockResolvedValue();
+    const { wrapper } = await mountApp(NotificationBell);
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    Array.from(document.body.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent?.includes('Tout marquer comme lu'))!
+      .click();
+    await flushPromises();
+
+    expect(notifications.markAllNotificationsRead).toHaveBeenCalled();
+    const item = document.body.querySelector('.notification-item')!;
+    expect(item.classList).not.toContain('notification-item--new');
+    expect(document.body.textContent).not.toContain('Tout marquer comme lu');
+    wrapper.unmount();
+  });
+
+  it('links to all the messages', async () => {
+    const { wrapper, router } = await mountApp(NotificationBell);
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    document.body.querySelector<HTMLAnchorElement>('.notification-list__foot')!.click();
+    await flushPromises();
+
+    expect(router.currentRoute.value.name).toBe('messages');
+    wrapper.unmount();
+  });
+
+  it('shows each new notification in bold with a dot and a short excerpt', async () => {
+    vi.mocked(notifications.fetchNotifications).mockResolvedValue([
+      {
+        ...NEW_MESSAGE,
+        text: 'Le compte rendu de l’atelier d’Abidjan est prêt, pourriez-vous le relire ?',
+      },
+    ]);
+    const { wrapper } = await mountApp(NotificationBell);
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    const item = document.body.querySelector('.notification-item')!;
+    expect(item.classList).toContain('notification-item--new');
+    expect(item.querySelector('small')!.textContent).toMatch(
+      /^« Le compte rendu de l’atelier d’Abidjan est prêt… » · \d{2}:\d{2}$/
+    );
+    wrapper.unmount();
+  });
+
+  it('shows a read notification without bold nor dot', async () => {
+    vi.mocked(notifications.fetchNotifications).mockResolvedValue([
+      { ...NEW_MESSAGE, is_read: true },
+    ]);
+    const { wrapper } = await mountApp(NotificationBell);
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    expect(document.body.querySelector('.notification-item')!.classList).not.toContain(
+      'notification-item--new'
+    );
+    expect(document.body.textContent).not.toContain('Tout marquer comme lu');
     wrapper.unmount();
   });
 });

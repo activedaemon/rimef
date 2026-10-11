@@ -2,8 +2,10 @@
 
 use App\Enums\Role;
 use App\Models\Conversation;
+use App\Models\MemberProfile;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
+use App\Services\Messaging;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -21,7 +23,6 @@ beforeEach(function () {
     // Fenêtre « Contacter » d'une fiche
     $this->contact = fn (User $from, string $slug, array $payload = []) => $this->actingAs($from)
         ->postJson($this->tenantUrl("/api/members/{$slug}/contact"), [
-            'subject' => 'co_mediation',
             'body' => 'Bonjour Aminata, seriez-vous disponible en novembre ?',
             ...$payload,
         ]);
@@ -43,7 +44,6 @@ it('starts a conversation from the contact window', function () {
     $this->getJson($this->tenantUrl("/api/conversations/{$conversation->id}/messages"))
         ->assertOk()
         ->assertJsonPath('data.0.body', 'Bonjour Aminata, seriez-vous disponible en novembre ?')
-        ->assertJsonPath('data.0.subject', 'Proposition de co-médiation')
         ->assertJsonPath('data.0.is_mine', true)
         ->assertJsonPath('meta.has_more', false);
 });
@@ -57,9 +57,11 @@ it('reuses the same conversation for the same pair, in both directions', functio
 });
 
 it('validates the contact window', function () {
-    ($this->contact)($this->fatou, 'aminata-diallo', ['subject' => 'inconnu', 'body' => str_repeat('a', 2001)])
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => str_repeat('a', 2001)])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['subject', 'body']);
+        ->assertJsonValidationErrors(['body']);
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => ''])
+        ->assertJsonValidationErrors(['body']);
 });
 
 it('refuses to contact oneself or an account outside the directory', function () {
@@ -112,6 +114,48 @@ it('lists the conversations with the contact and the unread count', function () 
         ->assertJsonPath('data.0.unread_count', 0);
 });
 
+it('searches the conversations and filters the unread ones, with the counters', function () {
+    $leila = User::factory()->create(['first_name' => 'Leïla', 'last_name' => 'Bouzid']);
+    $leila->assignRole(Role::Member);
+    MemberProfile::factory()->for($leila)->create(['city' => 'Rabat', 'country_code' => 'MA']);
+    MemberProfile::factory()->for($this->fatou)->create(['city' => 'Abidjan', 'country_code' => 'CI']);
+
+    // Aminata a deux conversations : Fatou (non lue) et Leïla (lue, au sujet de la gouvernance locale)
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Le compte rendu de l’atelier est prêt.']);
+    ($this->contact)($leila, 'aminata-diallo', ['body' => 'Bonjour, parlons gouvernance locale']);
+    app(Messaging::class)->markAsRead(Conversation::where('pair_key', Conversation::pairKey($leila, $this->aminata))->sole(), $this->aminata);
+
+    $this->actingAs($this->aminata);
+    $search = fn (string $query) => $this->getJson($this->tenantUrl('/api/conversations?'.$query))
+        ->assertOk()->json('data.*.contact.slug');
+
+    expect($search(''))->toBe(['leila-bouzid', 'fatou-ndiaye'])
+        ->and($search('q=ndiaye'))->toBe(['fatou-ndiaye'])
+        ->and($search('q=rabat'))->toBe(['leila-bouzid'])
+        ->and($search('q=maroc'))->toBe(['leila-bouzid'])
+        ->and($search('q=compte+rendu'))->toBe(['fatou-ndiaye'])
+        ->and($search('q=gouvernance'))->toBe(['leila-bouzid'])
+        ->and($search('q=diallo'))->toBe([])
+        ->and($search('unread=1'))->toBe(['fatou-ndiaye']);
+
+    $this->getJson($this->tenantUrl('/api/conversations?q=rabat'))
+        ->assertJsonPath('data.0.contact.place', 'Rabat, Maroc')
+        ->assertJsonPath('meta.total_conversations', 2)
+        ->assertJsonPath('meta.unread_conversations', 1);
+});
+
+it('never finds the conversations of other members', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Message confidentiel']);
+    $other = User::factory()->create();
+    $other->assignRole(Role::Member);
+
+    $this->actingAs($other)
+        ->getJson($this->tenantUrl('/api/conversations?q=confidentiel'))
+        ->assertOk()
+        ->assertJsonCount(0, 'data')
+        ->assertJsonPath('meta.total_conversations', 0);
+});
+
 it('marks the conversation as read when it is opened', function () {
     ($this->contact)($this->fatou, 'aminata-diallo');
     $id = Conversation::sole()->id;
@@ -135,7 +179,6 @@ it('replies in a conversation', function () {
         ->postJson($this->tenantUrl("/api/conversations/{$id}/messages"), ['body' => 'Avec plaisir !'])
         ->assertCreated()
         ->assertJsonPath('data.body', 'Avec plaisir !')
-        ->assertJsonPath('data.subject', null)
         ->assertJsonPath('data.is_mine', true);
 
     $this->actingAs($this->fatou)
@@ -193,6 +236,17 @@ it('replaces the unread bell entry of a conversation', function () {
         ->and($notifications->first()->data['path'])->toBe('/messages/'.Conversation::sole()->id);
 });
 
+it('keeps one bell entry per conversation, even after it was read', function () {
+    ($this->contact)($this->fatou, 'aminata-diallo');
+    $this->aminata->notifications()->sole()->markAsRead();
+
+    ($this->contact)($this->fatou, 'aminata-diallo', ['body' => 'Encore un message']);
+
+    $notification = $this->aminata->notifications()->sole();
+    expect($notification->read_at)->toBeNull()
+        ->and($notification->data['text'])->toBe('Encore un message');
+});
+
 it('sends the email without revealing any address', function () {
     Mail::fake();
     ($this->contact)($this->fatou, 'aminata-diallo');
@@ -201,8 +255,8 @@ it('sends the email without revealing any address', function () {
     $mail = NewMessageNotification::for(Conversation::sole()->messages()->sole(), 1, true)->toMail($this->aminata);
     $rendered = (string) $mail->render();
 
-    expect($mail->subject)->toBe('Nouveau message de Fatou Ndiaye sur RIMeF')
-        ->and($rendered)->toContain('Proposition de co-médiation')
+    expect($mail->subject)->toBe('Fatou Ndiaye vous a écrit sur RIMeF')
+        ->and($rendered)->toContain('seriez-vous disponible en novembre')
         ->and($rendered)->toContain('http://'.$this->tenant->domains()->value('domain').$notification->data['path'])
         ->and($rendered)->not->toContain($this->fatou->email)
         ->and($rendered)->not->toContain($this->aminata->email);
@@ -212,7 +266,7 @@ it('stores queued jobs in the central database, even from a tenant', function ()
     config(['queue.default' => 'database']);
     $central = config('tenancy.database.central_connection');
 
-    $this->aminata->notify(new NewMessageNotification(1, 'Fatou Ndiaye', null, null, 'Bonjour', 1, 'http://x', ['mail']));
+    $this->aminata->notify(new NewMessageNotification(1, 'Fatou Ndiaye', null, 'Bonjour', 1, 'http://x', ['mail']));
 
     expect(config('queue.connections.database.connection'))->toBe($central)
         ->and(DB::connection($central)->table('jobs')->count())->toBe(1);

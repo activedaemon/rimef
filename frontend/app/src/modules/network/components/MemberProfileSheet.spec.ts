@@ -1,9 +1,30 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
+import { flushPromises } from '@vue/test-utils';
+import { describe, expect, it, vi } from 'vitest';
 
+import * as messages from '@modules/messages/services/messages';
 import { mountApp } from '@/testing/mount-app';
 import type { MemberProfile } from '../services/members';
 import MemberProfileSheet from './MemberProfileSheet.vue';
+
+vi.mock('@modules/messages/services/messages', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@modules/messages/services/messages')>()),
+  fetchMessages: vi.fn().mockResolvedValue({
+    messages: [
+      {
+        id: 1,
+        body: 'Bonjour Aminata',
+        sent_at: '2026-10-10T12:00:00Z',
+        is_mine: true,
+      },
+    ],
+    hasMore: false,
+  }),
+  markConversationRead: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@modules/notifications/services/notifications', () => ({
+  fetchUnreadCounts: vi.fn().mockResolvedValue({ notifications: 0, messages: 0 }),
+}));
 
 const AMINATA: MemberProfile = {
   id: 7,
@@ -22,6 +43,7 @@ const AMINATA: MemberProfile = {
   audiences: 'Femmes, jeunes',
   is_available: false,
   is_favorite: false,
+  conversation: null,
   expertises: ['Médiation communautaire', 'Gouvernance locale'],
   zones: [
     { code: 'SN', name: 'Sénégal' },
@@ -96,6 +118,39 @@ describe('MemberProfileSheet', () => {
 
     await tabs[1]!.trigger('click');
     expect(wrapper.text()).toContain('Les événements arrivent bientôt');
+    wrapper.unmount();
+  });
+
+  it('adds the Messages tab only when a conversation exists, with its unread messages', async () => {
+    const withConversation = { ...AMINATA, conversation: { id: 3, unread_count: 2 } };
+    const { wrapper, router } = await mountApp(MemberProfileSheet, {
+      path: '/reseau/aminata-diallo',
+      props: { profile: withConversation },
+    });
+
+    const tabs = wrapper.findAll('.q-tab');
+    expect(tabs).toHaveLength(4);
+    expect(tabs[3]!.attributes('aria-label')).toBe('Messages, 2 non lus');
+    expect(tabs[3]!.find('.profile-tabs__badge').text()).toBe('2');
+
+    await tabs[3]!.trigger('click');
+    await flushPromises();
+
+    expect(router.currentRoute.value.query.onglet).toBe('messages');
+    expect(messages.fetchMessages).toHaveBeenCalledWith(3);
+    expect(wrapper.find('.message__body').text()).toBe('Bonjour Aminata');
+    expect(messages.markConversationRead).toHaveBeenCalledWith(3);
+    expect(wrapper.find('.profile-tabs__badge').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('opens the tab given in the URL, but not Messages without a conversation', async () => {
+    const { wrapper } = await mountApp(MemberProfileSheet, {
+      path: '/reseau/aminata-diallo?onglet=messages',
+      props: { profile: AMINATA },
+    });
+
+    expect(wrapper.find('.q-tab--active').text()).toBe('Profil');
     wrapper.unmount();
   });
 });

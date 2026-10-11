@@ -1,20 +1,50 @@
 <script setup lang="ts">
 // Fiche d'une médiatrice (maquette Profil médiatrice) : en-tête, repères, onglets Profil /
-// Événements / Ressources. Partagée par /reseau/:slug et « Mon profil » : les actions de
-// l'en-tête arrivent par le slot « actions ».
+// Événements / Ressources, et Messages quand la personne connectée a déjà échangé avec elle.
+// Partagée par /reseau/:slug et « Mon profil » : les actions de l'en-tête arrivent par le
+// slot « actions ». L'onglet ouvert figure dans l'URL (?onglet=messages).
 // Événements et ressources ne sont pas encore reliés aux médiatrices : onglets et cartes
 // de la colonne affichent un message d'attente.
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import EmptyState from '@/components/EmptyState.vue';
+import ConversationThread from '@modules/messages/components/ConversationThread.vue';
 import type { MemberProfile } from '../services/members';
 import ProfileHeader from './ProfileHeader.vue';
 import ProfileMarks from './ProfileMarks.vue';
 
 const props = defineProps<{ profile: MemberProfile }>();
 
-type Tab = 'profil' | 'evenements' | 'ressources';
-const tab = ref<Tab>('profil');
+const route = useRoute();
+const router = useRouter();
+
+type Tab = 'profil' | 'evenements' | 'ressources' | 'messages';
+const TABS: Tab[] = ['profil', 'evenements', 'ressources', 'messages'];
+
+const conversation = computed(() => props.profile.conversation);
+/** Non-lus de l'onglet Messages, remis à zéro dès que la conversation est lue. */
+const unread = ref(0);
+watch(conversation, (value) => (unread.value = value?.unread_count ?? 0), { immediate: true });
+
+function tabFromUrl(): Tab {
+  const value = route.query.onglet;
+  const wanted = TABS.find((name) => name === value) ?? 'profil';
+  return wanted === 'messages' && !conversation.value ? 'profil' : wanted;
+}
+
+const tab = ref<Tab>(tabFromUrl());
+watch([() => route.query.onglet, conversation], () => (tab.value = tabFromUrl()));
+watch(tab, (value) => {
+  const onglet = value === 'profil' ? undefined : value;
+  if (route.query.onglet !== onglet) void router.replace({ query: { ...route.query, onglet } });
+});
+
+const messagesLabel = computed(() =>
+  unread.value > 0
+    ? `Messages, ${unread.value} ${unread.value > 1 ? 'non lus' : 'non lu'}`
+    : 'Messages'
+);
 
 const isEmpty = computed(
   () => !props.profile.bio && !props.profile.expertises.length && !props.profile.zones.length
@@ -45,6 +75,16 @@ const isEmpty = computed(
           <q-tab name="profil" label="Profil" />
           <q-tab name="evenements" label="Événements" />
           <q-tab name="ressources" label="Ressources" />
+          <q-tab v-if="conversation" name="messages" :aria-label="messagesLabel">
+            <span class="q-tab__label">Messages</span>
+            <q-badge
+              v-if="unread > 0"
+              rounded
+              :label="unread"
+              class="profile-tabs__badge"
+              aria-hidden="true"
+            />
+          </q-tab>
         </q-tabs>
       </div>
     </div>
@@ -124,6 +164,15 @@ const isEmpty = computed(
           :text="`Les publications et prises de parole de ${profile.first_name} seront affichées ici.`"
         />
       </q-tab-panel>
+
+      <!-- Chargé à la première ouverture de l'onglet (panneaux non conservés par q-tab-panels) -->
+      <q-tab-panel v-if="conversation" name="messages" class="profile-panel profile-messages">
+        <ConversationThread
+          :conversation-id="conversation.id"
+          :contact-name="profile.name"
+          @read="unread = 0"
+        />
+      </q-tab-panel>
     </q-tab-panels>
   </div>
 </template>
@@ -174,6 +223,19 @@ const isEmpty = computed(
   :deep(.q-tabs__content) {
     gap: 24px;
   }
+
+  // Non-lus : pastille terracotta comme le compteur de « Mes messages »
+  &__badge {
+    margin-left: 6px;
+    background: var(--terracotta-ink);
+    color: var(--paper);
+    font-size: 11px;
+    font-weight: 600;
+  }
+}
+
+.profile-messages {
+  max-width: 820px;
 }
 
 .q-tab-panel {

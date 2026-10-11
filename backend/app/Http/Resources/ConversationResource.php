@@ -6,6 +6,7 @@ namespace App\Http\Resources;
 
 use App\Models\Conversation;
 use App\Models\User;
+use App\Support\DirectoryCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -35,6 +36,8 @@ class ConversationResource extends JsonResource
                 'slug' => $other->slug,
                 'name' => $other->name,
                 'photo_url' => $other->photoUrl(),
+                // « Dakar, Sénégal » (liste et en-tête de la conversation)
+                'place' => $this->place($other),
                 // Fiche visible dans l'annuaire : lien depuis la conversation
                 'has_profile' => $other->is_active && $other->hasRole('member'),
             ],
@@ -45,5 +48,13 @@ class ConversationResource extends JsonResource
             ],
             'unread_count' => (int) ($this->unread_count ?? 0),
         ];
+    }
+
+    private function place(User $user): ?string
+    {
+        $profile = $user->memberProfile;
+        $parts = array_filter([$profile?->city, DirectoryCatalog::countryName($profile?->country_code)]);
+
+        return $parts === [] ? null : implode(', ', $parts);
     }
 }

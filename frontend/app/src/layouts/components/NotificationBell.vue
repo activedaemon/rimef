@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Cloche de l'en-tête : pastille quand il y a du non-lu, liste des dernières notifications
-// (menu sous la cloche ; plein écran sur téléphone). Un clic ouvre l'écran concerné et
-// marque la notification comme lue.
+// Cloche de l'en-tête : pastille quand il y a du non-lu, 3 dernières notifications (menu sous
+// la cloche ; plein écran sur téléphone). Un clic ouvre l'écran concerné et marque la
+// notification comme lue : elle reste affichée, sans le style « nouvelle ».
 import { useQuasar } from 'quasar';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -101,6 +101,7 @@ async function readAll(): Promise<void> {
         :loading="loading"
         @open="openNotification"
         @read-all="readAll"
+        @close="open = false"
       />
     </q-menu>
   </q-btn>
@@ -128,15 +129,16 @@ async function readAll(): Promise<void> {
   position: relative;
   color: var(--ink-2);
 
+  // Pastille de la maquette (.icon-btn .dot) : 7 px terracotta, liseré blanc
   &__dot {
     position: absolute;
-    top: 9px;
+    top: 8px;
     right: 9px;
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--paper);
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--terracotta);
+    box-shadow: 0 0 0 2px var(--paper);
   }
 }
 </style>
@@ -144,7 +146,7 @@ async function readAll(): Promise<void> {
 <style lang="scss">
 // Menu de la cloche (téléporté hors du composant)
 .notification-menu {
-  width: 380px;
+  width: 340px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-float);

@@ -18,5 +18,7 @@ declare module 'vue-router' {
     searchScope?: SearchScope;
     /** La recherche du bandeau filtre la page elle-même (?q=…) au lieu d'ouvrir /recherche. */
     searchInPage?: boolean;
+    /** Téléphone : page en plein écran sous l'en-tête, sans barre d'onglets (conversation). */
+    fullscreenOnPhone?: boolean;
   }
 }

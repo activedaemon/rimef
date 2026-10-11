@@ -1,25 +1,18 @@
 // Messagerie interne : conversations par paire de membres (GET/POST /api/conversations…)
 // et fenêtre « Contacter » des fiches (POST /api/members/{slug}/contact).
 import { ensureCsrf, http } from '@/lib/http';
+import type { Member } from '@modules/network/services/members';
 
 /** Longueur maximale d'un message (SendMessageRequest::MAX_LENGTH). */
 export const MAX_MESSAGE_LENGTH = 2000;
-
-export type ContactSubject = 'expertise' | 'event_invitation' | 'co_mediation' | 'peer_exchange';
-
-/** Objets proposés dans la fenêtre « Contacter » (maquette). */
-export const CONTACT_SUBJECTS: { value: ContactSubject; label: string }[] = [
-  { value: 'expertise', label: 'Demande d’expertise' },
-  { value: 'event_invitation', label: 'Invitation à un événement' },
-  { value: 'co_mediation', label: 'Proposition de co-médiation' },
-  { value: 'peer_exchange', label: 'Échange entre pairs' },
-];
 
 export interface ConversationContact {
   id: number;
   slug: string;
   name: string;
   photo_url: string | null;
+  /** « Dakar, Sénégal », null si le profil ne le précise pas. */
+  place: string | null;
   /** Fiche visible dans l'annuaire. */
   has_profile: boolean;
 }
@@ -35,19 +28,40 @@ export interface Conversation {
 export interface Message {
   id: number;
   body: string;
-  /** Objet de la prise de contact (premier message envoyé depuis une fiche). */
-  subject: string | null;
   sent_at: string;
   is_mine: boolean;
 }
 
 export interface ConversationPage {
   data: Conversation[];
-  meta: { current_page: number; last_page: number };
+  meta: {
+    current_page: number;
+    last_page: number;
+    /** Toutes mes conversations, recherche et filtre ignorés. */
+    total_conversations: number;
+    /** Conversations ayant des messages non lus. */
+    unread_conversations: number;
+  };
 }
 
-export async function fetchConversations(page = 1): Promise<ConversationPage> {
-  const { data } = await http.get<ConversationPage>('/conversations', { params: { page } });
+/** Filtre de la liste : toutes les conversations ou celles qui ont des non-lus. */
+export type ConversationFilter = 'all' | 'unread';
+
+/** Recherche du bandeau (`q`) et filtre « Non lues ». */
+export interface ConversationQuery {
+  q?: string;
+  unread?: boolean;
+}
+
+export async function fetchConversations(
+  page = 1,
+  query: ConversationQuery = {},
+  signal?: AbortSignal
+): Promise<ConversationPage> {
+  const params: Record<string, unknown> = { page };
+  if (query.q?.trim()) params.q = query.q.trim();
+  if (query.unread) params.unread = 1;
+  const { data } = await http.get<ConversationPage>('/conversations', { params, signal });
   return data;
 }
 
@@ -79,16 +93,21 @@ export async function sendMessage(id: number, body: string): Promise<Message> {
   return data.data;
 }
 
-/** Fenêtre « Contacter » : renvoie la conversation où le message a été écrit. */
-export async function contactMember(
-  slug: string,
-  subject: ContactSubject,
-  body: string
-): Promise<number> {
+/** Fenêtre « Nouveau message » : médiatrices de l'annuaire dont le nom correspond. */
+export async function searchRecipients(q: string, signal?: AbortSignal): Promise<Member[]> {
+  const { data } = await http.get<{ data: Member[] }>('/members', {
+    params: { q: q.trim() || undefined, sort: 'name' },
+    signal,
+  });
+  return data.data;
+}
+
+/** Fenêtres « Contacter » et « Nouveau message » : renvoie la conversation du message. */
+export async function contactMember(slug: string, body: string): Promise<number> {
   await ensureCsrf();
   const { data } = await http.post<{ data: { conversation_id: number } }>(
     `/members/${encodeURIComponent(slug)}/contact`,
-    { subject, body }
+    { body }
   );
   return data.data.conversation_id;
 }

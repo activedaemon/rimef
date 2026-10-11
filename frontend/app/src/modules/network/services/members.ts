@@ -13,6 +13,8 @@ export interface Member {
   organization: string | null;
   is_available: boolean;
   is_favorite: boolean;
+  /** Conversation déjà engagée avec la personne connectée (fenêtre « Nouveau message »). */
+  conversation_id: number | null;
   /** Prochain événement auquel elle participe (starts_at en ISO 8601, UTC). */
   next_event: { id: number; title: string; starts_at: string } | null;
   photo_url: string | null;
@@ -37,6 +39,8 @@ export interface MemberProfile {
   audiences: string | null;
   is_available: boolean;
   is_favorite: boolean;
+  /** Conversation avec la personne connectée (onglet Messages), null sans échange. */
+  conversation: { id: number; unread_count: number } | null;
   expertises: string[];
   zones: { code: string; name: string }[];
 }

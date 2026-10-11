@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import { useInboxRefresh } from '@/composables/useInboxRefresh';
 import AppDrawer from './components/AppDrawer.vue';
@@ -7,6 +8,7 @@ import AppFooter from './components/AppFooter.vue';
 import AppHeader from './components/AppHeader.vue';
 import AppTabBar from './components/AppTabBar.vue';
 
+const route = useRoute();
 const drawerOpen = ref(false);
 useInboxRefresh();
 </script>
@@ -21,7 +23,7 @@ useInboxRefresh();
       <AppFooter />
     </q-page-container>
 
-    <AppTabBar v-if="$q.screen.lt.sm" />
+    <AppTabBar v-if="$q.screen.lt.sm && !route.meta.fullscreenOnPhone" />
   </q-layout>
 </template>
 
