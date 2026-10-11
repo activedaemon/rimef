@@ -19,6 +19,7 @@ const aminata: auth.AuthenticatedUser = {
   name: 'Aminata Diallo',
   email: 'aminata@example.org',
   roles: ['member'],
+  photo_url: null,
 };
 
 function httpError(status: number): AxiosError {
@@ -52,7 +53,6 @@ describe('useSession', () => {
 
     expect(auth.fetchCurrentUser).toHaveBeenCalledTimes(1);
     expect(session.authenticated).toBe(true);
-    expect(session.initials).toBe('AD');
   });
 
   it('stays logged out when the session check fails', async () => {

@@ -37,6 +37,8 @@ class MemberResource extends JsonResource
             'organization' => $profile?->organization_type?->label(),
             'is_available' => (bool) $profile?->is_available,
             'is_favorite' => (bool) ($this->is_favorite ?? false),
+            // Conversation engagée avec la personne connectée (annuaire seulement)
+            'conversation_id' => isset($this->conversation_id) ? (int) $this->conversation_id : null,
             'next_event' => $this->nextEvent === null ? null : [
                 'id' => $this->nextEvent->id,
                 'title' => $this->nextEvent->title,

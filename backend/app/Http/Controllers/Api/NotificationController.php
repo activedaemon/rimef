@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\NewMessageNotification;
 use App\Services\Messaging;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,10 +17,12 @@ use Illuminate\Notifications\DatabaseNotification;
  */
 class NotificationController extends Controller
 {
-    public const PER_PAGE = 15;
+    /** La cloche montre les 3 notifications les plus récentes, lues ou non (le reste : Mes messages). */
+    public const PER_PAGE = 3;
 
     /**
-     * Notifications, la plus récente d'abord (title, text, path de la SPA, photo).
+     * Notifications, la plus récente d'abord (title, text, path de la SPA, photo, is_read) :
+     * une notification lue reste affichée, sans le style « nouvelle ».
      */
     public function index(Request $request): JsonResponse
     {
@@ -28,7 +31,9 @@ class NotificationController extends Controller
         return response()->json([
             'data' => $notifications->getCollection()->map(fn (DatabaseNotification $notification): array => [
                 'id' => $notification->id,
-                'title' => $notification->data['title'] ?? '',
+                'title' => $notification->read_at !== null && $notification->type === NewMessageNotification::class
+                    ? NewMessageNotification::readTitle($notification->data)
+                    : ($notification->data['title'] ?? ''),
                 'text' => $notification->data['text'] ?? null,
                 'path' => $notification->data['path'] ?? null,
                 'photo_url' => $notification->data['photo_url'] ?? null,

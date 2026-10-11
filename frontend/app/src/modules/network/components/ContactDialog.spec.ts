@@ -26,6 +26,13 @@ async function openDialog() {
   return result;
 }
 
+async function fill(id: string, value: string): Promise<void> {
+  const field = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement;
+  field.value = value;
+  field.dispatchEvent(new Event('input'));
+  await flushPromises();
+}
+
 const sendButton = () =>
   Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
     button.textContent?.includes('Envoyer le message')
@@ -43,28 +50,33 @@ describe('ContactDialog', () => {
     expect(document.body.textContent).toContain('Contacter Aminata');
     expect(document.body.textContent).toContain('Message transmis via la messagerie du réseau');
     expect(document.body.textContent).not.toContain('prévenue par email');
+    expect(document.getElementById('contact-subject')).toBeNull();
     expect(document.body.querySelector('textarea')!.value).toBe('');
     expect(sendButton().disabled).toBe(true);
     wrapper.unmount();
   });
 
-  it('sends the subject and the message, then closes', async () => {
+  it('can send as soon as the message is written', async () => {
+    const { wrapper } = await openDialog();
+
+    await fill('contact-body', '   ');
+    expect(sendButton().disabled).toBe(true);
+    await fill('contact-body', 'Bonjour');
+    expect(sendButton().disabled).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('sends the message, then closes', async () => {
     vi.mocked(messages.contactMember).mockResolvedValue(12);
     const { wrapper } = await openDialog();
 
-    const textarea = document.body.querySelector('textarea')!;
-    textarea.value = '  Bonjour Aminata !  ';
-    textarea.dispatchEvent(new Event('input'));
-    await flushPromises();
+    await fill('contact-body', '  Bonjour Aminata !  ');
     sendButton().click();
     await flushPromises();
 
-    expect(messages.contactMember).toHaveBeenCalledWith(
-      'aminata-diallo',
-      'expertise',
-      'Bonjour Aminata !'
-    );
+    expect(messages.contactMember).toHaveBeenCalledWith('aminata-diallo', 'Bonjour Aminata !');
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    expect(wrapper.emitted('sent')).toEqual([[12]]);
     wrapper.unmount();
   });
 
@@ -72,10 +84,7 @@ describe('ContactDialog', () => {
     vi.mocked(messages.contactMember).mockRejectedValue(new Error('offline'));
     const { wrapper } = await openDialog();
 
-    const textarea = document.body.querySelector('textarea')!;
-    textarea.value = 'Bonjour';
-    textarea.dispatchEvent(new Event('input'));
-    await flushPromises();
+    await fill('contact-body', 'Bonjour');
     sendButton().click();
     await flushPromises();
 

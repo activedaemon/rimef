@@ -5,6 +5,9 @@ import { useSession } from '@/stores/session';
 
 const APP_NAME = 'RIMeF';
 
+/** Route enfant sans contenu propre (la page parente lit l'adresse). */
+const Empty = { render: () => null };
+
 // Tout l'espace des membres est réservé aux comptes connectés : une route est
 // protégée sauf si elle (ou un parent) porte `meta.public` ou `meta.guestOnly`.
 const routes: RouteRecordRaw[] = [
@@ -87,21 +90,20 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
-        // Messagerie interne : « Mes messages » puis une conversation
+        // Messagerie interne : une seule page (liste + conversation ouverte), qui reste montée
+        // d'une conversation à l'autre ; les routes enfants ne font que nommer l'adresse.
+        // Le champ du bandeau filtre les conversations (?q=).
         path: 'messages',
-        component: RouterView,
+        component: () => import('@modules/messages/views/MessagesView.vue'),
+        meta: { searchPlaceholder: 'Rechercher une conversation…', searchInPage: true },
         children: [
-          {
-            path: '',
-            name: 'messages',
-            component: () => import('@modules/messages/views/ConversationsView.vue'),
-            meta: { title: 'Mes messages' },
-          },
+          { path: '', name: 'messages', component: Empty, meta: { title: 'Mes messages' } },
           {
             path: ':id(\\d+)',
             name: 'conversation',
-            component: () => import('@modules/messages/views/ConversationView.vue'),
-            meta: { title: 'Conversation' },
+            component: Empty,
+            // Téléphone : conversation en plein écran, sans barre d'onglets
+            meta: { title: 'Conversation', fullscreenOnPhone: true },
           },
         ],
       },

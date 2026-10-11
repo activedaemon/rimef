@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // Menu du compte (fiche AccountMenu) : identité, profil, messages (avec les non-lus), déconnexion.
+// Pastille : photo de la personne connectée si elle en a une, sinon ses initiales.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
 import { ref } from 'vue';
 
+import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useLogout } from '@/composables/useLogout';
 import { useInbox } from '@/stores/inbox';
 import { useSession } from '@/stores/session';
@@ -32,7 +34,12 @@ function moveFocus(event: KeyboardEvent): void {
     :aria-label="`Mon compte, ${session.user?.name ?? ''}`"
     aria-haspopup="menu"
   >
-    <q-avatar size="38px" class="account-button__avatar">{{ session.initials }}</q-avatar>
+    <MemberAvatar
+      :name="session.user?.name ?? ''"
+      :photo="session.user?.photo_url ?? null"
+      :size="38"
+      class="account-button__avatar"
+    />
 
     <q-menu
       anchor="bottom right"
@@ -42,7 +49,12 @@ function moveFocus(event: KeyboardEvent): void {
       @show="focusFirstItem"
     >
       <div class="account-menu__identity">
-        <q-avatar size="40px" class="account-button__avatar">{{ session.initials }}</q-avatar>
+        <MemberAvatar
+          :name="session.user?.name ?? ''"
+          :photo="session.user?.photo_url ?? null"
+          :size="40"
+          class="account-button__avatar"
+        />
         <div>
           <p class="account-menu__name">{{ session.user?.name }}</p>
           <p class="account-menu__role">{{ session.roleLabel }}</p>
@@ -83,10 +95,6 @@ function moveFocus(event: KeyboardEvent): void {
 
 <style lang="scss" scoped>
 .account-button__avatar {
-  background: var(--petrol-light);
-  color: var(--petrol);
-  font-size: var(--fs-sm);
-  font-weight: 600;
   box-shadow:
     0 0 0 2px var(--paper),
     0 0 0 3px var(--border);

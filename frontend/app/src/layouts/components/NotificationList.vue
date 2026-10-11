@@ -1,12 +1,24 @@
 <script setup lang="ts">
-// Contenu de la cloche (menu sur ordinateur, plein écran sur téléphone) : en-tête,
-// « Tout marquer comme lu », liste des notifications (non lues en gras, filet terracotta).
+// Contenu de la cloche, selon la maquette (.nt-pop) : menu sur ordinateur, plein écran sur
+// téléphone. En-tête, « Tout marquer comme lu », les 3 notifications les plus récentes
+// (nouvelle : titre en gras et pastille terracotta ; extrait entre guillemets · heure) et lien
+// « Voir tous mes messages ». Une notification lue reste affichée, en style normal.
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { shortMoment } from '@/lib/dates';
 import type { AppNotification } from '@modules/notifications/services/notifications';
 
 defineProps<{ notifications: AppNotification[]; loading: boolean; closable?: boolean }>();
 const emit = defineEmits<{ open: [item: AppNotification]; readAll: []; close: [] }>();
+
+const EXCERPT_LENGTH = 50;
+
+/** Extrait court comme la maquette : coupé au dernier mot entier, suivi de « … ». */
+function shortExcerpt(text: string): string {
+  if (text.length <= EXCERPT_LENGTH) return text;
+  const cut = text.slice(0, EXCERPT_LENGTH);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 20 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.]+$/, '')}…`;
+}
 </script>
 
 <template>
@@ -18,6 +30,7 @@ const emit = defineEmits<{ open: [item: AppNotification]; readAll: []; close: []
         flat
         no-caps
         dense
+        :ripple="false"
         class="link-more"
         label="Tout marquer comme lu"
         @click="emit('readAll')"
@@ -43,38 +56,52 @@ const emit = defineEmits<{ open: [item: AppNotification]; readAll: []; close: []
         v-for="item in notifications"
         :key="item.id"
         clickable
+        :ripple="false"
         class="notification-item"
-        :class="{ 'notification-item--unread': !item.is_read }"
+        :class="{ 'notification-item--new': !item.is_read }"
         @click="emit('open', item)"
       >
-        <q-item-section avatar>
-          <MemberAvatar :name="item.sender_name ?? item.title" :photo="item.photo_url" :size="40" />
-        </q-item-section>
-        <q-item-section>
-          <q-item-label class="notification-item__title">{{ item.title }}</q-item-label>
-          <q-item-label v-if="item.text" caption lines="2">{{ item.text }}</q-item-label>
-        </q-item-section>
-        <q-item-section side top class="notification-item__time">
-          {{ shortMoment(item.created_at) }}
-        </q-item-section>
+        <MemberAvatar
+          :name="item.sender_name ?? item.title"
+          :photo="item.photo_url"
+          :size="32"
+          class="notification-item__avatar"
+        />
+        <span class="notification-item__text">
+          <b>{{ item.title }}</b>
+          <small>
+            <template v-if="item.text">« {{ shortExcerpt(item.text) }} » · </template>
+            <time :datetime="item.created_at">{{ shortMoment(item.created_at) }}</time>
+          </small>
+        </span>
+        <span v-if="!item.is_read" class="sr-only">, nouvelle</span>
       </q-item>
     </q-list>
+
+    <router-link :to="{ name: 'messages' }" class="notification-list__foot" @click="emit('close')">
+      Voir tous mes messages
+    </router-link>
   </div>
 </template>
 
 <style lang="scss" scoped>
+// Fenêtre de la maquette : fond presque blanc, marge intérieure 6 px
 .notification-list {
-  background: var(--paper);
+  padding: 6px;
+  background: #fffefb;
 
   &__head {
     display: flex;
-    align-items: center;
-    gap: var(--s-4);
-    padding: var(--s-4) var(--s-4) var(--s-3);
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+    padding: 10px 10px 12px;
+    border-bottom: 1px solid var(--border);
 
     h2 {
       margin-right: auto;
-      font-size: var(--fs-h3);
+      font-size: 1.15rem;
+      line-height: 1.1;
     }
   }
 
@@ -87,30 +114,90 @@ const emit = defineEmits<{ open: [item: AppNotification]; readAll: []; close: []
   }
 
   &__items {
-    padding-bottom: var(--s-2);
+    display: grid;
+    gap: 1px;
+  }
+
+  &__foot {
+    display: block;
+    margin-top: 4px;
+    padding: 10px;
+    font-size: var(--fs-sm);
+    color: var(--petrol);
+    text-align: center;
+    text-decoration: none;
+    border-top: 1px solid var(--border);
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
   }
 }
 
+// Ligne de la maquette (.nt) : portrait 32 px, titre et extrait ; nouvelle = gras + pastille
 .notification-item {
-  min-height: 64px;
-  padding: var(--s-3) var(--s-4);
-  border-top: 1px solid var(--border);
+  position: relative;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 0;
+  padding: 10px 28px 10px 10px;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--ink-2);
+  border-radius: var(--radius-xs);
 
-  &__title {
-    font-size: var(--fs-sm);
+  &:hover,
+  &:focus-visible {
     color: var(--ink);
+    background: var(--ivory);
   }
 
-  &__time {
-    font-size: var(--fs-xs);
-    color: var(--muted);
+  // Pas de voile gris Quasar au survol : le fond ivoire suffit
+  :deep(.q-focus-helper) {
+    display: none;
   }
 
-  &--unread {
-    box-shadow: inset 3px 0 0 var(--terracotta);
+  &__avatar {
+    margin-top: 1px;
+  }
 
-    .notification-item__title {
+  &__text {
+    min-width: 0;
+
+    b {
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    small {
+      margin-top: 2px;
+      font-size: var(--fs-xs);
+      color: var(--muted);
+      overflow-wrap: anywhere;
+      // Extrait long : deux lignes au plus
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+  }
+
+  &--new {
+    .notification-item__text b {
       font-weight: 600;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      right: 12px;
+      width: 7px;
+      height: 7px;
+      background: var(--terracotta);
+      border-radius: 50%;
     }
   }
 }

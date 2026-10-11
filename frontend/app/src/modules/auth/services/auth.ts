@@ -15,6 +15,8 @@ export interface AuthenticatedUser {
   name: string;
   email: string;
   roles: string[];
+  /** Photo de l'annuaire (pastille du menu du compte), null sans photo ou hors annuaire. */
+  photo_url: string | null;
 }
 
 export interface LoginPayload {

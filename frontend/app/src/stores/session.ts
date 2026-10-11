@@ -32,9 +32,6 @@ export const useSession = defineStore('session', () => {
     }
     return isAdmin.value ? 'Administratrice' : 'Membre RIMeF';
   });
-  const initials = computed(() =>
-    user.value ? `${user.value.first_name.charAt(0)}${user.value.last_name.charAt(0)}` : ''
-  );
 
   function bootstrap(): Promise<void> {
     bootstrapPromise ??= fetchCurrentUser()
@@ -82,7 +79,6 @@ export const useSession = defineStore('session', () => {
     isSuperAdmin,
     isAdmin,
     roleLabel,
-    initials,
     bootstrap,
     login,
     logout,

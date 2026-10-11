@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { dayAndMonth, daysAgo, formatDateRange } from './dates';
+import { dayAndMonth, dayLabel, daysAgo, formatDateRange, shortMoment } from './dates';
 
 describe('dates', () => {
   it('formats a single day and ranges within a month, across months and years', () => {
@@ -26,5 +26,23 @@ describe('dates', () => {
     expect(daysAgo('2026-10-10T08:00:00', now)).toBe('Aujourd’hui');
     expect(daysAgo('2026-10-09T23:00:00', now)).toBe('Hier');
     expect(daysAgo('2026-10-07T12:00:00', now)).toBe('Il y a 3 jours');
+  });
+
+  it('gives a short moment for the conversation list', () => {
+    const now = new Date('2026-10-10T11:20:00');
+    expect(shortMoment('2026-10-10T08:57:00', now)).toBe('08:57');
+    expect(shortMoment('2026-10-09T17:40:00', now)).toBe('Hier');
+    expect(shortMoment('2026-10-08T16:40:00', now)).toBe('Jeu.');
+    expect(shortMoment('2026-10-02T14:30:00', now)).toBe('2 oct.');
+    expect(shortMoment('2025-10-02T14:30:00', now)).toBe('2 oct. 2025');
+  });
+
+  it('labels the days of a conversation', () => {
+    const now = new Date('2026-10-10T11:20:00');
+    expect(dayLabel('2026-10-10T08:00:00', now)).toBe('Aujourd’hui');
+    expect(dayLabel('2026-10-09T08:00:00', now)).toBe('Hier');
+    expect(dayLabel('2026-10-05T08:00:00', now)).toBe('Lundi 5 octobre');
+    expect(dayLabel('2026-10-01T08:00:00', now)).toBe('Jeudi 1er octobre');
+    expect(dayLabel('2025-01-01T08:00:00', now)).toBe('Mercredi 1er janvier 2025');
   });
 });

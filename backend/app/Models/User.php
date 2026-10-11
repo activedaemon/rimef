@@ -135,7 +135,7 @@ class User extends Authenticatable
      */
     public function conversations(): BelongsToMany
     {
-        return $this->belongsToMany(Conversation::class)->withPivot(['last_read_message_id', 'emailed_at']);
+        return $this->belongsToMany(Conversation::class)->withPivot(['last_read_message_id', 'emailed_at', 'cleared_message_id']);
     }
 
     /**

@@ -46,6 +46,8 @@ class MemberProfileResource extends JsonResource
             'audiences' => $profile?->audiences,
             'is_available' => (bool) $profile?->is_available,
             'is_favorite' => (bool) ($this->is_favorite ?? false),
+            // Conversation avec la personne connectée (onglet Messages), null sans échange
+            'conversation' => $this->conversation ?? null,
             'expertises' => $profile === null ? [] : $profile->expertises
                 ->map(fn (Expertise $expertise): string => $expertise->name)->values()->all(),
             'zones' => $profile === null ? [] : $profile->zones

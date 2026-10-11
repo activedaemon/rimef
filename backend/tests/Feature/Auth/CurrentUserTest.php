@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\Role;
+use App\Models\MemberProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\WithTenant;
@@ -30,7 +31,22 @@ it('returns the logged in member with her roles', function () {
             'name' => 'Aminata Diallo',
             'email' => 'aminata@example.org',
             'roles' => ['member'],
+            'photo_url' => null,
         ]]);
+});
+
+it('gives the photo of a member of the directory only', function () {
+    $member = User::factory()->create();
+    $member->assignRole(Role::Member->value);
+    $profile = MemberProfile::factory()->for($member)->create(['photo_path' => 'members/1.webp']);
+
+    $this->actingAs($member)
+        ->getJson($this->tenantUrl('/api/user'))
+        ->assertJsonPath('data.photo_url', "/api/members/{$member->id}/photo?v={$profile->updated_at->getTimestamp()}");
+
+    // Compte hors annuaire (sans rôle member) : sa photo ne serait pas servie
+    $member->removeRole(Role::Member->value);
+    $this->getJson($this->tenantUrl('/api/user'))->assertJsonPath('data.photo_url', null);
 });
 
 it('returns 403 when the account was deactivated during the session', function () {

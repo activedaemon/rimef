@@ -1,25 +1,18 @@
 // Messagerie interne : conversations par paire de membres (GET/POST /api/conversations…)
 // et fenêtre « Contacter » des fiches (POST /api/members/{slug}/contact).
 import { ensureCsrf, http } from '@/lib/http';
+import type { Member } from '@modules/network/services/members';
 
 /** Longueur maximale d'un message (SendMessageRequest::MAX_LENGTH). */
 export const MAX_MESSAGE_LENGTH = 2000;
-
-export type ContactSubject = 'expertise' | 'event_invitation' | 'co_mediation' | 'peer_exchange';
-
-/** Objets proposés dans la fenêtre « Contacter » (maquette). */
-export const CONTACT_SUBJECTS: { value: ContactSubject; label: string }[] = [
-  { value: 'expertise', label: 'Demande d’expertise' },
-  { value: 'event_invitation', label: 'Invitation à un événement' },
-  { value: 'co_mediation', label: 'Proposition de co-médiation' },
-  { value: 'peer_exchange', label: 'Échange entre pairs' },
-];
 
 export interface ConversationContact {
   id: number;
   slug: string;
   name: string;
   photo_url: string | null;
+  /** « Dakar, Sénégal », null si le profil ne le précise pas. */
+  place: string | null;
   /** Fiche visible dans l'annuaire. */
   has_profile: boolean;
 }
@@ -34,20 +27,49 @@ export interface Conversation {
 
 export interface Message {
   id: number;
-  body: string;
-  /** Objet de la prise de contact (premier message envoyé depuis une fiche). */
-  subject: string | null;
+  /** null pour un message supprimé (« Message supprimé »). */
+  body: string | null;
   sent_at: string;
   is_mine: boolean;
+  is_edited: boolean;
+  is_deleted: boolean;
+  /** Modifiable par moi : mon message, envoyé il y a moins de 15 minutes, non supprimé. */
+  can_edit: boolean;
 }
+
+/** Délai de modification d'un message après son envoi (Message::EDIT_WINDOW_MINUTES). */
+export const EDIT_WINDOW_MS = 15 * 60_000;
 
 export interface ConversationPage {
   data: Conversation[];
-  meta: { current_page: number; last_page: number };
+  meta: {
+    current_page: number;
+    last_page: number;
+    /** Toutes mes conversations, recherche et filtre ignorés. */
+    total_conversations: number;
+    /** Conversations ayant des messages non lus. */
+    unread_conversations: number;
+  };
 }
 
-export async function fetchConversations(page = 1): Promise<ConversationPage> {
-  const { data } = await http.get<ConversationPage>('/conversations', { params: { page } });
+/** Filtre de la liste : toutes les conversations ou celles qui ont des non-lus. */
+export type ConversationFilter = 'all' | 'unread';
+
+/** Recherche du bandeau (`q`) et filtre « Non lues ». */
+export interface ConversationQuery {
+  q?: string;
+  unread?: boolean;
+}
+
+export async function fetchConversations(
+  page = 1,
+  query: ConversationQuery = {},
+  signal?: AbortSignal
+): Promise<ConversationPage> {
+  const params: Record<string, unknown> = { page };
+  if (query.q?.trim()) params.q = query.q.trim();
+  if (query.unread) params.unread = 1;
+  const { data } = await http.get<ConversationPage>('/conversations', { params, signal });
   return data;
 }
 
@@ -79,16 +101,50 @@ export async function sendMessage(id: number, body: string): Promise<Message> {
   return data.data;
 }
 
-/** Fenêtre « Contacter » : renvoie la conversation où le message a été écrit. */
-export async function contactMember(
-  slug: string,
-  subject: ContactSubject,
+/** Suppression de la conversation pour moi : l'autre participante la garde. */
+export async function deleteConversation(id: number): Promise<void> {
+  await ensureCsrf();
+  await http.delete(`/conversations/${id}`);
+}
+
+/** Modification de mon message (15 minutes après l'envoi). */
+export async function editMessage(
+  conversationId: number,
+  id: number,
   body: string
-): Promise<number> {
+): Promise<Message> {
+  await ensureCsrf();
+  const { data } = await http.patch<{ data: Message }>(
+    `/conversations/${conversationId}/messages/${id}`,
+    { body }
+  );
+  return data.data;
+}
+
+/** Suppression de mon message : « Message supprimé » pour les deux participantes. */
+export async function deleteMessage(conversationId: number, id: number): Promise<Message> {
+  await ensureCsrf();
+  const { data } = await http.delete<{ data: Message }>(
+    `/conversations/${conversationId}/messages/${id}`
+  );
+  return data.data;
+}
+
+/** Fenêtre « Nouveau message » : médiatrices de l'annuaire dont le nom correspond. */
+export async function searchRecipients(q: string, signal?: AbortSignal): Promise<Member[]> {
+  const { data } = await http.get<{ data: Member[] }>('/members', {
+    params: { q: q.trim() || undefined, sort: 'name' },
+    signal,
+  });
+  return data.data;
+}
+
+/** Fenêtres « Contacter » et « Nouveau message » : renvoie la conversation du message. */
+export async function contactMember(slug: string, body: string): Promise<number> {
   await ensureCsrf();
   const { data } = await http.post<{ data: { conversation_id: number } }>(
     `/members/${encodeURIComponent(slug)}/contact`,
-    { subject, body }
+    { body }
   );
   return data.data.conversation_id;
 }

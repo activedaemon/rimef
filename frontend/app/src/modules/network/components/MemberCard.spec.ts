@@ -15,6 +15,7 @@ const AMINATA: Member = {
   is_available: true,
   photo_url: null,
   is_favorite: false,
+  conversation_id: null,
   next_event: null,
   expertises: ['Médiation communautaire', 'Femmes, paix et sécurité', 'Troisième expertise'],
 };
