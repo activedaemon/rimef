@@ -14,6 +14,7 @@ use App\Support\DirectoryCatalog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -24,11 +25,14 @@ class MemberDirectory
 {
     public const PER_PAGE = 12;
 
+    /** Tailles de page au choix : multiples de 4, 3 et 2 colonnes, la grille tombe juste. */
+    public const PER_PAGE_OPTIONS = [12, 24, 48];
+
     /**
      * Pour chaque médiatrice : `is_favorite` (marque-page de $viewer), son prochain événement et
      * `conversation_id`, la conversation engagée avec $viewer (fenêtre « Nouveau message »).
      *
-     * @param  array{q?: string|null, expertise?: list<int>, region?: list<string>, organization?: list<string>, available?: bool, favorites?: bool, upcoming?: bool, sort?: string|null}  $filters
+     * @param  array{q?: string|null, expertise?: list<int>, region?: list<string>, organization?: list<string>, available?: bool, favorites?: bool, upcoming?: bool, sort?: string|null, per_page?: int|string}  $filters
      * @return LengthAwarePaginator<int, User>
      */
     public function search(array $filters, User $viewer): LengthAwarePaginator
@@ -48,7 +52,7 @@ class MemberDirectory
         $this->applyFilters($query, $filters, $viewer);
         $this->applySort($query, $filters['sort'] ?? null);
 
-        return $query->paginate(self::PER_PAGE)->withQueryString();
+        return $query->paginate((int) ($filters['per_page'] ?? self::PER_PAGE))->withQueryString();
     }
 
     /**
@@ -69,16 +73,18 @@ class MemberDirectory
     {
         $profiles = DB::table('member_profiles')->whereIn('user_id', $this->members()->select('users.id'));
 
-        $countries = (clone $profiles)->whereNotNull('country_code')
-            ->groupBy('country_code')->pluck(DB::raw('count(*)'), 'country_code');
-
-        $regionCounts = [];
-        foreach ($countries as $code => $count) {
-            $region = DirectoryCatalog::regionOf($code);
-            if ($region !== null) {
-                $regionCounts[$region->value] = ($regionCounts[$region->value] ?? 0) + (int) $count;
-            }
-        }
+        // Région = zones d'intervention : une médiatrice compte une fois par région où elle intervient
+        $regionCounts = DB::table('member_zones')
+            ->whereIn('member_profile_id', (clone $profiles)->select('id'))
+            ->get(['member_profile_id', 'country_code'])
+            ->map(fn (object $zone): array => [
+                'profile' => $zone->member_profile_id,
+                'region' => DirectoryCatalog::regionOf($zone->country_code)?->value,
+            ])
+            ->whereNotNull('region')
+            ->groupBy('region')
+            ->map(fn (Collection $zones): int => $zones->pluck('profile')->unique()->count())
+            ->all();
 
         $organizations = (clone $profiles)->whereNotNull('organization_type')
             ->groupBy('organization_type')->pluck(DB::raw('count(*)'), 'organization_type');
@@ -203,8 +209,11 @@ class MemberDirectory
                 ->whereIn('expertise_member_profile.expertise_id', $filters['expertise']));
         }
 
+        // Région : au moins une zone d'intervention dans l'une des régions cochées (pas le pays de résidence)
         if (! empty($filters['region'])) {
-            $query->whereIn('member_profiles.country_code', DirectoryCatalog::countryCodesIn($filters['region']));
+            $query->whereExists(fn (QueryBuilder $sub) => $sub->from('member_zones')
+                ->whereColumn('member_zones.member_profile_id', 'member_profiles.id')
+                ->whereIn('member_zones.country_code', DirectoryCatalog::countryCodesIn($filters['region'])));
         }
 
         if (! empty($filters['organization'])) {

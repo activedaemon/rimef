@@ -52,7 +52,6 @@ it('shows the profile of a mediator found by her slug', function () {
             'first_name' => 'Aminata',
             'country' => ['code' => 'SN', 'name' => 'Sénégal'],
             'city' => 'Dakar',
-            'region' => 'Afrique de l’Ouest',
             'organization' => 'Société civile',
             'job_title' => 'Conseillère en paix et sécurité',
             'tagline' => 'Favoriser le dialogue inclusif.',

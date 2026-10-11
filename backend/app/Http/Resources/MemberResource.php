@@ -23,7 +23,6 @@ class MemberResource extends JsonResource
     public function toArray(Request $request): array
     {
         $profile = $this->memberProfile;
-        $region = DirectoryCatalog::regionOf($profile?->country_code);
 
         return [
             'id' => $this->id,
@@ -33,7 +32,6 @@ class MemberResource extends JsonResource
                 'code' => $profile->country_code,
                 'name' => DirectoryCatalog::countryName($profile->country_code),
             ],
-            'region' => $region?->label(),
             'organization' => $profile?->organization_type?->label(),
             'is_available' => (bool) $profile?->is_available,
             'is_favorite' => (bool) ($this->is_favorite ?? false),

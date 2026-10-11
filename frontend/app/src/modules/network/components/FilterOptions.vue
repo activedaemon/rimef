@@ -1,17 +1,25 @@
 <script setup lang="ts">
 // Contenu d'un filtre : cases à cocher (libellé, aide, effectif) et pied Effacer / Afficher.
 // Partagé par le menu déroulant (ordinateur) et la feuille basse (téléphone) de FilterMenu.
+// Les cases modifient un brouillon, pris à l'ouverture ; seul « Afficher les résultats »
+// l'applique (événement apply). Fermer sans valider abandonne les changements.
+import { ref } from 'vue';
+
 import AppButton from '@/components/AppButton.vue';
 import type { FilterOption } from '../services/members';
 
-defineProps<{ options: FilterOption[]; section?: string; comfortable?: boolean }>();
+const props = defineProps<{
+  options: FilterOption[];
+  selected: string[];
+  section?: string;
+  comfortable?: boolean;
+}>();
+const emit = defineEmits<{ apply: [values: string[]] }>();
 
-const selected = defineModel<string[]>({ required: true });
+const draft = ref<string[]>([...props.selected]);
 
 function toggle(value: string, checked: boolean): void {
-  selected.value = checked
-    ? [...selected.value, value]
-    : selected.value.filter((item) => item !== value);
+  draft.value = checked ? [...draft.value, value] : draft.value.filter((item) => item !== value);
 }
 </script>
 
@@ -26,7 +34,7 @@ function toggle(value: string, checked: boolean): void {
       <q-item-section side>
         <q-checkbox
           :dense="!comfortable"
-          :model-value="selected.includes(option.value)"
+          :model-value="draft.includes(option.value)"
           @update:model-value="(checked: boolean) => toggle(option.value, checked)"
         />
       </q-item-section>
@@ -40,12 +48,12 @@ function toggle(value: string, checked: boolean): void {
     </q-item>
   </q-list>
   <div class="filter-options__foot">
-    <q-btn flat dense no-caps class="link-more" label="Effacer" @click="selected = []" />
+    <q-btn flat dense no-caps class="link-more" label="Effacer" @click="draft = []" />
     <AppButton
-      v-close-popup
       :size="comfortable ? 'md' : 'sm'"
       class="filter-options__apply"
       label="Afficher les résultats"
+      @click="emit('apply', draft)"
     />
   </div>
 </template>

@@ -37,7 +37,6 @@ class MemberProfileResource extends JsonResource
                 'name' => DirectoryCatalog::countryName($profile->country_code),
             ],
             'city' => $profile?->city,
-            'region' => DirectoryCatalog::regionOf($profile?->country_code)?->label(),
             'organization' => $profile?->organization_type?->label(),
             'job_title' => $profile?->job_title,
             'tagline' => $profile?->tagline,

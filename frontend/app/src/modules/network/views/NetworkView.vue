@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Annuaire des médiatrices (maquette Réseau) : intro et citation, filtres, filtres actifs,
-// barre de résultats, grille ou liste de cartes, « Afficher plus ». La recherche par texte
+// barre de résultats, grille ou liste de cartes, pagination. La recherche par texte
 // passe par le champ du bandeau (meta.searchInPage) qui écrit ?q=… dans l'URL de la page.
-import { computed, onMounted, ref, watch } from 'vue';
+import { type ComponentPublicInstance, computed, onMounted, ref, watch } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
+import AppPagination from '@/components/AppPagination.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
@@ -15,6 +16,7 @@ import { useMemberDirectory } from '../composables/useMemberDirectory';
 import {
   FILTER_KEYS,
   FILTER_LABELS,
+  PER_PAGE_OPTIONS,
   TOGGLE_KEYS,
   TOGGLES,
   type FilterKey,
@@ -48,6 +50,16 @@ function setToggles(values: string[]): void {
     >,
   });
 }
+
+// Filtre actif retirable (maquette .tag-x) : toute la pastille retire le filtre
+const TAG_PROPS = {
+  flat: true,
+  dense: true,
+  noCaps: true,
+  ripple: false,
+  iconRight: 'x',
+  class: 'network-active__tag',
+} as const;
 
 const activeToggles = computed(() => TOGGLE_KEYS.filter((key) => query.value.toggles[key]));
 
@@ -83,9 +95,22 @@ const sort = computed({
   set: (value) => directory.update({ sort: value }),
 });
 
-const progress = computed(() =>
-  directory.total.value ? directory.members.value.length / directory.total.value : 0
-);
+const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
+  label: `${value} par page`,
+  value,
+}));
+
+// Changement de page : retour en douceur en haut des résultats (barre de tri visible)
+const resultsBar = ref<ComponentPublicInstance | null>(null);
+
+function changePage(page: number): void {
+  directory.goToPage(page);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (resultsBar.value?.$el as HTMLElement | undefined)?.scrollIntoView({
+    behavior: reduceMotion ? 'auto' : 'smooth',
+    block: 'start',
+  });
+}
 
 onMounted(() => void directory.start());
 </script>
@@ -127,40 +152,36 @@ onMounted(() => void directory.start());
       </PageIntro>
 
       <div v-if="directory.filtered.value" class="network-active" aria-live="polite">
-        <q-chip
+        <q-btn
           v-if="query.q"
-          removable
-          square
-          class="network-active__chip"
+          v-bind="TAG_PROPS"
           :label="`« ${query.q} »`"
-          :remove-aria-label="`Retirer la recherche ${query.q}`"
-          @remove="directory.update({ q: '' })"
+          :aria-label="`Retirer la recherche ${query.q}`"
+          @click="directory.update({ q: '' })"
         />
-        <q-chip
+        <q-btn
           v-for="filter in directory.activeFilters.value"
           :key="`${filter.key}-${filter.value}`"
-          removable
-          square
-          class="network-active__chip"
+          v-bind="TAG_PROPS"
           :label="filter.label"
-          :remove-aria-label="`Retirer le filtre ${filter.label}`"
-          @remove="removeFilter(filter.key, filter.value)"
+          :aria-label="`Retirer le filtre ${filter.label}`"
+          @click="removeFilter(filter.key, filter.value)"
         />
-        <q-chip
+        <q-btn
           v-for="key in activeToggles"
           :key="key"
-          removable
-          square
-          class="network-active__chip"
+          v-bind="TAG_PROPS"
           :label="TOGGLES[key].label"
-          :remove-aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
-          @remove="setToggles(more.filter((value) => value !== key))"
+          :aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
+          @click="setToggles(more.filter((value) => value !== key))"
         />
       </div>
 
       <ResultsBar
+        ref="resultsBar"
         v-model:view="view"
         v-model:sort="sort"
+        class="network-results"
         :count="directory.total.value"
         :directory-total="directory.directoryTotal.value"
         :filtered="directory.filtered.value"
@@ -199,25 +220,35 @@ onMounted(() => void directory.start());
           </li>
         </ul>
 
-        <div v-if="directory.hasMore.value" class="network-more">
-          <q-linear-progress
-            :value="progress"
-            color="secondary"
-            track-color="transparent"
-            size="2px"
-            class="network-more__progress"
-            aria-hidden="true"
-          />
-          <p class="network-more__count">
-            {{ directory.members.value.length }} profils affichés sur {{ directory.total.value }}
+        <nav
+          v-if="directory.total.value > PER_PAGE_OPTIONS[0]"
+          class="network-pager"
+          aria-label="Pagination des médiatrices"
+        >
+          <p class="network-pager__range" aria-live="polite">
+            Médiatrices <b>{{ directory.from.value }}–{{ directory.to.value }}</b> sur
+            {{ directory.total.value }}
           </p>
-          <AppButton
-            variant="outline"
-            label="Afficher plus de médiatrices"
-            :loading="directory.loading.value"
-            @click="directory.loadMore"
+          <q-select
+            :model-value="directory.query.value.perPage"
+            :options="PER_PAGE_CHOICES"
+            emit-value
+            map-options
+            dense
+            outlined
+            options-dense
+            class="rimef-select network-pager__size"
+            aria-label="Nombre de médiatrices par page"
+            @update:model-value="directory.setPerPage"
           />
-        </div>
+          <AppPagination
+            v-if="directory.lastPage.value > 1"
+            :model-value="directory.page.value"
+            :max="directory.lastPage.value"
+            class="network-pager__pages"
+            @update:model-value="changePage"
+          />
+        </nav>
       </template>
     </div>
   </q-page>
@@ -236,21 +267,44 @@ onMounted(() => void directory.start());
   gap: 8px;
   margin-top: 12px;
 
-  &__chip {
+  &__tag.q-btn {
+    min-height: 26px;
     height: 26px;
-    margin: 0;
     padding: 0 6px 0 10px;
     border-radius: var(--radius-xs);
     background: var(--paper);
     box-shadow: inset 0 0 0 1px var(--border);
     font-size: var(--fs-xs);
+    font-weight: 400;
     color: var(--ink-2);
+    transition:
+      color 0.15s,
+      box-shadow 0.15s;
 
-    :deep(.q-chip__icon--remove) {
+    :deep(.q-focus-helper) {
+      display: none;
+    }
+
+    :deep(.q-icon) {
+      margin-left: 6px;
       font-size: 12px;
-      opacity: 1;
+    }
+
+    &:hover {
+      box-shadow: inset 0 0 0 1px #cfc8ba;
+      color: var(--ink);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--saffron);
+      outline-offset: 2px;
     }
   }
+}
+
+.network-results {
+  // Arrivée par le changement de page : la barre ne passe pas sous l'en-tête fixe
+  scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .network-loading {
@@ -276,8 +330,10 @@ onMounted(() => void directory.start());
     display: flex;
   }
 
+  // Liste : deux bandeaux côte à côte sur ordinateur, un seul par ligne sur tablette
   &--list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   // Nouvelle recherche en cours : la liste précédente reste visible, atténuée
@@ -286,24 +342,33 @@ onMounted(() => void directory.start());
   }
 }
 
-.network-more {
-  display: flex;
-  flex-direction: column;
+.network-pager {
+  // Plage à gauche, taille de page au milieu, pages à droite (maquette .r-pager)
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
 
-  &__progress {
-    width: 180px;
-    max-width: 100%;
-    border-radius: 2px;
-    background: var(--border);
-  }
-
-  &__count {
-    font-size: var(--fs-xs);
+  &__range {
+    font-size: var(--fs-sm);
     color: var(--muted);
     font-variant-numeric: tabular-nums;
+
+    b {
+      font-weight: 600;
+      color: var(--ink);
+    }
+  }
+
+  &__size {
+    min-width: 140px;
+  }
+
+  &__pages {
+    justify-self: end;
   }
 }
 
@@ -357,6 +422,15 @@ onMounted(() => void directory.start());
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-top: 16px;
+  }
+
+  // Pagination compacte, éléments empilés
+  .network-pager {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 28px;
+    padding-top: 16px;
   }
 }
 

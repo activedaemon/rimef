@@ -93,6 +93,26 @@
   color: var(--sage-ink) !important;
 }
 
+// Liste déroulante compacte (tri, taille de page) : 36 px, fond paper, filet de la charte
+.rimef-select.q-field {
+  font-size: var(--fs-xs);
+
+  .q-field__control {
+    min-height: 36px;
+    border-radius: var(--radius-xs);
+    background: var(--paper);
+  }
+
+  .q-field__control::before {
+    border-color: var(--border);
+  }
+
+  .q-field__native {
+    font-weight: 500;
+    color: var(--ink);
+  }
+}
+
 // Fenêtres de la messagerie (Contacter, Nouveau message) : carte 520 px, en-tête avec
 // portrait ; feuille en bas de l'écran sur téléphone (q-dialog position="bottom")
 .message-dialog.q-card {

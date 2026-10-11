@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Filtre en pilule (fiche FilterChip) : menu déroulant sur ordinateur, feuille en bas
-// d'écran sous 720 px. Les cases s'appliquent tout de suite ; « Afficher les résultats »
-// ferme seulement la liste.
+// d'écran sous 720 px. Les cases forment un brouillon : « Afficher les résultats » l'applique
+// et ferme la liste ; fermer autrement (clic à côté, Échap, croix) ne change rien.
 import { useQuasar } from 'quasar';
 import { computed, ref } from 'vue';
 
@@ -28,6 +28,14 @@ const open = ref(false);
 
 const isSheet = computed(() => $q.screen.lt.sm);
 const count = computed(() => selected.value.length);
+
+function apply(values: string[]): void {
+  open.value = false;
+  const changed =
+    values.length !== selected.value.length ||
+    values.some((value) => !selected.value.includes(value));
+  if (changed) selected.value = values;
+}
 </script>
 
 <template>
@@ -62,7 +70,7 @@ const count = computed(() => selected.value.length);
         role="dialog"
         :aria-label="label"
       >
-        <FilterOptions v-model="selected" :options="options" :section="section" />
+        <FilterOptions :selected="selected" :options="options" :section="section" @apply="apply" />
       </q-menu>
     </q-btn>
 
@@ -72,7 +80,13 @@ const count = computed(() => selected.value.length);
           <h2 class="filter-sheet__title">{{ label }}</h2>
           <q-btn v-close-popup flat round dense icon="x" aria-label="Fermer" />
         </div>
-        <FilterOptions v-model="selected" :options="options" :section="section" comfortable />
+        <FilterOptions
+          :selected="selected"
+          :options="options"
+          :section="section"
+          comfortable
+          @apply="apply"
+        />
       </q-card>
     </q-dialog>
   </div>

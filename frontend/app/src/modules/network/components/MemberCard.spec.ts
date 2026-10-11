@@ -10,7 +10,6 @@ const AMINATA: Member = {
   slug: 'aminata-diallo',
   name: 'Aminata Diallo',
   country: { code: 'SN', name: 'Sénégal' },
-  region: 'Afrique de l’Ouest',
   organization: 'Société civile',
   is_available: true,
   photo_url: null,
