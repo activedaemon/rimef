@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Enums\OrganizationType;
 use App\Enums\Region;
+use App\Services\MemberDirectory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,6 +33,7 @@ class ListMembersRequest extends FormRequest
             'upcoming' => ['boolean'],
             'sort' => ['nullable', Rule::in(['name', 'country', 'event'])],
             'page' => ['integer', 'min:1'],
+            'per_page' => ['integer', Rule::in(MemberDirectory::PER_PAGE_OPTIONS)],
         ];
     }
 }

@@ -21,7 +21,20 @@ describe('members query', () => {
       },
       toggles: { available: true, upcoming: false, favorites: false },
       sort: 'country',
+      page: 1,
+      perPage: 12,
     });
+  });
+
+  it('reads the page from the URL and writes it only beyond the first one', () => {
+    expect(queryFromRoute({ page: '3' }).page).toBe(3);
+    expect(queryFromRoute({ page: '0' }).page).toBe(1);
+    expect(queryFromRoute({ page: 'abc' }).page).toBe(1);
+    expect(queryFromRoute({ page: '2.5' }).page).toBe(1);
+
+    const query = queryFromRoute({ region: 'west_africa' });
+    expect(routeFromQuery(query)).toEqual({ region: ['west_africa'] });
+    expect(routeFromQuery({ ...query, page: 2 })).toEqual({ region: ['west_africa'], page: '2' });
   });
 
   it('falls back to an empty search sorted by name', () => {
@@ -47,6 +60,17 @@ describe('members query', () => {
     expect(isFiltered(queryFromRoute({ organization: 'diplomacy' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ disponible: '1' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ favoris: '1' }))).toBe(true);
+  });
+
+  it('reads the page size from the URL, 12 by default or when unknown', () => {
+    expect(queryFromRoute({ par_page: '24' }).perPage).toBe(24);
+    expect(queryFromRoute({ par_page: '48' }).perPage).toBe(48);
+    expect(queryFromRoute({ par_page: '1000' }).perPage).toBe(12);
+    expect(queryFromRoute({}).perPage).toBe(12);
+
+    const query = queryFromRoute({ tri: 'pays' });
+    expect(routeFromQuery(query)).toEqual({ tri: 'pays' });
+    expect(routeFromQuery({ ...query, perPage: 24 })).toEqual({ tri: 'pays', par_page: '24' });
   });
 
   it('reads and writes the yes / no criteria and the sort by event in French', () => {

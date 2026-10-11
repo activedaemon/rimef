@@ -58,7 +58,7 @@ const VIEW_OPTIONS = [
         dense
         outlined
         options-dense
-        class="results-bar__sort"
+        class="rimef-select results-bar__sort"
         aria-label="Trier par"
       >
         <template #prepend>
@@ -122,22 +122,6 @@ const VIEW_OPTIONS = [
 
   &__sort {
     min-width: 150px;
-    font-size: var(--fs-xs);
-
-    :deep(.q-field__control) {
-      min-height: 36px;
-      border-radius: var(--radius-xs);
-      background: var(--paper);
-    }
-
-    :deep(.q-field__control::before) {
-      border-color: var(--border);
-    }
-
-    :deep(.q-field__native) {
-      font-weight: 500;
-      color: var(--ink);
-    }
   }
 
   &__sort-label {

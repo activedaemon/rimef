@@ -292,17 +292,81 @@ const photoFailed = ref(false);
   }
 }
 
-// Vue liste (ordinateur et tablette) : portrait à gauche
+// Vue liste (ordinateur et tablette, maquette .m-grid.is-list) : bandeau avec le portrait en
+// grand avatar rond à gauche ; marque-page à droite, centré ; pas de flèche
 @media (min-width: 720px) {
   .member-grid--list .member-card {
     flex-direction: row;
+    align-items: center;
 
     .member-card__portrait {
       flex: none;
-      width: 38%;
+      width: 88px;
+      height: 88px;
+      margin-left: 20px;
       aspect-ratio: auto;
-      border-right: 1px solid var(--border);
-      border-bottom: 0;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+
+      :deep(.member-avatar) {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    .member-card__photo {
+      object-position: 50% 22%;
+    }
+
+    // Nom, pays et expertises à gauche, prochain événement à droite
+    .member-card__body {
+      display: grid;
+      grid-template-areas:
+        'name foot'
+        'country foot'
+        'tags foot';
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      align-content: center;
+      column-gap: 24px;
+      min-width: 0;
+      min-height: 128px;
+      padding: 18px 64px 18px 20px;
+    }
+
+    .member-card__name {
+      grid-area: name;
+    }
+
+    .member-card__country {
+      grid-area: country;
+    }
+
+    .member-card__expertises {
+      grid-area: tags;
+      margin-top: 8px;
+    }
+
+    .member-card__foot {
+      grid-area: foot;
+      align-self: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    .member-card__arrow {
+      display: none;
+    }
+
+    .member-card__bookmark {
+      top: 50%;
+      right: 16px;
+      background: transparent;
+      box-shadow: none;
+      transform: translateY(-50%);
+
+      &:hover {
+        background: var(--ivory);
+      }
     }
   }
 }

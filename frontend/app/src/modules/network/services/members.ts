@@ -9,7 +9,6 @@ export interface Member {
   slug: string;
   name: string;
   country: { code: string; name: string } | null;
-  region: string | null;
   organization: string | null;
   is_available: boolean;
   is_favorite: boolean;
@@ -30,7 +29,6 @@ export interface MemberProfile {
   photo_url: string | null;
   country: { code: string; name: string } | null;
   city: string | null;
-  region: string | null;
   organization: string | null;
   job_title: string | null;
   tagline: string | null;
@@ -47,7 +45,16 @@ export interface MemberProfile {
 
 export interface MemberPage {
   data: Member[];
-  meta: { current_page: number; last_page: number; total: number; directory_total: number };
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    /** Rang de la première et de la dernière médiatrice de la page (null si la page est vide). */
+    from: number | null;
+    to: number | null;
+    per_page: number;
+    directory_total: number;
+  };
 }
 
 export interface FilterOption {
@@ -64,7 +71,8 @@ export type MemberFilters = Record<FilterKey, FilterOption[]>;
 
 export const FILTER_LABELS: Record<FilterKey, string> = {
   expertise: 'Expertise',
-  region: 'Région',
+  // Valeurs = régions, d'après les pays où la médiatrice intervient (pas son pays de résidence)
+  region: 'Zone d’intervention',
   organization: 'Organisation',
 };
 
@@ -82,6 +90,11 @@ const SORT_IN_ROUTE: Record<SortKey, string | null> = {
   country: 'pays',
   event: 'evenement',
 };
+
+/** Médiatrices par page au choix (mêmes valeurs que l'API), 12 par défaut. */
+export const PER_PAGE_OPTIONS = [12, 24, 48] as const;
+export type PerPage = (typeof PER_PAGE_OPTIONS)[number];
+const DEFAULT_PER_PAGE: PerPage = 12;
 
 /** Critères oui / non de « Plus de filtres ». */
 export const TOGGLE_KEYS = ['available', 'upcoming', 'favorites'] as const;
@@ -106,12 +119,14 @@ export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: st
   },
 };
 
-/** Recherche en cours : texte, valeurs cochées par filtre, critères oui / non et tri. */
+/** Recherche en cours : texte, valeurs cochées par filtre, critères oui / non, tri, page et taille de page. */
 export interface DirectoryQuery {
   q: string;
   selected: Record<FilterKey, string[]>;
   toggles: Record<ToggleKey, boolean>;
   sort: SortKey;
+  page: number;
+  perPage: PerPage;
 }
 
 export function emptySelection(): Record<FilterKey, string[]> {
@@ -135,11 +150,15 @@ export function queryFromRoute(query: LocationQuery): DirectoryQuery {
   const sort = (Object.keys(SORT_IN_ROUTE) as SortKey[]).find(
     (key) => SORT_IN_ROUTE[key] !== null && SORT_IN_ROUTE[key] === query.tri
   );
+  const page = typeof query.page === 'string' ? Number(query.page) : 1;
+  const perPage = PER_PAGE_OPTIONS.find((option) => String(option) === query.par_page);
   return {
     q: typeof query.q === 'string' ? query.q : '',
     selected,
     toggles,
     sort: sort ?? 'name',
+    page: Number.isInteger(page) && page > 1 ? page : 1,
+    perPage: perPage ?? DEFAULT_PER_PAGE,
   };
 }
 
@@ -155,6 +174,8 @@ export function routeFromQuery(query: DirectoryQuery): LocationQueryRaw {
   }
   const sort = SORT_IN_ROUTE[query.sort];
   if (sort) route.tri = sort;
+  if (query.page > 1) route.page = String(query.page);
+  if (query.perPage !== DEFAULT_PER_PAGE) route.par_page = String(query.perPage);
   return route;
 }
 
@@ -169,10 +190,13 @@ export function isFiltered(query: DirectoryQuery): boolean {
 
 export async function fetchMembers(
   query: DirectoryQuery,
-  page: number,
   signal?: AbortSignal
 ): Promise<MemberPage> {
-  const params: Record<string, unknown> = { page, sort: query.sort };
+  const params: Record<string, unknown> = {
+    page: query.page,
+    per_page: query.perPage,
+    sort: query.sort,
+  };
   if (query.q.trim()) params.q = query.q.trim();
   for (const key of FILTER_KEYS) {
     if (query.selected[key].length) params[key] = query.selected[key];

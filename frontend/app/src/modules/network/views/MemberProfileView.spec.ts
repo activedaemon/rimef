@@ -20,7 +20,6 @@ const PROFILE = {
   photo_url: null,
   country: null,
   city: null,
-  region: null,
   organization: null,
   job_title: null,
   tagline: null,

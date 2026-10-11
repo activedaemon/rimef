@@ -1,5 +1,5 @@
-// État de l'annuaire : la recherche vit dans l'URL (lien partageable, bouton retour),
-// les pages s'ajoutent les unes aux autres avec « Afficher plus ».
+// État de l'annuaire : la recherche et la page vivent dans l'URL (lien partageable,
+// bouton retour d'une page à l'autre) ; chaque page remplace la précédente.
 import { isAxiosError } from 'axios';
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -18,6 +18,7 @@ import {
   type FilterOption,
   type Member,
   type MemberFilters,
+  type PerPage,
 } from '../services/members';
 
 export function useMemberDirectory() {
@@ -29,29 +30,34 @@ export function useMemberDirectory() {
   const filtered = computed(() => isFiltered(query.value));
 
   const members = shallowRef<Member[]>([]);
-  const page = ref(0);
   const lastPage = ref(1);
   const total = ref(0);
+  const from = ref(0);
+  const to = ref(0);
   const directoryTotal = ref(0);
   const loading = ref(false);
   const loaded = ref(false);
   const filters = shallowRef<MemberFilters | null>(null);
 
-  const hasMore = computed(() => page.value < lastPage.value);
-
   let controller: AbortController | null = null;
 
-  async function load(nextPage: number): Promise<void> {
+  async function load(): Promise<void> {
     controller?.abort();
     const current = new AbortController();
     controller = current;
     loading.value = true;
     try {
-      const result = await fetchMembers(query.value, nextPage, current.signal);
-      members.value = nextPage === 1 ? result.data : [...members.value, ...result.data];
-      page.value = result.meta.current_page;
+      const result = await fetchMembers(query.value, current.signal);
+      // Page au-delà de la dernière (vieux lien, liste réduite entre-temps) : dernière page
+      if (result.meta.total > 0 && result.meta.current_page > result.meta.last_page) {
+        goToPage(result.meta.last_page, true);
+        return;
+      }
+      members.value = result.data;
       lastPage.value = result.meta.last_page;
       total.value = result.meta.total;
+      from.value = result.meta.from ?? 0;
+      to.value = result.meta.to ?? 0;
       directoryTotal.value = result.meta.directory_total;
       loaded.value = true;
     } catch (error) {
@@ -72,9 +78,21 @@ export function useMemberDirectory() {
     }
   }
 
-  /** Remplace la recherche dans l'URL (sans nouvelle entrée d'historique). */
+  /** Remplace la recherche dans l'URL (sans nouvelle entrée d'historique) et revient à la page 1. */
   function update(changes: Partial<DirectoryQuery>): void {
-    void router.replace({ query: routeFromQuery({ ...query.value, ...changes }) });
+    void router.replace({ query: routeFromQuery({ ...query.value, page: 1, ...changes }) });
+  }
+
+  /** Change de page : nouvelle entrée d'historique, le bouton retour revient à la précédente. */
+  function goToPage(page: number, replace = false): void {
+    const location = { query: routeFromQuery({ ...query.value, page }) };
+    void (replace ? router.replace(location) : router.push(location));
+  }
+
+  /** Nouvelle taille de page : on reste sur la page qui contient la première médiatrice affichée. */
+  function setPerPage(perPage: PerPage): void {
+    const page = Math.floor((Math.max(from.value, 1) - 1) / perPage) + 1;
+    void router.replace({ query: routeFromQuery({ ...query.value, page, perPage }) });
   }
 
   /** Marque-page : affiché tout de suite, annulé si l'API refuse. */
@@ -112,12 +130,12 @@ export function useMemberDirectory() {
     return options.find((option) => option.value === value)?.label ?? value;
   }
 
-  // Nouvelle recherche dans l'URL : la liste repart de la première page
+  // Nouvelle recherche ou nouvelle page dans l'URL : la liste est rechargée
   const routeName = route.name;
   watch(
     () => route.query,
     () => {
-      if (route.name === routeName) void load(1);
+      if (route.name === routeName) void load();
     },
     { deep: true }
   );
@@ -128,17 +146,21 @@ export function useMemberDirectory() {
     query,
     filtered,
     members,
+    page: computed(() => query.value.page),
+    lastPage,
     total,
+    from,
+    to,
     directoryTotal,
     loading,
     loaded,
-    hasMore,
     filters,
     activeFilters,
     update,
     reset,
     toggleFavorite,
-    loadMore: () => load(page.value + 1),
-    start: () => Promise.all([load(1), loadFilters()]),
+    goToPage,
+    setPerPage,
+    start: () => Promise.all([load(), loadFilters()]),
   };
 }

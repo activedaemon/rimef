@@ -53,15 +53,12 @@ const place = computed(() =>
       </p>
 
       <ul
-        v-if="place || profile.region || profile.organization"
+        v-if="place || profile.organization"
         class="profile-header__facts"
         aria-label="Informations"
       >
         <li v-if="place" class="meta">
           <q-icon name="map-pin" size="15px" aria-hidden="true" />{{ place }}
-        </li>
-        <li v-if="profile.region" class="meta">
-          <q-icon name="world" size="15px" aria-hidden="true" />{{ profile.region }}
         </li>
         <li v-if="profile.organization" class="meta">
           <q-icon name="building" size="15px" aria-hidden="true" />{{ profile.organization }}

@@ -19,7 +19,6 @@ const member = (id: number, name: string, conversationId: number | null = null):
   slug: name.toLowerCase().replace(' ', '-'),
   name,
   country: { code: 'CI', name: 'Côte d’Ivoire' },
-  region: null,
   organization: null,
   is_available: false,
   is_favorite: false,
