@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   calendarLinks,
+  daysPhrase,
+  eventDays,
+  presenceLabel,
+  talkLabel,
   dayCount,
   dayLabel,
   groupByMonth,
@@ -147,5 +151,46 @@ describe('calendarLinks', () => {
     expect(outlook.get('startdt')).toBe('2026-10-18');
     expect(outlook.get('enddt')).toBe('2026-10-19');
     expect(outlook.get('allday')).toBe('true');
+  });
+});
+
+describe('presence labels', () => {
+  const twoDays = ['2026-11-10', '2026-11-11'];
+  const threeDays = ['2026-11-10', '2026-11-11', '2026-11-12'];
+
+  it('says all days, some days, or nothing on a one-day event', () => {
+    expect(presenceLabel(null, twoDays)).toBe('Présente les deux jours');
+    expect(presenceLabel(null, threeDays)).toBe('Présente tous les jours');
+    expect(presenceLabel(['2026-11-10'], twoDays)).toBe('Présente le 10 novembre');
+    expect(presenceLabel(['2026-11-12', '2026-11-10'], threeDays)).toBe(
+      'Présente les 10 et 12 novembre'
+    );
+    expect(presenceLabel(null, ['2026-11-10'])).toBeNull();
+  });
+
+  it('writes several days across months', () => {
+    expect(daysPhrase(['2026-11-30', '2026-12-01', '2026-12-02'])).toBe(
+      'les 30 novembre, 1 décembre et 2 décembre'
+    );
+    expect(daysPhrase(['2026-11-10', '2026-11-11', '2026-11-12'])).toBe(
+      'les 10, 11 et 12 novembre'
+    );
+  });
+
+  it('lists the days of an event', () => {
+    expect(
+      eventDays({ starts_at: '2026-11-10T12:00:00Z', ends_at: '2026-11-12T12:00:00Z' })
+    ).toEqual(threeDays);
+  });
+
+  it('describes a talk from the program', () => {
+    const start = new Date(2026, 10, 10, 14, 30).toISOString();
+    expect(talkLabel({ title: 'Femmes médiatrices', detail: 'Panel', starts_at: start })).toBe(
+      'Panel « Femmes médiatrices », 10 nov. à 14 h 30'
+    );
+    const nine = new Date(2026, 10, 10, 9, 0).toISOString();
+    expect(talkLabel({ title: 'Ouverture', detail: null, starts_at: nine })).toBe(
+      '« Ouverture », 10 nov. à 9 h'
+    );
   });
 });

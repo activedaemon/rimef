@@ -10,7 +10,6 @@ import EventView from './EventView.vue';
 vi.mock('../services/events', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/events')>()),
   fetchEvent: vi.fn(),
-  setParticipation: vi.fn(),
   setMeeting: vi.fn(),
 }));
 
@@ -23,7 +22,9 @@ const speaker: events.EventAttendee = {
   country: 'Sénégal',
   expertises: ['Médiation communautaire'],
   role: { value: 'speaker', label: 'Intervenante' },
-  attendance_note: 'Panel, 10 nov. à 14 h 30',
+  attendance_days: null,
+  attendance_note: null,
+  talks: [{ title: 'Femmes médiatrices', detail: 'Panel', starts_at: '2026-11-10T13:30:00Z' }],
   wants_to_meet: false,
 };
 
@@ -36,7 +37,9 @@ const participant: events.EventAttendee = {
   country: 'France',
   expertises: [],
   role: { value: 'participant', label: 'Participante' },
-  attendance_note: null,
+  attendance_days: ['2026-11-10'],
+  attendance_note: 'Disponible en soirée',
+  talks: [],
   wants_to_meet: true,
 };
 
@@ -54,6 +57,7 @@ const FORUM: events.EventDetail = {
   is_past: false,
   status: 'upcoming',
   wants_to_meet: false,
+  attendance: null,
   description: 'Premier paragraphe.\n\nSecond paragraphe.',
   photo_url: null,
   organizer: { name: 'Forum de Paris sur la Paix', detail: 'Association loi 1901, Paris' },
@@ -95,7 +99,6 @@ describe('EventView', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     vi.mocked(events.fetchEvent).mockReset().mockResolvedValue(structuredClone(FORUM));
-    vi.mocked(events.setParticipation).mockReset().mockResolvedValue();
     vi.mocked(events.setMeeting).mockReset().mockResolvedValue();
   });
 
@@ -139,6 +142,11 @@ describe('EventView', () => {
     );
     // Claire s'est dite disponible pour se retrouver sur place
     expect(block.findAll('.attendee-card__meet')).toHaveLength(1);
+    const [aminata, claire] = block.findAll('.attendee-card');
+    expect(aminata!.text()).toContain('Panel « Femmes médiatrices », 10 nov. à');
+    expect(aminata!.text()).toContain('Présente les deux jours');
+    expect(claire!.text()).toContain('Présente le 10 novembre');
+    expect(claire!.find('.attendee-card__note').text()).toBe('« Disponible en soirée »');
     wrapper.unmount();
   });
 
@@ -182,14 +190,47 @@ describe('EventView', () => {
     wrapper.unmount();
   });
 
-  it('offers to meet on site, then shows the availability', async () => {
+  it('opens the participation window from « J’y participe », all days checked', async () => {
     const { wrapper } = await openEvent();
+    const boxes = () =>
+      Array.from(document.body.querySelectorAll('.participation-dialog .q-checkbox'));
 
-    vi.mocked(events.fetchEvent).mockResolvedValue({
+    await wrapper.find('.event-actions__join').trigger('click');
+    await flushPromises();
+    expect(document.body.querySelector('#participation-title')?.textContent).toBe(
+      'Ma participation'
+    );
+    // Deux jours cochés, case « se retrouver » décochée
+    expect(boxes().map((box) => box.getAttribute('aria-checked'))).toEqual([
+      'true',
+      'true',
+      'false',
+    ]);
+    wrapper.unmount();
+  });
+
+  it('opens the participation window from the network block, meeting box checked', async () => {
+    const { wrapper } = await openEvent();
+    const boxes = () =>
+      Array.from(document.body.querySelectorAll('.participation-dialog .q-checkbox'));
+
+    await wrapper.find('.event-network__meet').trigger('click');
+    await flushPromises();
+    expect(boxes()[2]!.getAttribute('aria-checked')).toBe('true');
+    expect(events.setMeeting).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('toggles the meeting offer directly once registered', async () => {
+    const registered = {
       ...structuredClone(FORUM),
       is_participating: true,
-      wants_to_meet: true,
-    });
+      attendance: { days: null, note: null },
+    };
+    vi.mocked(events.fetchEvent).mockResolvedValue(registered);
+    const { wrapper } = await openEvent();
+
+    vi.mocked(events.fetchEvent).mockResolvedValue({ ...registered, wants_to_meet: true });
     await wrapper.find('.event-network__meet').trigger('click');
     await flushPromises();
 
@@ -197,22 +238,6 @@ describe('EventView', () => {
     const meet = wrapper.find('.event-network__meet');
     expect(meet.text()).toContain('Disponible pour se retrouver');
     expect(meet.attributes('aria-pressed')).toBe('true');
-    wrapper.unmount();
-  });
-
-  it('records the participation and reloads the event', async () => {
-    const { wrapper } = await openEvent();
-
-    vi.mocked(events.fetchEvent).mockResolvedValue({
-      ...structuredClone(FORUM),
-      is_participating: true,
-      attendee_count: 3,
-    });
-    await wrapper.find('.event-actions__join').trigger('click');
-    await flushPromises();
-
-    expect(events.setParticipation).toHaveBeenCalledWith(4, true);
-    expect(wrapper.find('.event-actions__join').text()).toContain('Je participe');
     wrapper.unmount();
   });
 

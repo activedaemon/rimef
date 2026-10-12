@@ -47,18 +47,39 @@ class DemoEventsSeeder extends Seeder
     ];
 
     /**
-     * Fiche détaillée des événements qui en ont une, par titre : résumé d'une ligne (accueil),
-     * salle, organisateur, liens, photo (event-photos/<slug>.webp, copiée dans le stockage du
-     * tenant), rôle et présence des participantes, programme (heures de Paris ; speaker = adresse sans @example.org).
+     * Résumé d'une ligne de chaque événement (accueil, fiche d'une médiatrice), par titre.
+     *
+     * @var array<string, string>
+     */
+    private const SUMMARIES = [
+        'EU Community of Practice' => 'Les praticiennes européennes de la médiation partagent leurs expériences et leurs méthodes.',
+        'Médiation et processus de paix' => 'Un atelier pratique sur la place des femmes dans les processus de paix en Afrique de l’Ouest.',
+        'Écoute active et médiation communautaire' => 'Une formation en ligne aux techniques d’écoute active au service de la médiation de proximité.',
+        'Paris Peace Forum' => 'Le rendez-vous international qui réinvente la diplomatie, de la souveraineté à la coopération.',
+        'Sommet de la Francophonie' => 'Le rendez-vous des chefs d’État et de gouvernement de l’espace francophone, à Kigali.',
+        'Femmes médiatrices dans les Grands Lacs' => 'Des médiatrices engagées dans la prévention des conflits de la région des Grands Lacs partagent leur expérience.',
+        'Atelier régional' => 'Une journée de travail sur la médiation communautaire et la gouvernance locale au Maghreb.',
+        'Dialogue interreligieux et cohésion sociale' => 'Une formation en ligne aux outils du dialogue interreligieux pour renforcer la cohésion sociale.',
+        'Forum de Genève sur la médiation' => 'Trois jours d’échanges entre médiatrices, diplomates et chercheuses sur la médiation internationale.',
+        'Journée internationale de la paix' => 'Une journée de rencontres pour célébrer la paix et l’engagement des jeunes à Abidjan.',
+        'Médiation et justice transitionnelle' => 'Deux jours d’atelier sur l’articulation entre médiation et justice transitionnelle.',
+        'Rédiger un accord de paix' => 'Une formation en ligne aux étapes clés de la rédaction d’un accord de paix.',
+        'Sommet des femmes leaders africaines' => 'Des femmes leaders du continent réunies autour de la gouvernance et de la sécurité.',
+    ];
+
+    /**
+     * Fiche détaillée des événements qui en ont une, par titre : salle, organisateur, liens,
+     * photo (event-photos/<slug>.webp, copiée dans le stockage du tenant), rôle, jours de
+     * présence (absents = tous) et note des participantes, programme (heures de Paris ;
+     * speaker = adresse sans @example.org).
      *
      * Paris Peace Forum : informations publiques de parispeaceforum.org (édition 2026). Le
      * programme officiel n'étant pas encore publié, celui-ci est indicatif.
      *
-     * @var array<string, array{summary?: string, venue?: string, organizer_name?: string, organizer_detail?: string, languages?: string, links?: list<array{label: string, url: string}>, photo?: string, attendees?: array<string, array{role?: EventRole, note?: string}>, sessions?: list<array{start: string, title: string, detail?: string, speaker?: string, network?: bool}>}>
+     * @var array<string, array{venue?: string, organizer_name?: string, organizer_detail?: string, languages?: string, links?: list<array{label: string, url: string}>, photo?: string, attendees?: array<string, array{role?: EventRole, days?: list<string>, note?: string}>, sessions?: list<array{start: string, title: string, detail?: string, speaker?: string, network?: bool}>}>
      */
     private const PAGES = [
         'Paris Peace Forum' => [
-            'summary' => 'Le rendez-vous international qui réinvente la diplomatie, de la souveraineté à la coopération.',
             'venue' => 'Palais de Chaillot, Trocadéro',
             'organizer_name' => 'Forum de Paris sur la Paix',
             'organizer_detail' => 'Association loi 1901, Paris',
@@ -69,10 +90,10 @@ class DemoEventsSeeder extends Seeder
             ],
             'photo' => 'paris-peace-forum-2026',
             'attendees' => [
-                'aminata.diallo' => ['role' => EventRole::Speaker, 'note' => 'Panel « Femmes médiatrices et diplomatie de la paix », 10 nov. à 14 h 30'],
-                'claire.dubois' => ['note' => 'Présente le 10 novembre'],
-                'sophie.lambert' => ['note' => 'Présente les deux jours'],
-                'lina.haddad' => ['note' => 'Présente le 11 novembre'],
+                'aminata.diallo' => ['role' => EventRole::Speaker],
+                'claire.dubois' => ['days' => ['2026-11-10']],
+                'sophie.lambert' => ['note' => 'Disponible en soirée pour échanger'],
+                'lina.haddad' => ['days' => ['2026-11-11']],
             ],
             'sessions' => [
                 ['start' => '2026-11-10 09:00', 'title' => 'Ouverture et plénière inaugurale', 'detail' => 'Salle plénière'],
@@ -103,7 +124,7 @@ class DemoEventsSeeder extends Seeder
                 'is_online' => $data['country'] === null,
                 'is_featured' => $data['featured'] ?? false,
                 'description' => $data['description'] ?? null,
-                'summary' => $page['summary'] ?? null,
+                'summary' => self::SUMMARIES[$data['title']] ?? null,
                 'organizer_name' => $page['organizer_name'] ?? null,
                 'organizer_detail' => $page['organizer_detail'] ?? null,
                 'languages' => $page['languages'] ?? null,
@@ -115,6 +136,7 @@ class DemoEventsSeeder extends Seeder
             $members = $this->members($data['participants']);
             $event->participants()->sync($members->mapWithKeys(fn (int $id, string $name): array => [$id => [
                 'role' => ($page['attendees'][$name]['role'] ?? EventRole::Participant)->value,
+                'attendance_days' => $page['attendees'][$name]['days'] ?? null,
                 'attendance_note' => $page['attendees'][$name]['note'] ?? null,
             ]])->all());
 

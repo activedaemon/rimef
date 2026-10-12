@@ -1,23 +1,26 @@
 <script setup lang="ts">
 // Médiatrice présente à un événement (maquette .pp) : portrait, nom (lien vers sa fiche), pays,
-// rôle (Intervenante en terracotta, Participante en sauge) et présence ; expertises en plus
+// rôle (Intervenante en terracotta, Participante en sauge), interventions (d'après le programme),
+// jours de présence (événement de plusieurs jours : eventDays) et note ; expertises en plus
 // dans l'onglet « Médiatrices présentes » (full), et sa disponibilité pour se retrouver sur
 // place. L'enveloppe (sauf pour soi-même) demande la fenêtre de message, sans quitter la page.
 import { computed } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useSession } from '@/stores/session';
-import type { EventAttendee } from '../services/events';
+import { presenceLabel, talkLabel, type EventAttendee } from '../services/events';
 
-const props = withDefaults(defineProps<{ attendee: EventAttendee; full?: boolean }>(), {
-  full: false,
-});
+const props = withDefaults(
+  defineProps<{ attendee: EventAttendee; eventDays: string[]; full?: boolean }>(),
+  { full: false }
+);
 const emit = defineEmits<{ write: [attendee: EventAttendee] }>();
 
 const session = useSession();
 const isSelf = computed(() => props.attendee.id === session.user?.id);
 const profile = computed(() => ({ name: 'member', params: { slug: props.attendee.slug } }));
 const isSpeaker = computed(() => props.attendee.role.value === 'speaker');
+const presence = computed(() => presenceLabel(props.attendee.attendance_days, props.eventDays));
 </script>
 
 <template>
@@ -40,8 +43,12 @@ const isSpeaker = computed(() => props.attendee.role.value === 'speaker');
         {{ attendee.role.label }}
       </q-badge>
     </p>
-    <p v-if="attendee.attendance_note" class="attendee-card__line">
-      {{ attendee.attendance_note }}
+    <p v-for="talk in attendee.talks" :key="talk.starts_at" class="attendee-card__line">
+      {{ talkLabel(talk) }}
+    </p>
+    <p v-if="presence" class="attendee-card__line">{{ presence }}</p>
+    <p v-if="attendee.attendance_note" class="attendee-card__line attendee-card__note">
+      « {{ attendee.attendance_note }} »
     </p>
     <p v-if="attendee.wants_to_meet" class="attendee-card__line attendee-card__meet">
       <q-icon name="hand-stop" size="14px" aria-hidden="true" />Disponible pour se retrouver
@@ -159,6 +166,10 @@ const isSpeaker = computed(() => props.attendee.role.value === 'speaker');
     margin-top: auto;
     padding-top: 10px;
     border-top: 1px solid var(--border);
+  }
+
+  &__note {
+    font-style: italic;
   }
 
   &__meet {

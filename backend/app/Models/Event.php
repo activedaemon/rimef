@@ -8,6 +8,7 @@ use App\Enums\EventType;
 use App\Enums\Region;
 use App\Models\Concerns\HasUniqueSlug;
 use App\Support\DirectoryCatalog;
+use Carbon\CarbonImmutable;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -45,14 +46,16 @@ class Event extends Model
     }
 
     /**
-     * Médiatrices inscrites, avec leur rôle (EventRole), leur présence (« Présente le 13 novembre »)
-     * et leur proposition de se retrouver sur place.
+     * Médiatrices inscrites, avec leur rôle (EventRole), leurs jours de présence (JSON, null = tous),
+     * leur note facultative et leur proposition de se retrouver sur place.
      *
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, EventParticipant>
      */
     public function participants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withPivot(['role', 'attendance_note', 'wants_to_meet']);
+        return $this->belongsToMany(User::class)
+            ->using(EventParticipant::class)
+            ->withPivot(['role', 'attendance_days', 'attendance_note', 'wants_to_meet']);
     }
 
     /**
@@ -118,6 +121,24 @@ class Event extends Model
     public function isPast(): bool
     {
         return ($this->ends_at ?? $this->starts_at)->isPast();
+    }
+
+    /**
+     * Jours couverts par l'événement dans le fuseau $timezone (« 2026-11-10 », « 2026-11-11 »).
+     *
+     * @return list<string>
+     */
+    public function days(string $timezone = 'UTC'): array
+    {
+        $day = CarbonImmutable::instance($this->starts_at)->setTimezone($timezone)->startOfDay();
+        $last = CarbonImmutable::instance($this->ends_at ?? $this->starts_at)->setTimezone($timezone)->startOfDay();
+
+        $days = [];
+        for (; $day <= $last; $day = $day->addDay()) {
+            $days[] = $day->toDateString();
+        }
+
+        return $days;
     }
 
     /**

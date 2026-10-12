@@ -255,6 +255,24 @@ export async function fetchCalendar(month: string): Promise<CalendarDay[]> {
   return data.data;
 }
 
+/** Jours de présence (null = tous les jours) et note facultative. */
+export interface Attendance {
+  days: string[] | null;
+  note: string | null;
+}
+
+/**
+ * Fenêtre « Ma participation » : inscription ou mise à jour, avec les jours de présence (null =
+ * tous), la note et la proposition de se retrouver sur place.
+ */
+export async function saveParticipation(
+  eventId: number,
+  values: Attendance & { wants_to_meet: boolean }
+): Promise<void> {
+  await ensureCsrf();
+  await http.put(`/events/${eventId}/participation`, { ...values, timezone: timezone() });
+}
+
 /** « J'y participe » : inscription ou désinscription de la personne connectée. */
 export async function setParticipation(eventId: number, participating: boolean): Promise<void> {
   await ensureCsrf();
@@ -338,8 +356,12 @@ export interface EventAttendee extends Attendee {
   country: string | null;
   expertises: string[];
   role: { value: 'participant' | 'speaker'; label: string };
-  /** « Présente le 13 novembre », « Panel … » ; null sans précision. */
+  /** Jours de présence (« 2026-11-10 ») ; null = tous les jours. */
+  attendance_days: string[] | null;
+  /** Note facultative de la médiatrice. */
   attendance_note: string | null;
+  /** Créneaux où elle intervient, d'après le programme. */
+  talks: { title: string; detail: string | null; starts_at: string }[];
   /** Disponible pour retrouver les autres médiatrices sur place. */
   wants_to_meet: boolean;
 }
@@ -374,6 +396,8 @@ export interface EventDetail extends Omit<AgendaEvent, 'attendees'> {
   status: EventStatus;
   /** La personne connectée propose de se retrouver sur place. */
   wants_to_meet: boolean;
+  /** Participation de la personne connectée (jours, note) ; null si elle ne participe pas. */
+  attendance: Attendance | null;
   description: string | null;
   city: string | null;
   venue: string | null;
@@ -442,4 +466,64 @@ export function calendarLinks(
     google: `https://calendar.google.com/calendar/render?${google.toString()}`,
     outlook: `https://outlook.live.com/calendar/0/deeplink/compose?${outlook.toString()}`,
   };
+}
+
+/** Jours couverts par un événement, dans le fuseau de l'appareil (« 2026-11-10 »…). */
+export function eventDays(event: Pick<AgendaEvent, 'starts_at' | 'ends_at'>): string[] {
+  const start = new Date(event.starts_at);
+  const day = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  return Array.from({ length: dayCount(event) }, (_, index) =>
+    todayKey(new Date(day.getFullYear(), day.getMonth(), day.getDate() + index))
+  );
+}
+
+function dateOf(key: string): Date {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year!, month! - 1, day!);
+}
+
+/** « 2026-11-10 » → « Mardi 10 novembre ». */
+export function weekdayLabel(key: string): string {
+  const label = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(dateOf(key));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** « le 10 novembre », « les 10 et 12 novembre », « les 10, 11 et 12 novembre ». */
+export function daysPhrase(keys: string[]): string {
+  const dates = [...keys].sort().map(dateOf);
+  const dayMonth = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' });
+  if (dates.length === 1) return `le ${dayMonth.format(dates[0]!)}`;
+
+  const sameMonth = dates.every((date) => date.getMonth() === dates[0]!.getMonth());
+  const parts = dates.map((date, index) =>
+    sameMonth && index < dates.length - 1 ? String(date.getDate()) : dayMonth.format(date)
+  );
+  return `les ${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`;
+}
+
+/**
+ * Présence d'une médiatrice sur un événement de plusieurs jours : « Présente les deux jours »,
+ * « Présente tous les jours », « Présente le 10 novembre » ; null sur un événement d'un jour.
+ */
+export function presenceLabel(days: string[] | null, allDays: string[]): string | null {
+  if (allDays.length < 2) return null;
+  const present = days?.filter((day) => allDays.includes(day)) ?? allDays;
+  if (present.length === 0 || present.length === allDays.length) {
+    return allDays.length === 2 ? 'Présente les deux jours' : 'Présente tous les jours';
+  }
+  return `Présente ${daysPhrase(present)}`;
+}
+
+/** Intervention d'après le programme : « Panel « Titre », 10 nov. à 14 h 30 ». */
+export function talkLabel(talk: EventAttendee['talks'][number]): string {
+  const date = new Date(talk.starts_at);
+  const day = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(date);
+  const minutes = date.getMinutes();
+  const time = `${date.getHours()} h${minutes ? ` ${String(minutes).padStart(2, '0')}` : ''}`;
+  const title = `« ${talk.title} »`;
+  return `${talk.detail ? `${talk.detail} ${title}` : title}, ${day} à ${time}`;
 }

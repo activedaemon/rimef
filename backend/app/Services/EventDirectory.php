@@ -15,6 +15,7 @@ use App\Support\DirectoryCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,9 @@ class EventDirectory
     public const CROWD = 5;
 
     public const PERIODS = ['upcoming', 'past', 'mine'];
+
+    /** Prochains événements affichés sur la fiche d'une médiatrice. */
+    public const MEMBER_UPCOMING = 3;
 
     /**
      * @param  array{period?: string, q?: string|null, type?: list<string>, region?: list<string>, theme?: list<int>, month?: string, day?: string, favorites?: bool, my_zones?: bool, my_themes?: bool, online?: bool, crowd?: bool, sort?: string|null, timezone?: string}  $filters
@@ -142,8 +146,28 @@ class EventDirectory
         $participation = $event->participants()->whereKey($viewer->getKey())->first();
         $event->setAttribute('is_participating', $participation !== null);
         $event->setAttribute('wants_to_meet', (bool) $participation?->pivot->getAttribute('wants_to_meet'));
+        $event->setAttribute('attendance', $participation === null ? null : [
+            'days' => $participation->pivot->getAttribute('attendance_days'),
+            'note' => $participation->pivot->getAttribute('attendance_note'),
+        ]);
 
         return $event;
+    }
+
+    /**
+     * Prochains événements d'une médiatrice (fiche de l'annuaire), du plus proche au plus lointain,
+     * avec son rôle.
+     *
+     * @return Collection<int, Event>
+     */
+    public function upcomingFor(User $member, int $limit = self::MEMBER_UPCOMING): Collection
+    {
+        return $member->events()
+            ->whereRaw('coalesce(ends_at, starts_at) >= ?', [now()])
+            ->orderBy('starts_at')
+            ->orderBy('events.id')
+            ->limit($limit)
+            ->get();
     }
 
     /**

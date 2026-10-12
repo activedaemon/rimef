@@ -3,14 +3,15 @@
 // Événements / Ressources, et Messages quand la personne connectée a déjà échangé avec elle.
 // Partagée par /reseau/:slug et « Mon profil » : les actions de l'en-tête arrivent par le
 // slot « actions ». L'onglet ouvert figure dans l'URL (?onglet=messages).
-// Événements et ressources ne sont pas encore reliés aux médiatrices : onglets et cartes
-// de la colonne affichent un message d'attente.
+// Événements : les trois prochains où elle est inscrite (carte de la colonne et onglet).
+// Les ressources ne sont pas encore reliées aux médiatrices : message d'attente.
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import EmptyState from '@/components/EmptyState.vue';
 import ConversationThread from '@modules/messages/components/ConversationThread.vue';
 import type { MemberProfile } from '../services/members';
+import MemberEventItem from './MemberEventItem.vue';
 import ProfileHeader from './ProfileHeader.vue';
 import ProfileMarks from './ProfileMarks.vue';
 
@@ -46,6 +47,13 @@ const messagesLabel = computed(() =>
     : 'Messages'
 );
 
+const events = computed(() => props.profile.upcoming_events);
+const eventsCount = computed(() =>
+  events.value.length > 1
+    ? `${events.value.length} rendez-vous où ${props.profile.name} sera présente`
+    : `1 rendez-vous où ${props.profile.name} sera présente`
+);
+
 const isEmpty = computed(
   () => !props.profile.bio && !props.profile.expertises.length && !props.profile.zones.length
 );
@@ -73,7 +81,13 @@ const isEmpty = computed(
           aria-label="Sections du profil"
         >
           <q-tab name="profil" label="Profil" />
-          <q-tab name="evenements" label="Événements" />
+          <q-tab name="evenements">
+            <span class="q-tab__label">
+              Événements<span v-if="events.length" class="profile-tabs__count">{{
+                events.length
+              }}</span>
+            </span>
+          </q-tab>
           <q-tab name="ressources" label="Ressources" />
           <q-tab v-if="conversation" name="messages" :aria-label="messagesLabel">
             <span class="q-tab__label">Messages</span>
@@ -132,8 +146,19 @@ const isEmpty = computed(
           <q-card flat tag="section" class="rimef-card side-card" aria-labelledby="profile-next">
             <div class="card-head">
               <h2 id="profile-next" class="card-title">Prochains événements</h2>
+              <q-btn
+                v-if="events.length"
+                flat
+                no-caps
+                label="Voir tous"
+                class="link-more"
+                @click="tab = 'evenements'"
+              />
             </div>
-            <p class="side-card__empty">Aucun événement à venir pour le moment.</p>
+            <ul v-if="events.length" class="profile-events">
+              <MemberEventItem v-for="event in events" :key="event.id" :event="event" />
+            </ul>
+            <p v-else class="side-card__empty">Aucun événement à venir pour le moment.</p>
           </q-card>
           <q-card
             flat
@@ -150,10 +175,20 @@ const isEmpty = computed(
       </q-tab-panel>
 
       <q-tab-panel name="evenements" class="profile-panel">
+        <q-card v-if="events.length" flat tag="section" class="rimef-card profile-list">
+          <div class="profile-list__head">
+            <h2>Événements à venir</h2>
+            <p>{{ eventsCount }}</p>
+          </div>
+          <ul class="profile-events profile-list__rows">
+            <MemberEventItem v-for="event in events" :key="event.id" :event="event" wide />
+          </ul>
+        </q-card>
         <EmptyState
+          v-else
           icon="calendar-event"
-          title="Les événements arrivent bientôt"
-          :text="`Les rendez-vous auxquels ${profile.first_name} participe seront affichés ici.`"
+          title="Aucun événement à venir"
+          :text="`Les prochains rendez-vous de ${profile.first_name} seront affichés ici.`"
         />
       </q-tab-panel>
 
@@ -224,6 +259,13 @@ const isEmpty = computed(
     gap: 24px;
   }
 
+  // Nombre d'événements (maquette .tabs .n)
+  &__count {
+    margin-left: 6px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
   // Non-lus : pastille terracotta comme le compteur de « Mes messages »
   &__badge {
     margin-left: 6px;
@@ -231,6 +273,37 @@ const isEmpty = computed(
     color: var(--paper);
     font-size: 11px;
     font-weight: 600;
+  }
+}
+
+.profile-events {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// Onglet Événements (maquette .p-panel-wide, .p-list-head, .p-list)
+.profile-list {
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 16px;
+    padding: 22px 30px 4px;
+
+    h2 {
+      font-size: 1.6rem;
+    }
+
+    p {
+      font-size: var(--fs-sm);
+      color: var(--muted);
+    }
+  }
+
+  &__rows {
+    padding: 8px 30px;
   }
 }
 
@@ -394,6 +467,11 @@ const isEmpty = computed(
 
   .side-card {
     padding: 18px 16px 16px;
+  }
+
+  .profile-list__head,
+  .profile-list__rows {
+    padding-inline: 16px;
   }
 }
 </style>

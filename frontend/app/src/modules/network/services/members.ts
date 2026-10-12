@@ -42,6 +42,25 @@ export interface MemberProfile {
   conversation: { id: number; unread_count: number } | null;
   expertises: string[];
   zones: { code: string; name: string }[];
+  /** Trois prochains événements où elle est inscrite, avec son rôle. */
+  upcoming_events: MemberEvent[];
+}
+
+/** Événement à venir d'une médiatrice (fiche de l'annuaire). */
+export interface MemberEvent {
+  id: number;
+  slug: string;
+  title: string;
+  /** Résumé d'une ligne. */
+  summary: string | null;
+  type: { value: string; label: string } | null;
+  /** ISO 8601, UTC. */
+  starts_at: string;
+  ends_at: string | null;
+  /** « Ville, Pays » ou « En ligne ». */
+  place: string | null;
+  is_online: boolean;
+  role: { value: 'participant' | 'speaker'; label: string };
 }
 
 export interface MemberPage {

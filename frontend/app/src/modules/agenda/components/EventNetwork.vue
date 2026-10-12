@@ -10,7 +10,7 @@ import AppButton from '@/components/AppButton.vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 import { mediatorNoun } from '@/lib/wording';
-import type { EventAttendee, EventDetail } from '../services/events';
+import { eventDays, type EventAttendee, type EventDetail } from '../services/events';
 import EventAttendeeCard from './EventAttendeeCard.vue';
 
 const props = defineProps<{ event: EventDetail }>();
@@ -27,6 +27,7 @@ const speakers = computed(
   () => props.event.attendees.filter((person) => person.role.value === 'speaker').length
 );
 const isPast = computed(() => props.event.status === 'past');
+const days = computed(() => eventDays(props.event));
 
 /**
  * Jour(s) où les intervenantes du réseau prennent la parole, d'après le programme :
@@ -101,7 +102,7 @@ const speakingText = computed(
 
     <ul class="event-network__list">
       <li v-for="person in event.attendees.slice(0, 3)" :key="person.id">
-        <EventAttendeeCard :attendee="person" @write="emit('write', $event)" />
+        <EventAttendeeCard :attendee="person" :event-days="days" @write="emit('write', $event)" />
       </li>
     </ul>
 

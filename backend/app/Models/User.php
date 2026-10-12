@@ -118,7 +118,9 @@ class User extends Authenticatable
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class);
+        return $this->belongsToMany(Event::class)
+            ->using(EventParticipant::class)
+            ->withPivot(['role']);
     }
 
     /**

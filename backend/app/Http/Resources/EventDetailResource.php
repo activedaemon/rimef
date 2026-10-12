@@ -15,8 +15,9 @@ use Illuminate\Http\Request;
 
 /**
  * Fiche d'un événement : l'événement de l'Agenda, plus sa photo, sa salle, son organisateur,
- * ses liens, toutes les médiatrices présentes (rôle, présence, pays, expertises, proposition de
- * se retrouver sur place ; wants_to_meet = celle de la personne connectée) et son
+ * ses liens, toutes les médiatrices présentes (rôle, jours de présence, note, créneaux où elle
+ * intervient, pays, expertises, proposition de se retrouver sur place ; wants_to_meet et
+ * attendance = participation de la personne connectée) et son
  * programme découpé en jours dans le fuseau de l'utilisatrice (paramètre « timezone »).
  *
  * @mixin Event
@@ -33,6 +34,8 @@ class EventDetailResource extends EventResource
         return [
             ...parent::toArray($request),
             'wants_to_meet' => (bool) ($this->wants_to_meet ?? false),
+            // Participation de la personne connectée, pour préremplir la fenêtre « Ma participation »
+            'attendance' => $this->attendance ?? null,
             'status' => $this->isPast() ? 'past' : ($this->isOngoing() ? 'ongoing' : 'upcoming'),
             'description' => $this->description,
             'venue' => $this->venue,
@@ -80,7 +83,18 @@ class EventDetailResource extends EventResource
             'expertises' => $profile === null ? [] : $profile->expertises
                 ->map(fn (Expertise $expertise): string => $expertise->name)->values()->all(),
             'role' => ['value' => $role->value, 'label' => $role->label()],
+            'attendance_days' => $user->pivot?->getAttribute('attendance_days'),
             'attendance_note' => $user->pivot?->getAttribute('attendance_note'),
+            // Créneaux où elle intervient, d'après le programme
+            'talks' => $this->sessions
+                ->filter(fn (EventSession $session): bool => $session->speaker_id === $user->id)
+                ->map(fn (EventSession $session): array => [
+                    'title' => $session->title,
+                    'detail' => $session->detail,
+                    'starts_at' => $session->starts_at->toIso8601String(),
+                ])
+                ->values()
+                ->all(),
             'wants_to_meet' => (bool) $user->pivot?->getAttribute('wants_to_meet'),
         ];
     }

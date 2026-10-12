@@ -31,6 +31,7 @@ const PROFILE = {
   conversation: null,
   expertises: [],
   zones: [],
+  upcoming_events: [],
 } as members.MemberProfile;
 
 async function openProfile(viewerId = 1) {

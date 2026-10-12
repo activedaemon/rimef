@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Actions de la fiche (maquette .fe-actions / .fe-dock) : « J'y participe », « Ajouter à mon
+// Actions de la fiche (maquette .fe-actions / .fe-dock) : « J'y participe » (demande la fenêtre
+// « Ma participation »), « Ajouter à mon
 // agenda » (Google, Outlook, copier date et lieu) et menu « … » (copier le lien ; recommander
 // et signaler affichés désactivés en attendant les notifications).
 // - dock : barre fixée en bas sur téléphone, menus en boutons carrés ouverts vers le haut.
@@ -15,7 +16,7 @@ import { calendarLinks, type EventDetail } from '../services/events';
 const props = withDefaults(defineProps<{ event: EventDetail; dock?: boolean }>(), {
   dock: false,
 });
-const emit = defineEmits<{ toggleParticipation: [] }>();
+const emit = defineEmits<{ participate: [] }>();
 
 const notify = useNotify();
 
@@ -56,9 +57,10 @@ function copyDetails(): void {
       :icon="event.is_participating ? 'check' : 'calendar-plus'"
       :label="event.is_participating ? 'Je participe' : 'J’y participe'"
       :aria-pressed="event.is_participating"
+      aria-haspopup="dialog"
       class="event-actions__join"
       :class="{ 'event-actions__join--on': event.is_participating }"
-      @click="emit('toggleParticipation')"
+      @click="emit('participate')"
     />
 
     <AppButton

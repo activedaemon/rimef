@@ -18,12 +18,13 @@ import EventHeader from '../components/EventHeader.vue';
 import EventNetwork from '../components/EventNetwork.vue';
 import EventProgram from '../components/EventProgram.vue';
 import EventSide from '../components/EventSide.vue';
+import ParticipationDialog from '../components/ParticipationDialog.vue';
 import { useEventPage } from '../composables/useEventPage';
-import type { EventAttendee } from '../services/events';
+import { eventDays, type EventAttendee } from '../services/events';
 
 const route = useRoute();
 const router = useRouter();
-const { event, loading, notFound, toggleParticipation, toggleMeeting } = useEventPage(() =>
+const { event, loading, notFound, reload, toggleMeeting } = useEventPage(() =>
   typeof route.params.slug === 'string' ? route.params.slug : null
 );
 
@@ -52,6 +53,21 @@ function showPeople(): void {
   tabsRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** Fenêtre « Ma participation » ; presetMeet : ouverte par « Proposer de se retrouver sur place ». */
+const participationOpen = ref(false);
+const presetMeet = ref(false);
+
+function participate(meet = false): void {
+  presetMeet.value = meet;
+  participationOpen.value = true;
+}
+
+/** Se proposer sans être inscrite passe par la fenêtre, qui inscrit avec la case cochée. */
+function onMeeting(): void {
+  if (event.value?.is_participating) void toggleMeeting();
+  else participate(true);
+}
+
 /** Médiatrice à qui écrire (fenêtre de message ouverte tant qu'elle est choisie). */
 const recipient = ref<EventAttendee | null>(null);
 const contactOpen = ref(false);
@@ -77,6 +93,7 @@ const ROLE_OPTIONS = [
 ];
 
 const attendees = computed(() => event.value?.attendees ?? []);
+const allDays = computed(() => (event.value ? eventDays(event.value) : []));
 const hasSpeakers = computed(() =>
   attendees.value.some((person) => person.role.value === 'speaker')
 );
@@ -101,7 +118,7 @@ const peopleTitle = computed(() => {
       <div class="container">
         <EventHeader :event="event" @show-people="showPeople">
           <template #actions>
-            <EventActions :event="event" @toggle-participation="toggleParticipation" />
+            <EventActions :event="event" @participate="participate()" />
           </template>
         </EventHeader>
       </div>
@@ -161,7 +178,7 @@ const peopleTitle = computed(() => {
               v-if="attendees.length"
               :event="event"
               @show-people="showPeople"
-              @toggle-meeting="toggleMeeting"
+              @toggle-meeting="onMeeting"
               @write="write"
             />
           </q-tab-panel>
@@ -196,7 +213,12 @@ const peopleTitle = computed(() => {
                 </div>
                 <ul class="event-people__grid">
                   <li v-for="person in shownAttendees" :key="person.id">
-                    <EventAttendeeCard :attendee="person" full @write="write" />
+                    <EventAttendeeCard
+                      :attendee="person"
+                      :event-days="allDays"
+                      full
+                      @write="write"
+                    />
                   </li>
                 </ul>
               </template>
@@ -227,10 +249,20 @@ const peopleTitle = computed(() => {
         <EventSide :event="event" />
       </div>
 
+      <ParticipationDialog
+        v-model="participationOpen"
+        :event="event"
+        :participating="event.is_participating"
+        :attendance="event.attendance"
+        :wants-to-meet="event.wants_to_meet"
+        :preset-meet="presetMeet"
+        @saved="reload"
+      />
+
       <ContactDialog v-if="recipient" v-model="contactOpen" :profile="recipient" />
 
       <q-page-sticky v-if="$q.screen.lt.sm" position="bottom" expand class="event-dock">
-        <EventActions :event="event" dock @toggle-participation="toggleParticipation" />
+        <EventActions :event="event" dock @participate="participate()" />
       </q-page-sticky>
     </template>
 

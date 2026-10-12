@@ -10,6 +10,7 @@ use App\Http\Requests\ListMembersRequest;
 use App\Http\Resources\MemberProfileResource;
 use App\Http\Resources\MemberResource;
 use App\Models\User;
+use App\Services\EventDirectory;
 use App\Services\MemberDirectory;
 use App\Services\Messaging;
 use Illuminate\Http\JsonResponse;
@@ -46,13 +47,14 @@ class MemberController extends Controller
     /**
      * Fiche d'une médiatrice de l'annuaire, retrouvée par son slug (/reseau/aminata-diallo).
      */
-    public function show(Request $request, User $user, Messaging $messaging): MemberProfileResource
+    public function show(Request $request, User $user, Messaging $messaging, EventDirectory $events): MemberProfileResource
     {
         abort_unless($this->directory->isListed($user), 404);
 
         $user->load(['memberProfile.expertises', 'memberProfile.zones']);
         $user->setAttribute('is_favorite', $request->user()->favorites()->whereKey($user->getKey())->exists());
         $user->setAttribute('conversation', $messaging->summaryBetween($request->user(), $user));
+        $user->setAttribute('upcoming_events', $events->upcomingFor($user));
 
         return new MemberProfileResource($user);
     }

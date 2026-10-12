@@ -18,6 +18,9 @@ export interface FeaturedEvent {
   slug: string;
   title: string;
   dates: string;
+  /** ISO 8601, UTC (fenêtre « Ma participation »). */
+  startsAt: string;
+  endsAt: string | null;
   place: string | null;
   /** Résumé d'une ligne. */
   summary: string | null;
@@ -99,6 +102,8 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
       slug: featured.slug,
       title: featured.title,
       dates: formatDateRange(featured.starts_at, featured.ends_at),
+      startsAt: featured.starts_at,
+      endsAt: featured.ends_at,
       place: featured.place,
       summary: featured.summary,
       photo: featured.photo_url,
@@ -121,6 +126,3 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
     })),
   };
 }
-
-/** « J'y participe » : même appel que l'Agenda. */
-export { setParticipation } from '@modules/agenda/services/events';

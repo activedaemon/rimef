@@ -201,3 +201,56 @@ it('requires an open session to offer to meet', function () {
 
     $this->putJson($this->tenantUrl("/api/events/{$this->event->id}/meeting"))->assertUnauthorized();
 });
+
+it('records the days of presence and the note, all days being stored as null', function () {
+    $url = $this->tenantUrl("/api/events/{$this->event->id}/participation");
+    $page = $this->tenantUrl('/api/events/paris-peace-forum-2026?timezone=Europe/Paris');
+
+    $this->putJson($url, ['days' => ['2026-11-11'], 'note' => '  J’arrive le matin  ', 'timezone' => 'Europe/Paris'])
+        ->assertNoContent();
+
+    $this->getJson($page)
+        ->assertJsonPath('data.attendance', ['days' => ['2026-11-11'], 'note' => 'J’arrive le matin'])
+        ->assertJsonPath('data.attendees.0.attendance_days', ['2026-11-11'])
+        ->assertJsonPath('data.attendees.0.attendance_note', 'J’arrive le matin');
+
+    // Tous les jours cochés, note effacée ; un champ absent garde sa valeur
+    $this->putJson($url, ['days' => ['2026-11-10', '2026-11-11'], 'note' => '', 'timezone' => 'Europe/Paris'])
+        ->assertNoContent();
+    $this->putJson($url, ['wants_to_meet' => true])->assertNoContent();
+
+    $this->getJson($page)
+        ->assertJsonPath('data.attendance', ['days' => null, 'note' => null])
+        ->assertJsonPath('data.wants_to_meet', true);
+});
+
+it('rejects days outside the event, no day at all, and a too long note', function () {
+    $url = $this->tenantUrl("/api/events/{$this->event->id}/participation");
+
+    $this->putJson($url, ['days' => ['2026-11-12'], 'timezone' => 'Europe/Paris'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('days');
+    $this->putJson($url, ['days' => []])->assertUnprocessable()->assertJsonValidationErrors('days');
+    $this->putJson($url, ['note' => str_repeat('a', 151)])->assertUnprocessable()->assertJsonValidationErrors('note');
+
+    expect($this->event->participants()->count())->toBe(0);
+});
+
+it('gives the talks of a speaker from the program', function () {
+    $speaker = pageMember('Aminata', 'Diallo');
+    $this->event->participants()->attach($speaker, ['role' => EventRole::Speaker->value]);
+    $this->event->sessions()->create([
+        'starts_at' => Carbon::parse('2026-11-10 13:30:00'),
+        'title' => 'Femmes médiatrices',
+        'detail' => 'Panel',
+        'speaker_id' => $speaker->id,
+    ]);
+    $this->event->sessions()->create(['starts_at' => Carbon::parse('2026-11-10 08:00:00'), 'title' => 'Ouverture']);
+
+    $this->getJson($this->tenantUrl('/api/events/paris-peace-forum-2026'))
+        ->assertJsonPath('data.attendees.0.talks', [[
+            'title' => 'Femmes médiatrices',
+            'detail' => 'Panel',
+            'starts_at' => '2026-11-10T13:30:00+00:00',
+        ]]);
+});

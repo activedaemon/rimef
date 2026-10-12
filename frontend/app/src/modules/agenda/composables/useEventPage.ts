@@ -1,12 +1,12 @@
 // Fiche d'un événement : chargement par slug (rechargée quand il change), état « introuvable »,
-// « J'y participe » affiché tout de suite puis fiche actualisée (liste des médiatrices présentes),
-// annulé si l'API refuse ; de même pour « Proposer de se retrouver sur place ».
+// actualisation après la fenêtre « Ma participation » ; « Disponible pour se retrouver » (déjà
+// inscrite) affiché tout de suite puis fiche actualisée, annulé si l'API refuse.
 import { isAxiosError } from 'axios';
 import { onBeforeUnmount, ref, watch, type WatchSource } from 'vue';
 
 import { useNotify } from '@/composables/useNotify';
 import { extractApiError } from '@/lib/http';
-import { fetchEvent, setMeeting, setParticipation, type EventDetail } from '../services/events';
+import { fetchEvent, setMeeting, type EventDetail } from '../services/events';
 
 export function useEventPage(slug: WatchSource<string | null | undefined>) {
   const notify = useNotify();
@@ -38,26 +38,14 @@ export function useEventPage(slug: WatchSource<string | null | undefined>) {
     }
   }
 
-  async function toggleParticipation(): Promise<void> {
+  /** Fiche rechargée sans l'effacer (participation, liste des médiatrices présentes). */
+  async function reload(): Promise<void> {
     const current = event.value;
     if (!current) return;
-
-    const participating = !current.is_participating;
-    current.is_participating = participating;
-    current.attendee_count += participating ? 1 : -1;
     try {
-      await setParticipation(current.id, participating);
-      notify.success(
-        participating
-          ? `C’est noté : vous participez à « ${current.title} ».`
-          : `Votre participation à « ${current.title} » est retirée.`
-      );
-      // Liste des médiatrices présentes à jour (la personne connectée y entre ou en sort)
-      event.value = await fetchEvent(current.slug).catch(() => current);
-    } catch (error) {
-      current.is_participating = !participating;
-      current.attendee_count += participating ? -1 : 1;
-      notify.error(extractApiError(error, 'Votre participation n’a pas pu être enregistrée.'));
+      event.value = await fetchEvent(current.slug);
+    } catch {
+      // Fiche déjà affichée : elle reste telle quelle
     }
   }
 
@@ -74,8 +62,7 @@ export function useEventPage(slug: WatchSource<string | null | undefined>) {
           ? 'Les médiatrices présentes verront que vous souhaitez les retrouver.'
           : 'Votre disponibilité n’est plus affichée.'
       );
-      // Se proposer inscrit aussi à l'événement : participation et liste à jour
-      event.value = await fetchEvent(current.slug).catch(() => current);
+      await reload();
     } catch (error) {
       current.wants_to_meet = !available;
       notify.error(extractApiError(error, 'Votre disponibilité n’a pas pu être enregistrée.'));
@@ -85,5 +72,5 @@ export function useEventPage(slug: WatchSource<string | null | undefined>) {
   watch(slug, load, { immediate: true });
   onBeforeUnmount(() => controller?.abort());
 
-  return { event, loading, notFound, toggleParticipation, toggleMeeting };
+  return { event, loading, notFound, reload, toggleMeeting };
 }
