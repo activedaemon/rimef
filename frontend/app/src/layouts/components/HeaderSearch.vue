@@ -49,9 +49,10 @@ async function submit(): Promise<void> {
   const terms = query.value.trim();
   if (route.meta.searchInPage) {
     dialogOpen.value = false;
-    // Termes vides : la page affiche de nouveau toute sa liste
+    // Termes vides : la page affiche de nouveau toute sa liste ; nouvelle recherche = page 1
     const others = { ...route.query };
     delete others.q;
+    delete others.page;
     await router.replace({ query: terms ? { ...others, q: terms } : others });
     return;
   }

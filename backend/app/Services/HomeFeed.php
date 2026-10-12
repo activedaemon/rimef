@@ -94,16 +94,17 @@ class HomeFeed
     }
 
     /**
-     * @return array{id: int, title: string, starts_at: string, ends_at: string|null, place: string|null, attendee_count: int}
+     * @return array{id: int, slug: string, title: string, starts_at: string, ends_at: string|null, place: string|null, attendee_count: int}
      */
     private function event(Event $event): array
     {
         return [
             'id' => $event->id,
+            'slug' => $event->slug,
             'title' => $event->title,
             'starts_at' => $event->starts_at->toIso8601String(),
             'ends_at' => $event->ends_at?->toIso8601String(),
-            'place' => $event->place,
+            'place' => $event->placeLabel(),
             'attendee_count' => (int) $event->attendee_count,
         ];
     }

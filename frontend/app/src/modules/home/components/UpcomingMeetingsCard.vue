@@ -21,7 +21,9 @@ defineProps<{ meetings: Meeting[] }>();
         <DateTile :day="meeting.day" :month="meeting.month" />
         <div>
           <h3 class="home-block__item-title">
-            <router-link :to="{ name: 'agenda' }">{{ meeting.title }}</router-link>
+            <router-link :to="{ name: 'event', params: { slug: meeting.slug } }">{{
+              meeting.title
+            }}</router-link>
           </h3>
           <p v-if="meeting.place" class="meeting__place">{{ meeting.place }}</p>
           <q-badge class="rimef-badge meeting__badge" color="sage-light" text-color="sage-ink">

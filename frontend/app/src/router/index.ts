@@ -45,14 +45,27 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        // Routes imbriquées : l'onglet « Agenda » reste actif sur la fiche d'un événement
         path: 'agenda',
-        name: 'agenda',
-        component: () => import('@modules/agenda/views/AgendaView.vue'),
+        component: RouterView,
         meta: {
-          title: 'Agenda',
           searchPlaceholder: 'Rechercher un événement…',
           searchScope: 'agenda',
         },
+        children: [
+          {
+            path: '',
+            name: 'agenda',
+            component: () => import('@modules/agenda/views/AgendaView.vue'),
+            meta: { title: 'Agenda', searchInPage: true },
+          },
+          {
+            path: ':slug([a-z0-9-]+)',
+            name: 'event',
+            component: () => import('@modules/agenda/views/EventView.vue'),
+            meta: { title: 'Événement' },
+          },
+        ],
       },
       {
         path: 'ressources',

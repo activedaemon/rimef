@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { useNotify } from '@/composables/useNotify';
+import { optionLabel } from '@/lib/filters';
 import { extractApiError } from '@/lib/http';
 import {
   FILTER_KEYS,
@@ -15,7 +16,6 @@ import {
   queryFromRoute,
   routeFromQuery,
   type DirectoryQuery,
-  type FilterOption,
   type Member,
   type MemberFilters,
   type PerPage,
@@ -125,10 +125,6 @@ export function useMemberDirectory() {
       }))
     )
   );
-
-  function optionLabel(options: FilterOption[], value: string): string {
-    return options.find((option) => option.value === value)?.label ?? value;
-  }
 
   // Nouvelle recherche ou nouvelle page dans l'URL : la liste est rechargée
   const routeName = route.name;

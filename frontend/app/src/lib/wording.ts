@@ -9,3 +9,8 @@ export function mediatorNoun(count: number): string {
 export function mediatorCount(count: number): string {
   return `${count} ${mediatorNoun(count)}`;
 }
+
+/** « événement » ou « événements » selon le nombre. */
+export function eventNoun(count: number): string {
+  return count > 1 ? 'événements' : 'événement';
+}

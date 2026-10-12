@@ -16,7 +16,6 @@ import EmptyState from '@/components/EmptyState.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import { useNotify } from '@/composables/useNotify';
 import { extractApiError } from '@/lib/http';
-import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 import { useInbox } from '@/stores/inbox';
 import ConversationHeader from '../components/ConversationHeader.vue';
 import ConversationList from '../components/ConversationList.vue';
@@ -263,22 +262,7 @@ watch(activeId, async (id, previous) => {
   <q-page class="inner-page messages-page" :class="{ 'messages-page--open': isOpenOnPhone }">
     <div class="container">
       <div v-show="!isOpenOnPhone" class="messages-intro">
-        <PageIntro title="Mes messages" lead="Vos échanges avec les membres du réseau." />
-        <!-- Ornement de la maquette (.ms-intro .leaf) : terracotta et sauge -->
-        <svg class="messages-intro__leaf" viewBox="0 0 120 96" aria-hidden="true">
-          <path
-            :d="LEAF_PATH"
-            :transform="leafTransform(112, 90, -150, 92, 32)"
-            fill="var(--terracotta)"
-            opacity=".85"
-          />
-          <path
-            :d="LEAF_PATH"
-            :transform="leafTransform(114, 92, -112, 70, 25)"
-            fill="var(--leaf-sage)"
-            opacity=".85"
-          />
-        </svg>
+        <PageIntro title="Mes messages" lead="Vos échanges avec les membres du réseau." leaf />
       </div>
 
       <q-card flat class="rimef-card inbox">
@@ -416,21 +400,6 @@ watch(activeId, async (id, previous) => {
   padding-bottom: 64px;
 }
 
-// Intro avec l'ornement de feuilles à droite (maquette .ms-intro .leaf)
-.messages-intro {
-  position: relative;
-
-  &__leaf {
-    position: absolute;
-    top: 18px;
-    right: 0;
-    width: 120px;
-    height: 96px;
-    opacity: 0.9;
-    pointer-events: none;
-  }
-}
-
 // Cadre deux colonnes de hauteur fixe : chaque colonne défile seule
 .inbox {
   display: grid;
@@ -516,18 +485,6 @@ watch(activeId, async (id, previous) => {
 @media (max-width: 719px) {
   .messages-page {
     padding-bottom: 28px;
-  }
-
-  .messages-intro {
-    :deep(.page-intro__title) {
-      padding-right: 70px;
-    }
-
-    &__leaf {
-      top: 10px;
-      width: 72px;
-      height: 58px;
-    }
   }
 
   .inbox {

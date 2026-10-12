@@ -1,25 +1,22 @@
 <script setup lang="ts">
-// Contenu d'un filtre : cases à cocher (libellé, aide, effectif) et pied Effacer / Afficher.
+// Contenu d'un filtre : cases à cocher (libellé, aide, effectif), appliquées dès qu'on les coche.
 // Partagé par le menu déroulant (ordinateur) et la feuille basse (téléphone) de FilterMenu.
-// Les cases modifient un brouillon, pris à l'ouverture ; seul « Afficher les résultats »
-// l'applique (événement apply). Fermer sans valider abandonne les changements.
-import { ref } from 'vue';
+// single : boutons radio, une seule valeur (filtre Date de l'Agenda).
+import type { FilterOption } from '@/lib/filters';
 
-import AppButton from '@/components/AppButton.vue';
-import type { FilterOption } from '../services/members';
-
-const props = defineProps<{
+defineProps<{
   options: FilterOption[];
-  selected: string[];
   section?: string;
   comfortable?: boolean;
+  single?: boolean;
 }>();
-const emit = defineEmits<{ apply: [values: string[]] }>();
 
-const draft = ref<string[]>([...props.selected]);
+const selected = defineModel<string[]>({ required: true });
 
 function toggle(value: string, checked: boolean): void {
-  draft.value = checked ? [...draft.value, value] : draft.value.filter((item) => item !== value);
+  selected.value = checked
+    ? [...selected.value, value]
+    : selected.value.filter((item) => item !== value);
 }
 </script>
 
@@ -32,9 +29,17 @@ function toggle(value: string, checked: boolean): void {
   >
     <q-item v-for="option in options" :key="option.value" tag="label" class="filter-options__item">
       <q-item-section side>
-        <q-checkbox
+        <q-radio
+          v-if="single"
           :dense="!comfortable"
-          :model-value="draft.includes(option.value)"
+          :val="option.value"
+          :model-value="selected[0] ?? ''"
+          @update:model-value="(value: string) => (selected = [value])"
+        />
+        <q-checkbox
+          v-else
+          :dense="!comfortable"
+          :model-value="selected.includes(option.value)"
           @update:model-value="(checked: boolean) => toggle(option.value, checked)"
         />
       </q-item-section>
@@ -47,15 +52,6 @@ function toggle(value: string, checked: boolean): void {
       </q-item-section>
     </q-item>
   </q-list>
-  <div class="filter-options__foot">
-    <q-btn flat dense no-caps class="link-more" label="Effacer" @click="draft = []" />
-    <AppButton
-      :size="comfortable ? 'md' : 'sm'"
-      class="filter-options__apply"
-      label="Afficher les résultats"
-      @click="emit('apply', draft)"
-    />
-  </div>
 </template>
 
 <style lang="scss" scoped>
@@ -102,28 +98,6 @@ function toggle(value: string, checked: boolean): void {
     letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--muted);
-  }
-
-  &__foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 6px;
-    padding: 8px 4px 2px;
-    border-top: 1px solid var(--border);
-  }
-
-  // Feuille basse (téléphone) : boutons toujours visibles en bas, sous la liste qui défile
-  &--comfortable + &__foot {
-    position: sticky;
-    bottom: calc(-16px - env(safe-area-inset-bottom, 0px));
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    background: var(--card);
-  }
-
-  &--comfortable + &__foot &__apply {
-    flex: 1;
   }
 }
 </style>

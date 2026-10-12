@@ -26,4 +26,14 @@ class Expertise extends Model
     {
         return $this->belongsToMany(MemberProfile::class);
     }
+
+    /**
+     * Événements de l'Agenda dont c'est une thématique.
+     *
+     * @return BelongsToMany<Event, $this>
+     */
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class);
+    }
 }

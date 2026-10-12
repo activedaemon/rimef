@@ -16,6 +16,8 @@ class EventParticipationController extends Controller
 {
     public function store(Request $request, Event $event): Response
     {
+        abort_if($event->isPast(), 422, 'Cet événement est terminé.');
+
         $event->participants()->syncWithoutDetaching([$request->user()->getKey()]);
 
         return response()->noContent();

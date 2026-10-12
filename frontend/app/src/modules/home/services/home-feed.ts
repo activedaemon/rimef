@@ -1,7 +1,7 @@
 // Contenu de l'accueil (GET /api/home) : événement à la une, prochains rendez-vous, nouvelles
 // médiatrices. Les dates arrivent en UTC et sont mises en forme ici, pour les cartes.
 import { dayAndMonth, daysAgo, formatDateRange } from '@/lib/dates';
-import { ensureCsrf, http } from '@/lib/http';
+import { http } from '@/lib/http';
 
 /** Médiatrice affichée en avatar, avec un lien vers sa fiche. */
 export interface Person {
@@ -14,6 +14,8 @@ export interface Person {
 
 export interface FeaturedEvent {
   id: number;
+  /** Adresse de la fiche : /agenda/paris-peace-forum-2026. */
+  slug: string;
   title: string;
   dates: string;
   place: string | null;
@@ -26,6 +28,7 @@ export interface FeaturedEvent {
 
 export interface Meeting {
   id: number;
+  slug: string;
   day: string;
   month: string;
   title: string;
@@ -55,6 +58,7 @@ interface ApiPerson {
 
 interface ApiEvent {
   id: number;
+  slug: string;
   title: string;
   starts_at: string;
   ends_at: string | null;
@@ -84,6 +88,7 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
   return {
     featuredEvent: featured && {
       id: featured.id,
+      slug: featured.slug,
       title: featured.title,
       dates: formatDateRange(featured.starts_at, featured.ends_at),
       place: featured.place,
@@ -94,6 +99,7 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
     },
     meetings: meetings.map((meeting) => ({
       id: meeting.id,
+      slug: meeting.slug,
       ...dayAndMonth(meeting.starts_at),
       title: meeting.title,
       place: meeting.place,
@@ -107,12 +113,5 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
   };
 }
 
-/** « J'y participe » : inscrit ou désinscrit la personne connectée. */
-export async function setParticipation(eventId: number, participating: boolean): Promise<void> {
-  await ensureCsrf();
-  if (participating) {
-    await http.put(`/events/${eventId}/participation`);
-  } else {
-    await http.delete(`/events/${eventId}/participation`);
-  }
-}
+/** « J'y participe » : même appel que l'Agenda. */
+export { setParticipation } from '@modules/agenda/services/events';

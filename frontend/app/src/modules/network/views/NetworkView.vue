@@ -7,9 +7,10 @@ import { type ComponentPublicInstance, computed, onMounted, ref, watch } from 'v
 import AppButton from '@/components/AppButton.vue';
 import AppPagination from '@/components/AppPagination.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import FilterMenu from '@/components/FilterMenu.vue';
+import FilterTag from '@/components/FilterTag.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
-import FilterMenu from '../components/FilterMenu.vue';
 import MemberCard from '../components/MemberCard.vue';
 import ResultsBar, { type DirectoryView } from '../components/ResultsBar.vue';
 import { useMemberDirectory } from '../composables/useMemberDirectory';
@@ -50,16 +51,6 @@ function setToggles(values: string[]): void {
     >,
   });
 }
-
-// Filtre actif retirable (maquette .tag-x) : toute la pastille retire le filtre
-const TAG_PROPS = {
-  flat: true,
-  dense: true,
-  noCaps: true,
-  ripple: false,
-  iconRight: 'x',
-  class: 'network-active__tag',
-} as const;
 
 const activeToggles = computed(() => TOGGLE_KEYS.filter((key) => query.value.toggles[key]));
 
@@ -152,25 +143,22 @@ onMounted(() => void directory.start());
       </PageIntro>
 
       <div v-if="directory.filtered.value" class="network-active" aria-live="polite">
-        <q-btn
+        <FilterTag
           v-if="query.q"
-          v-bind="TAG_PROPS"
           :label="`« ${query.q} »`"
           :aria-label="`Retirer la recherche ${query.q}`"
           @click="directory.update({ q: '' })"
         />
-        <q-btn
+        <FilterTag
           v-for="filter in directory.activeFilters.value"
           :key="`${filter.key}-${filter.value}`"
-          v-bind="TAG_PROPS"
           :label="filter.label"
           :aria-label="`Retirer le filtre ${filter.label}`"
           @click="removeFilter(filter.key, filter.value)"
         />
-        <q-btn
+        <FilterTag
           v-for="key in activeToggles"
           :key="key"
-          v-bind="TAG_PROPS"
           :label="TOGGLES[key].label"
           :aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
           @click="setToggles(more.filter((value) => value !== key))"
@@ -266,40 +254,6 @@ onMounted(() => void directory.start());
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
-
-  &__tag.q-btn {
-    min-height: 26px;
-    height: 26px;
-    padding: 0 6px 0 10px;
-    border-radius: var(--radius-xs);
-    background: var(--paper);
-    box-shadow: inset 0 0 0 1px var(--border);
-    font-size: var(--fs-xs);
-    font-weight: 400;
-    color: var(--ink-2);
-    transition:
-      color 0.15s,
-      box-shadow 0.15s;
-
-    :deep(.q-focus-helper) {
-      display: none;
-    }
-
-    :deep(.q-icon) {
-      margin-left: 6px;
-      font-size: 12px;
-    }
-
-    &:hover {
-      box-shadow: inset 0 0 0 1px #cfc8ba;
-      color: var(--ink);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--saffron);
-      outline-offset: 2px;
-    }
-  }
 }
 
 .network-results {
@@ -403,20 +357,8 @@ onMounted(() => void directory.start());
   }
 }
 
-// Téléphone : filtres en bande défilante, grille sur deux colonnes
+// Téléphone : grille sur deux colonnes (les filtres passent à la ligne, tous visibles)
 @media (max-width: 719px) {
-  .network-filters {
-    flex-wrap: nowrap;
-    margin-inline: calc(var(--gutter) * -1);
-    padding-inline: var(--gutter);
-    overflow-x: auto;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-  }
-
   .member-grid,
   .member-grid--list {
     grid-template-columns: repeat(2, minmax(0, 1fr));

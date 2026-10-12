@@ -11,13 +11,22 @@ describe('UpcomingMeetingsCard', () => {
         meetings: [
           {
             id: 1,
+            slug: 'eu-community-2026',
             day: '18',
             month: 'OCT',
             title: 'EU Community',
             place: 'Bruxelles',
             attendeeCount: 5,
           },
-          { id: 2, day: '26', month: 'OCT', title: 'Dakar', place: 'Dakar', attendeeCount: 1 },
+          {
+            id: 2,
+            slug: 'dakar-2026',
+            day: '26',
+            month: 'OCT',
+            title: 'Dakar',
+            place: 'Dakar',
+            attendeeCount: 1,
+          },
         ],
       },
     });
@@ -29,6 +38,9 @@ describe('UpcomingMeetingsCard', () => {
     expect(items[1]!.text()).toContain('1 médiatrice');
     expect(items[1]!.text()).not.toContain('1 médiatrices');
     expect(wrapper.find('.link-more').attributes('href')).toBe('/agenda');
+    expect(wrapper.find('.home-block__item-title a').attributes('href')).toBe(
+      '/agenda/eu-community-2026'
+    );
     wrapper.unmount();
   });
 });

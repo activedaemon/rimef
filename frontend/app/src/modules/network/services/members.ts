@@ -1,6 +1,7 @@
 // Annuaire du réseau : appels à l'API et passage des filtres entre l'URL et l'API.
 import type { LocationQuery, LocationQueryRaw } from 'vue-router';
 
+import type { FilterOption } from '@/lib/filters';
 import { ensureCsrf, http } from '@/lib/http';
 
 export interface Member {
@@ -57,12 +58,7 @@ export interface MemberPage {
   };
 }
 
-export interface FilterOption {
-  value: string;
-  label: string;
-  count?: number;
-  hint?: string;
-}
+export type { FilterOption } from '@/lib/filters';
 
 export const FILTER_KEYS = ['expertise', 'region', 'organization'] as const;
 export type FilterKey = (typeof FILTER_KEYS)[number];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\EventType;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,8 +20,18 @@ class EventFactory extends Factory
     {
         return [
             'title' => fake()->sentence(3),
+            'type' => fake()->randomElement(EventType::cases()),
             'starts_at' => now()->addWeeks(2),
-            'place' => fake()->city(),
+            'city' => fake()->city(),
+            'country_code' => 'FR',
         ];
+    }
+
+    /**
+     * Événement en ligne (sans ville ni pays).
+     */
+    public function online(): static
+    {
+        return $this->state(fn (): array => ['city' => null, 'country_code' => null, 'is_online' => true]);
     }
 }

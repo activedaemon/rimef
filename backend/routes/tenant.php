@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CurrentUserController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventParticipationController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomeController;
@@ -44,6 +45,9 @@ Route::middleware([
         Route::get('/user', CurrentUserController::class)->name('user.current');
         Route::get('/home', HomeController::class)->name('home');
 
+        Route::get('/events', [EventController::class, 'index'])->name('events.index');
+        Route::get('/events/filters', [EventController::class, 'filters'])->name('events.filters');
+        Route::get('/events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
         Route::put('/events/{event}/participation', [EventParticipationController::class, 'store'])
             ->whereNumber('event')
             ->name('events.participation.store');
