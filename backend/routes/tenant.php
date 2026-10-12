@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\EventMeetingController;
 use App\Http\Controllers\Api\EventParticipationController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomeController;
@@ -48,12 +49,24 @@ Route::middleware([
         Route::get('/events', [EventController::class, 'index'])->name('events.index');
         Route::get('/events/filters', [EventController::class, 'filters'])->name('events.filters');
         Route::get('/events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
+        Route::get('/events/{event:slug}', [EventController::class, 'show'])
+            ->where('event', '[a-z0-9-]+')
+            ->name('events.show');
+        Route::get('/events/{event}/photo', [EventController::class, 'photo'])
+            ->whereNumber('event')
+            ->name('events.photo');
         Route::put('/events/{event}/participation', [EventParticipationController::class, 'store'])
             ->whereNumber('event')
             ->name('events.participation.store');
         Route::delete('/events/{event}/participation', [EventParticipationController::class, 'destroy'])
             ->whereNumber('event')
             ->name('events.participation.destroy');
+        Route::put('/events/{event}/meeting', [EventMeetingController::class, 'store'])
+            ->whereNumber('event')
+            ->name('events.meeting.store');
+        Route::delete('/events/{event}/meeting', [EventMeetingController::class, 'destroy'])
+            ->whereNumber('event')
+            ->name('events.meeting.destroy');
 
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::get('/members/filters', [MemberController::class, 'filters'])->name('members.filters');

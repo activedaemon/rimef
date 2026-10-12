@@ -19,7 +19,10 @@ export interface FeaturedEvent {
   title: string;
   dates: string;
   place: string | null;
-  description: string | null;
+  /** Résumé d'une ligne. */
+  summary: string | null;
+  /** Photo de l'événement ; null = visuel neutre. */
+  photo: string | null;
   /** Quelques participantes (photos d'abord) ; attendeeCount donne le total. */
   attendees: Person[];
   attendeeCount: number;
@@ -68,7 +71,12 @@ interface ApiEvent {
 
 interface ApiHome {
   featured_event:
-    | (ApiEvent & { description: string | null; is_participating: boolean; attendees: ApiPerson[] })
+    | (ApiEvent & {
+        summary: string | null;
+        photo_url: string | null;
+        is_participating: boolean;
+        attendees: ApiPerson[];
+      })
     | null;
   meetings: ApiEvent[];
   news: (ApiPerson & { joined_at: string })[];
@@ -92,7 +100,8 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
       title: featured.title,
       dates: formatDateRange(featured.starts_at, featured.ends_at),
       place: featured.place,
-      description: featured.description,
+      summary: featured.summary,
+      photo: featured.photo_url,
       attendees: featured.attendees.map(toPerson),
       attendeeCount: featured.attendee_count,
       isParticipating: featured.is_participating,

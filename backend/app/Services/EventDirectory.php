@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\EventRole;
 use App\Enums\EventType;
 use App\Enums\Region;
 use App\Enums\Role;
@@ -118,6 +119,31 @@ class EventDirectory
                 'my_themes' => $this->expertisesOf($viewer)->exists(),
             ],
         ];
+    }
+
+    /**
+     * Fiche d'un événement : toutes les médiatrices de l'annuaire qui y participent (intervenantes
+     * d'abord), le programme avec ses intervenantes, et la participation de $viewer.
+     */
+    public function detail(Event $event, User $viewer): Event
+    {
+        $event->load([
+            'themes',
+            'sessions.speaker.memberProfile',
+            'sessions.speaker.roles',
+            'participants' => fn (BelongsToMany $query) => $this->listed($query)
+                ->with('memberProfile.expertises')
+                ->orderByRaw('event_user.role = ? desc', [EventRole::Speaker->value])
+                ->orderBy('users.last_name')
+                ->orderBy('users.first_name'),
+        ]);
+
+        $event->setAttribute('attendee_count', $event->participants->count());
+        $participation = $event->participants()->whereKey($viewer->getKey())->first();
+        $event->setAttribute('is_participating', $participation !== null);
+        $event->setAttribute('wants_to_meet', (bool) $participation?->pivot->getAttribute('wants_to_meet'));
+
+        return $event;
     }
 
     /**

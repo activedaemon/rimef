@@ -265,6 +265,19 @@ export async function setParticipation(eventId: number, participating: boolean):
   }
 }
 
+/**
+ * « Proposer de se retrouver sur place » : proposition de la personne connectée, qui l'inscrit
+ * aussi à l'événement, ou retrait de la proposition.
+ */
+export async function setMeeting(eventId: number, available: boolean): Promise<void> {
+  await ensureCsrf();
+  if (available) {
+    await http.put(`/events/${eventId}/meeting`);
+  } else {
+    await http.delete(`/events/${eventId}/meeting`);
+  }
+}
+
 /** Mois d'un événement dans le fuseau de l'appareil (« 2026-11 »), pour les intertitres. */
 export function monthKey(iso: string): string {
   const date = new Date(iso);
@@ -317,4 +330,116 @@ export function dayCount(event: Pick<AgendaEvent, 'starts_at' | 'ends_at'>): num
   const startDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
   const endDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
   return Math.max(1, Math.round((endDay - startDay) / 86_400_000) + 1);
+}
+
+/** Médiatrice présente, sur la fiche d'un événement. */
+export interface EventAttendee extends Attendee {
+  first_name: string;
+  country: string | null;
+  expertises: string[];
+  role: { value: 'participant' | 'speaker'; label: string };
+  /** « Présente le 13 novembre », « Panel … » ; null sans précision. */
+  attendance_note: string | null;
+  /** Disponible pour retrouver les autres médiatrices sur place. */
+  wants_to_meet: boolean;
+}
+
+export interface ProgramSession {
+  id: number;
+  /** « 14:30 », dans le fuseau de l'appareil. */
+  time: string;
+  title: string;
+  detail: string | null;
+  /** Créneau propre au réseau (intervention, rencontre), mis en avant. */
+  is_network: boolean;
+  speaker: { name: string; slug: string; photo_url: string | null } | null;
+}
+
+export interface ProgramDay {
+  /** « 2026-11-10 », dans le fuseau de l'appareil. */
+  date: string;
+  sessions: ProgramSession[];
+}
+
+export type EventStatus = 'upcoming' | 'ongoing' | 'past';
+
+export const STATUS_LABELS: Record<EventStatus, string> = {
+  upcoming: 'À venir',
+  ongoing: 'En cours',
+  past: 'Terminé',
+};
+
+/** Fiche d'un événement : toutes les médiatrices présentes et le programme. */
+export interface EventDetail extends Omit<AgendaEvent, 'attendees'> {
+  status: EventStatus;
+  /** La personne connectée propose de se retrouver sur place. */
+  wants_to_meet: boolean;
+  description: string | null;
+  city: string | null;
+  venue: string | null;
+  photo_url: string | null;
+  organizer: { name: string; detail: string | null } | null;
+  languages: string | null;
+  links: { label: string; url: string }[];
+  attendees: EventAttendee[];
+  program: ProgramDay[];
+}
+
+export async function fetchEvent(slug: string, signal?: AbortSignal): Promise<EventDetail> {
+  const { data } = await http.get<{ data: EventDetail }>(`/events/${slug}`, {
+    params: { timezone: timezone() },
+    signal,
+  });
+  return data.data;
+}
+
+/** « 20261110T080000Z » (agendas en ligne). */
+function compactUtc(date: Date): string {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
+}
+
+/** « 20261110 », jour de l'appareil. */
+function compactDay(date: Date): string {
+  return todayKey(date).replace(/-/g, '');
+}
+
+/**
+ * Liens « Ajouter à mon agenda » (Google, Outlook). Sans heure de fin connue, l'événement est
+ * ajouté pour la journée entière plutôt qu'avec une durée inventée.
+ */
+export function calendarLinks(
+  event: Pick<EventDetail, 'title' | 'starts_at' | 'ends_at' | 'place' | 'venue'>,
+  url: string
+): { google: string; outlook: string } {
+  const start = new Date(event.starts_at);
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+  const location = [event.venue, event.place].filter(Boolean).join(', ');
+  const nextDay = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+
+  const google = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: end
+      ? `${compactUtc(start)}/${compactUtc(end)}`
+      : `${compactDay(start)}/${compactDay(nextDay)}`,
+    details: url,
+    location,
+  });
+
+  const outlook = new URLSearchParams({
+    subject: event.title,
+    startdt: end ? start.toISOString() : todayKey(start),
+    enddt: end ? end.toISOString() : todayKey(nextDay),
+    body: url,
+    location,
+  });
+  if (!end) outlook.set('allday', 'true');
+
+  return {
+    google: `https://calendar.google.com/calendar/render?${google.toString()}`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?${outlook.toString()}`,
+  };
 }

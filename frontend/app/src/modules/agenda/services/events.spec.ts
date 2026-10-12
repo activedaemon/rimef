@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  calendarLinks,
   dayCount,
   dayLabel,
   groupByMonth,
@@ -110,5 +111,41 @@ describe('agenda dates', () => {
     expect(dayCount({ starts_at: '2026-11-12T08:00:00Z', ends_at: '2026-11-13T17:00:00Z' })).toBe(
       2
     );
+  });
+});
+
+describe('calendarLinks', () => {
+  const forum = {
+    title: 'Paris Peace Forum',
+    starts_at: '2026-11-10T08:00:00Z',
+    ends_at: '2026-11-11T17:00:00Z',
+    place: 'Paris, France',
+    venue: 'Palais de Chaillot',
+  };
+
+  it('gives timed links when the end is known', () => {
+    const links = calendarLinks(forum, 'https://rimef.org/agenda/paris-peace-forum-2026');
+    const google = new URL(links.google).searchParams;
+    const outlook = new URL(links.outlook).searchParams;
+
+    expect(google.get('dates')).toBe('20261110T080000Z/20261111T170000Z');
+    expect(google.get('location')).toBe('Palais de Chaillot, Paris, France');
+    expect(google.get('details')).toBe('https://rimef.org/agenda/paris-peace-forum-2026');
+    expect(outlook.get('startdt')).toBe('2026-11-10T08:00:00.000Z');
+    expect(outlook.get('allday')).toBeNull();
+  });
+
+  it('adds the whole day when the end is unknown', () => {
+    const links = calendarLinks(
+      { ...forum, starts_at: '2026-10-18T12:00:00Z', ends_at: null },
+      'https://rimef.org/agenda/x'
+    );
+    const google = new URL(links.google).searchParams;
+    const outlook = new URL(links.outlook).searchParams;
+
+    expect(google.get('dates')).toBe('20261018/20261019');
+    expect(outlook.get('startdt')).toBe('2026-10-18');
+    expect(outlook.get('enddt')).toBe('2026-10-19');
+    expect(outlook.get('allday')).toBe('true');
   });
 });

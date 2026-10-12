@@ -3,7 +3,7 @@
 // sauf sur sa propre fiche. Contacter ouvre la fenêtre du premier message, puis l'onglet
 // Messages une fois la conversation engagée. Menu « … » de la maquette affiché avec ses entrées
 // désactivées, en attendant leur réalisation (étapes C1 : copier le lien, recommander ;
-// C2 : inviter à un événement ; C3 : signaler).
+// C2 : inviter à un événement). Pas de « Signaler » : chaque médiatrice rédige sa propre fiche.
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -45,7 +45,6 @@ const MORE_ACTIONS = [
   { icon: 'calendar-plus', label: 'Inviter à un événement' },
   { icon: 'link', label: 'Copier le lien du profil' },
   { icon: 'id-badge-2', label: 'Recommander à une membre' },
-  { icon: 'flag', label: 'Signaler une information', separated: true },
 ];
 
 const favoriteLabel = computed(() =>
@@ -84,7 +83,6 @@ const favoriteLabel = computed(() =>
                   disable
                   role="menuitem"
                   aria-disabled="true"
-                  :class="{ 'member-menu__separated': action.separated }"
                 >
                   <q-item-section avatar><q-icon :name="action.icon" size="16px" /></q-item-section>
                   <q-item-section>{{ action.label }}</q-item-section>
@@ -186,11 +184,6 @@ const favoriteLabel = computed(() =>
     min-width: 0;
     padding-right: 10px;
     color: var(--muted);
-  }
-
-  .member-menu__separated {
-    margin-top: 5px;
-    border-top: 1px solid var(--border);
   }
 }
 </style>

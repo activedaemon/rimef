@@ -54,7 +54,8 @@ class HomeFeed
         return [
             'featured_event' => $featured === null ? null : [
                 ...$this->event($featured),
-                'description' => $featured->description,
+                'summary' => $featured->summary,
+                'photo_url' => $featured->photoUrl(),
                 'is_participating' => (bool) $featured->is_participating,
                 'attendees' => $featured->participants->map(fn (User $user): array => $this->person($user))->all(),
             ],

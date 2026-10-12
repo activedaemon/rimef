@@ -63,7 +63,6 @@ describe('MemberProfileView', () => {
       'Inviter à un événement',
       'Copier le lien du profil',
       'Recommander à une membre',
-      'Signaler une information',
     ]);
     expect(items.every((item) => item.getAttribute('aria-disabled') === 'true')).toBe(true);
     wrapper.unmount();
