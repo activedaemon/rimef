@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListResourcesRequest;
+use App\Http\Resources\ResourceRecommendationResource;
 use App\Http\Resources\ResourceResource;
 use App\Models\Resource;
 use App\Services\ResourceDirectory;
@@ -22,7 +23,7 @@ class ResourceController extends Controller
     public function __construct(private readonly ResourceDirectory $directory) {}
 
     /**
-     * Ressources cherchées, filtrées et triées, par pages de 12 (24 ou 48 au choix).
+     * Ressources cherchées, filtrées et triées, par pages de 9 (18 ou 36 au choix).
      */
     public function index(ListResourcesRequest $request): AnonymousResourceCollection
     {
@@ -35,6 +36,14 @@ class ResourceController extends Controller
     public function filters(): JsonResponse
     {
         return response()->json(['data' => $this->directory->facets()]);
+    }
+
+    /**
+     * Derniers avis des médiatrices (bandeau « Lues et partagées par les médiatrices »).
+     */
+    public function voices(): AnonymousResourceCollection
+    {
+        return ResourceRecommendationResource::collection($this->directory->voices());
     }
 
     /**

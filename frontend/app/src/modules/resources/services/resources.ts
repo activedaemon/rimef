@@ -33,6 +33,22 @@ export interface ResourcePage {
   };
 }
 
+/** Avis d'une médiatrice (bandeau « Lues et partagées par les médiatrices »). */
+export interface ResourceVoice {
+  id: number;
+  quote: string;
+  resource: { id: number; slug: string; title: string; url: string | null };
+  member: {
+    id: number;
+    slug: string;
+    name: string;
+    photo_url: string | null;
+    country: string | null;
+    /** Première expertise de son profil. */
+    expertise: string | null;
+  };
+}
+
 export const FILTER_KEYS = ['type', 'theme', 'region', 'language'] as const;
 export type FilterKey = (typeof FILTER_KEYS)[number];
 
@@ -93,9 +109,9 @@ const SORT_IN_ROUTE: Record<SortKey, string | null> = {
 };
 
 /** Tailles de page proposées (même liste côté API : ResourceDirectory::PER_PAGE_OPTIONS). */
-export const PER_PAGE_OPTIONS = [12, 24, 48] as const;
+export const PER_PAGE_OPTIONS = [9, 18, 36] as const;
 export type PerPage = (typeof PER_PAGE_OPTIONS)[number];
-const DEFAULT_PER_PAGE: PerPage = 12;
+const DEFAULT_PER_PAGE: PerPage = 9;
 
 /** Recherche en cours : texte, filtres, date, critères oui / non, tri, page et taille. */
 export interface ResourceQuery {
@@ -213,6 +229,12 @@ export async function fetchResourceFilters(): Promise<ResourceFilters> {
     date: asText(data.data.date),
     total: data.data.total,
   };
+}
+
+/** Derniers avis des médiatrices. */
+export async function fetchVoices(): Promise<ResourceVoice[]> {
+  const { data } = await http.get<{ data: ResourceVoice[] }>('/resources/voices');
+  return data.data;
 }
 
 /** Signet : enregistre la ressource, ou la retire des ressources enregistrées. */

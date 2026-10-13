@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Ressource de la bibliothèque (rapport, analyse, podcast…), publiée par une organisation
@@ -102,6 +103,16 @@ class Resource extends Model
     public function savers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'resource_saves')->withTimestamps();
+    }
+
+    /**
+     * Avis des médiatrices.
+     *
+     * @return HasMany<ResourceRecommendation, $this>
+     */
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(ResourceRecommendation::class);
     }
 
     protected function slugSource(): string

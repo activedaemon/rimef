@@ -9,11 +9,13 @@ use App\Enums\ResourceType;
 use App\Enums\Role;
 use App\Models\Expertise;
 use App\Models\Resource;
+use App\Models\ResourceRecommendation;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Str;
@@ -24,10 +26,10 @@ use Illuminate\Support\Str;
  */
 class ResourceDirectory
 {
-    public const PER_PAGE = 12;
+    public const PER_PAGE = 9;
 
-    /** Tailles de page au choix, comme l'annuaire (grille de 4 colonnes). */
-    public const PER_PAGE_OPTIONS = [12, 24, 48];
+    /** Tailles de page au choix : multiples de 9, des rangées complètes dans la grille de 3 colonnes. */
+    public const PER_PAGE_OPTIONS = [9, 18, 36];
 
     public const SORTS = ['recent', 'oldest', 'title'];
 
@@ -35,6 +37,9 @@ class ResourceDirectory
     public const RECENT = 'recent';
 
     public const RECENT_MONTHS = 6;
+
+    /** Avis affichés dans le bandeau « Lues et partagées par les médiatrices ». */
+    public const VOICES = 3;
 
     /**
      * @param  array{q?: string|null, type?: list<string>, theme?: list<int>, region?: list<string>, language?: list<string>, date?: string|null, linked?: bool, by_member?: bool, with_event?: bool, saved?: bool, sort?: string|null, per_page?: int|string}  $filters
@@ -103,6 +108,23 @@ class ResourceDirectory
             ],
             'total' => $resources->count(),
         ];
+    }
+
+    /**
+     * Avis les plus récents des médiatrices de l'annuaire, avec la ressource et le profil de la
+     * médiatrice (pays, expertises).
+     *
+     * @return Collection<int, ResourceRecommendation>
+     */
+    public function voices(int $limit = self::VOICES): Collection
+    {
+        return ResourceRecommendation::query()
+            ->whereHas('member', fn (Builder $query) => $this->listed($query))
+            ->with(['resource', 'member.memberProfile.expertises'])
+            ->latest()
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
     }
 
     /**

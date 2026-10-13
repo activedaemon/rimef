@@ -5,7 +5,9 @@ use App\Enums\ResourceType;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\Expertise;
+use App\Models\MemberProfile;
 use App\Models\Resource;
+use App\Models\ResourceRecommendation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -54,6 +56,7 @@ it('requires an open session', function () {
 
     listResources($this)->assertUnauthorized();
     $this->getJson($this->tenantUrl('/api/resources/filters'))->assertUnauthorized();
+    $this->getJson($this->tenantUrl('/api/resources/voices'))->assertUnauthorized();
     $this->putJson($this->tenantUrl('/api/resources/1/save'))->assertUnauthorized();
 });
 
@@ -131,20 +134,29 @@ it('filters the resources linked to the network, written by a mediator, tied to 
         ->assertJsonPath('data.0.is_saved', true);
 });
 
-it('paginates by 12, or 24 and 48 on request, and nothing else', function () {
-    foreach (range(1, 13) as $day) {
+it('paginates by 9, or 18 and 36 on request, and nothing else', function () {
+    foreach (range(1, 19) as $day) {
         libraryResource("Ressource {$day}", "2026-01-{$day}");
     }
 
     listResources($this)
         ->assertOk()
-        ->assertJsonCount(12, 'data')
-        ->assertJsonPath('meta.total', 13)
+        ->assertJsonCount(9, 'data')
+        ->assertJsonPath('meta.total', 19)
+        ->assertJsonPath('meta.last_page', 3);
+
+    listResources($this, ['per_page' => 18])
+        ->assertJsonCount(18, 'data')
+        ->assertJsonPath('meta.per_page', 18)
         ->assertJsonPath('meta.last_page', 2);
 
-    listResources($this, ['per_page' => 24])
-        ->assertJsonCount(13, 'data')
-        ->assertJsonPath('meta.per_page', 24);
+    listResources($this, ['per_page' => 36])
+        ->assertJsonCount(19, 'data')
+        ->assertJsonPath('meta.last_page', 1);
+
+    listResources($this, ['per_page' => 8])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['per_page']);
 
     listResources($this, ['per_page' => 1000])
         ->assertUnprocessable()
@@ -198,4 +210,35 @@ it('saves and unsaves a resource, idempotently', function () {
     expect($this->viewer->savedResources()->count())->toBe(0);
 
     $this->putJson($this->tenantUrl('/api/resources/999/save'))->assertNotFound();
+});
+
+it('gives the latest reviews of active mediators, with the resource and the mediator', function () {
+    $fatou = libraryMember('Fatou', 'Ndiaye');
+    $profile = MemberProfile::factory()->for($fatou)->create(['country_code' => 'CI']);
+    $profile->expertises()->attach(Expertise::firstOrCreate(['name' => 'Prévention des conflits']), ['position' => 1]);
+    $aminata = libraryMember('Aminata', 'Diallo');
+    $inactive = libraryMember('Ancienne', 'Membre');
+    $inactive->forceFill(['is_active' => false])->save();
+    $report = libraryResource('Women Mediators', '2026-04-14', ['url' => 'https://www.c-r.org/']);
+
+    $review = fn (User $member, Resource $resource, string $quote, int $daysAgo) => ResourceRecommendation::query()
+        ->create(['resource_id' => $resource->id, 'user_id' => $member->id, 'quote' => $quote])
+        ->forceFill(['created_at' => now()->subDays($daysAgo)])
+        ->save();
+    $review($fatou, $report, 'Un rapport précieux.', 1);
+    $review($aminata, libraryResource('Paroles', '2025-12-09'), 'Des voix de terrain.', 2);
+    $review($aminata, libraryResource('Guide', '2025-10-06'), 'Simple et concret.', 3);
+    $review($aminata, libraryResource('Ancien', '2025-01-06'), 'Trop ancien pour le bandeau.', 9);
+    $review($inactive, $report, 'Compte désactivé.', 0);
+
+    $this->getJson($this->tenantUrl('/api/resources/voices'))
+        ->assertOk()
+        ->assertJsonPath('data.*.quote', ['Un rapport précieux.', 'Des voix de terrain.', 'Simple et concret.'])
+        ->assertJsonPath('data.0.resource.title', 'Women Mediators')
+        ->assertJsonPath('data.0.resource.url', 'https://www.c-r.org/')
+        ->assertJsonPath('data.0.member.name', 'Fatou Ndiaye')
+        ->assertJsonPath('data.0.member.country', 'Côte d’Ivoire')
+        ->assertJsonPath('data.0.member.expertise', 'Prévention des conflits')
+        ->assertJsonPath('data.1.member.country', null)
+        ->assertJsonPath('data.1.member.expertise', null);
 });

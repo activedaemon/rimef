@@ -50,7 +50,7 @@ defineProps<{ title: string; lead?: string; eyebrow?: string; leaf?: boolean }>(
     'text'
     'below';
   row-gap: var(--s-5);
-  padding-block: var(--s-10) var(--s-8);
+  padding-block: var(--s-8) var(--s-6);
 
   &--with-aside {
     grid-template-areas:
@@ -122,7 +122,7 @@ defineProps<{ title: string; lead?: string; eyebrow?: string; leaf?: boolean }>(
 
 @media (max-width: 719px) {
   .page-intro {
-    padding-block: var(--s-8) var(--s-6);
+    padding-block: var(--s-6) var(--s-4);
 
     &__leaf {
       width: 72px;

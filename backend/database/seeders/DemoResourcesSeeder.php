@@ -9,10 +9,9 @@ use App\Enums\ResourceType;
 use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\Resource;
-use App\Models\User;
+use App\Models\ResourceRecommendation;
+use Database\Seeders\Concerns\DemoAccounts;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 /**
  * Ressources de la bibliothèque reprises de la maquette, complétées pour la pagination : en
@@ -21,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class DemoResourcesSeeder extends Seeder
 {
+    use DemoAccounts;
+
     /**
      * Source = organisation (null quand l'autrice est une médiatrice) ; author et members =
      * adresses de DemoMembersSeeder, sans @example.org ; region null = Monde ; event = titre
@@ -53,12 +54,25 @@ class DemoResourcesSeeder extends Seeder
         ['title' => 'Former les médiatrices de demain', 'type' => ResourceType::Podcast, 'source' => 'RIMeF', 'date' => '2025-02-19', 'duration' => 27, 'region' => null, 'languages' => ['fr'], 'themes' => ['Recherche et formation'], 'members' => ['sarah.mensah', 'christine.rakoto']],
     ];
 
+    /**
+     * Avis des médiatrices de la maquette (bandeau « Lues et partagées par les médiatrices ») :
+     * titre de la ressource, adresse de la médiatrice sans @example.org, phrase. Le dernier est
+     * le plus récent.
+     *
+     * @var list<array{resource: string, member: string, quote: string}>
+     */
+    private const VOICES = [
+        ['resource' => 'Guide pratique de la médiation communautaire', 'member' => 'andree.niyonsaba', 'quote' => 'L’outil que j’utilise avec les comités de paix locaux, simple et concret.'],
+        ['resource' => 'Paroles de médiatrices : du local au multilatéral', 'member' => 'aminata.diallo', 'quote' => 'Des voix de terrain qui rappellent que la médiation commence dans les communautés.'],
+        ['resource' => 'Women Mediators and Inclusive Peace Processes', 'member' => 'fatou.ndiaye', 'quote' => 'Un rapport précieux pour défendre la place des femmes à la table des négociations.'],
+    ];
+
     public function run(): void
     {
         $themes = Expertise::query()->pluck('id', 'name');
 
         foreach (self::RESOURCES as $data) {
-            $members = $this->members([...($data['members'] ?? []), ...(isset($data['author']) ? [$data['author']] : [])]);
+            $members = $this->demoMemberIds([...($data['members'] ?? []), ...(isset($data['author']) ? [$data['author']] : [])]);
 
             $resource = Resource::query()->updateOrCreate(['title' => $data['title']], [
                 'type' => $data['type'],
@@ -75,19 +89,30 @@ class DemoResourcesSeeder extends Seeder
             $resource->themes()->sync(collect($data['themes'])->map(fn (string $name): ?int => $themes[$name] ?? null)->filter());
             $resource->members()->sync($members->only($data['members'] ?? [])->values());
         }
+
+        $this->seedVoices();
     }
 
     /**
-     * Comptes des médiatrices, par adresse sans @example.org.
-     *
-     * @param  list<string>  $names
-     * @return Collection<string, int>
+     * Avis des médiatrices, datés de quelques jours en quelques jours pour garder leur ordre.
      */
-    private function members(array $names): Collection
+    private function seedVoices(): void
     {
-        return User::query()
-            ->whereIn('email', array_map(fn (string $name): string => "{$name}@example.org", $names))
-            ->pluck('id', 'email')
-            ->mapWithKeys(fn (int $id, string $email): array => [Str::before($email, '@') => $id]);
+        $members = $this->demoMemberIds(array_column(self::VOICES, 'member'));
+
+        foreach (self::VOICES as $index => $voice) {
+            $resourceId = Resource::query()->where('title', $voice['resource'])->value('id');
+            $memberId = $members[$voice['member']] ?? null;
+
+            if ($resourceId === null || $memberId === null) {
+                continue;
+            }
+
+            $recommendation = ResourceRecommendation::query()->updateOrCreate(
+                ['resource_id' => $resourceId, 'user_id' => $memberId],
+                ['quote' => $voice['quote']],
+            );
+            $recommendation->forceFill(['created_at' => now()->subDays(3 * (count(self::VOICES) - $index))])->save();
+        }
     }
 }

@@ -8,12 +8,10 @@ use App\Enums\EventRole;
 use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Expertise;
-use App\Models\User;
+use Database\Seeders\Concerns\DemoAccounts;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * Événements repris de la maquette, avec des participantes de l'annuaire : en environnement
@@ -22,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class DemoEventsSeeder extends Seeder
 {
+    use DemoAccounts;
+
     /**
      * Début et fin à l'heure de Paris ; pays null = en ligne ; thématiques = noms d'expertises ;
      * participantes = adresses de DemoMembersSeeder, sans @example.org.
@@ -163,7 +163,7 @@ class DemoEventsSeeder extends Seeder
 
             $event->themes()->sync(collect($data['themes'])->map(fn (string $name): ?int => $themes[$name] ?? null)->filter());
 
-            $members = $this->members($data['participants']);
+            $members = $this->demoMemberIds($data['participants']);
             $event->participants()->sync($members->mapWithKeys(fn (int $id, string $name): array => [$id => [
                 'role' => ($page['attendees'][$name]['role'] ?? EventRole::Participant)->value,
                 'attendance_days' => $page['attendees'][$name]['days'] ?? null,
@@ -179,27 +179,13 @@ class DemoEventsSeeder extends Seeder
     }
 
     /**
-     * Comptes des participantes, par adresse sans @example.org.
-     *
-     * @param  list<string>  $names
-     * @return Collection<string, int>
-     */
-    private function members(array $names): Collection
-    {
-        return User::query()
-            ->whereIn('email', array_map(fn (string $name): string => "{$name}@example.org", $names))
-            ->pluck('id', 'email')
-            ->mapWithKeys(fn (int $id, string $email): array => [Str::before($email, '@') => $id]);
-    }
-
-    /**
      * Remplace le programme de l'événement.
      *
      * @param  list<array{start: string, title: string, detail?: string, speaker?: string, network?: bool}>  $sessions
      */
     private function syncSessions(Event $event, array $sessions): void
     {
-        $speakers = $this->members(array_values(array_filter(array_column($sessions, 'speaker'))));
+        $speakers = $this->demoMemberIds(array_values(array_filter(array_column($sessions, 'speaker'))));
 
         $event->sessions()->delete();
         foreach ($sessions as $session) {

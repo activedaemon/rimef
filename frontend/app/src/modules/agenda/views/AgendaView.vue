@@ -150,9 +150,14 @@ onMounted(() => void agenda.start());
 <template>
   <q-page class="inner-page">
     <div class="container">
-      <PageIntro title="Agenda" lead="Les rencontres, forums et formations du réseau." leaf />
-
       <div class="agenda-layout">
+        <PageIntro
+          title="Agenda"
+          lead="Les rencontres, forums et formations du réseau."
+          class="agenda-intro"
+          leaf
+        />
+
         <div class="agenda-main">
           <div class="agenda-tabs">
             <q-tabs
@@ -370,15 +375,25 @@ onMounted(() => void agenda.start());
 </template>
 
 <style lang="scss" scoped>
-// Liste et colonne de droite (calendrier, citation) fixée au défilement
+// Intro et liste à gauche ; colonne de droite (calendrier, citation) dès le haut de la page, à
+// hauteur du titre, fixée au défilement
 .agenda-layout {
   display: grid;
+  grid-template-areas:
+    'intro side'
+    'main side';
   grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 32px;
+  grid-template-rows: auto 1fr;
+  column-gap: 32px;
   align-items: start;
 }
 
+.agenda-intro {
+  grid-area: intro;
+}
+
 .agenda-main {
+  grid-area: main;
   min-width: 0;
 }
 
@@ -386,14 +401,16 @@ onMounted(() => void agenda.start());
   position: sticky;
   top: calc(var(--header-h) + 20px + env(safe-area-inset-top, 0px));
   display: grid;
+  grid-area: side;
   gap: 20px;
-  margin-top: 6px;
+  // Aligné sur le haut du titre (marge haute de l'intro)
+  margin-top: var(--s-8);
 }
 
 // Citation plus longue que sur l'accueil : police réduite, toute la largeur de la carte
 .agenda-side .agenda-quote :deep(.quote-block__text) {
   max-width: none;
-  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+  font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.75rem);
 }
 
 // Onglets (maquette .tabs) : soulignement pétrole, compteur atténué
@@ -574,19 +591,22 @@ onMounted(() => void agenda.start());
   }
 }
 
-// Tablette : une colonne, calendrier et citation côte à côte au-dessus de la liste
+// Tablette : une colonne, intro puis calendrier et citation côte à côte, puis la liste
 @media (max-width: 1079px) {
   .agenda-layout {
+    grid-template-areas:
+      'intro'
+      'side'
+      'main';
     grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-rows: auto;
   }
 
   .agenda-side {
     position: static;
-    order: -1;
     grid-template-columns: 1fr 1fr;
     align-items: stretch;
-    margin-top: 0;
+    margin: 0 0 28px;
   }
 }
 
@@ -610,9 +630,16 @@ onMounted(() => void agenda.start());
   }
 
   // Calendrier et citation sous la liste
+  .agenda-layout {
+    grid-template-areas:
+      'intro'
+      'main'
+      'side';
+  }
+
   .agenda-side {
-    order: 0;
     grid-template-columns: 1fr;
+    margin: 28px 0 0;
   }
 
   .agenda-pager {

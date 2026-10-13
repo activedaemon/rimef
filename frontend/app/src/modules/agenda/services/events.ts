@@ -110,9 +110,9 @@ export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: st
 export type SortKey = 'date' | 'attendees';
 
 /** Tailles de page proposées (même liste côté API : EventDirectory::PER_PAGE_OPTIONS). */
-export const PER_PAGE_OPTIONS = [10, 20, 50] as const;
+export const PER_PAGE_OPTIONS = [5, 10, 20, 50] as const;
 export type PerPage = (typeof PER_PAGE_OPTIONS)[number];
-const DEFAULT_PER_PAGE: PerPage = 10;
+const DEFAULT_PER_PAGE: PerPage = 5;
 
 /** Recherche en cours : onglet, texte, filtres, mois ou jour, critères oui / non, tri, page et taille. */
 export interface AgendaQuery {

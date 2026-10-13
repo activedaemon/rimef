@@ -185,10 +185,12 @@ const saveLabel = computed(() =>
     color: var(--petrol-dark);
   }
 
+  // Autrice : le nom et la mention passent à la ligne sans se couper en colonne étroite
   &__source {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 7px;
+    gap: 2px 7px;
     margin-top: 8px;
     font-size: var(--fs-sm);
     color: var(--muted);
@@ -196,6 +198,10 @@ const saveLabel = computed(() =>
 
   &__author {
     color: var(--ink-2);
+  }
+
+  &__source > span {
+    white-space: nowrap;
   }
 
   &__date {

@@ -17,6 +17,7 @@ class TenantDatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             SuperAdminSeeder::class,
+            TeamAccountsSeeder::class,
             ExpertiseSeeder::class,
         ]);
 

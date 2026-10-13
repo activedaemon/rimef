@@ -30,10 +30,10 @@ use Illuminate\Support\Str;
  */
 class EventDirectory
 {
-    public const PER_PAGE = 10;
+    public const PER_PAGE = 5;
 
     /** Tailles de page au choix (Agenda). */
-    public const PER_PAGE_OPTIONS = [10, 20, 50];
+    public const PER_PAGE_OPTIONS = [5, 10, 20, 50];
 
     /** Avatars affichés sur chaque événement (« +X » pour les autres). */
     public const VISIBLE_ATTENDEES = 3;

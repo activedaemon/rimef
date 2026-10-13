@@ -13,6 +13,13 @@ beforeEach(function () {
     config([
         'rimef.superadmin.email' => 'david@active-daemon.com',
         'rimef.superadmin.password' => 'mot-de-passe-du-superadmin',
+        'rimef.team' => [[
+            'email' => 'OCaeymaex@c-r.org',
+            'password' => 'mot-de-passe-d-olivia',
+            'first_name' => 'Olivia',
+            'last_name' => 'Caeymaex',
+            'roles' => ['admin', 'member'],
+        ]],
     ]);
 });
 
@@ -59,9 +66,48 @@ it('restores an existing account as superadmin without changing its password', f
 });
 
 it('creates no superadmin when no email is configured', function () {
-    config(['rimef.superadmin.email' => '']);
+    config(['rimef.superadmin.email' => '', 'rimef.team' => []]);
 
     $this->seed(TenantDatabaseSeeder::class);
 
     expect(User::count())->toBe(0);
+});
+
+it('creates the team accounts with their roles in every environment', function () {
+    $this->seed(TenantDatabaseSeeder::class);
+
+    $olivia = User::where('email', 'ocaeymaex@c-r.org')->sole();
+    expect($olivia->name)->toBe('Olivia Caeymaex')
+        ->and($olivia->is_active)->toBeTrue()
+        ->and($olivia->email_verified_at)->not->toBeNull()
+        ->and($olivia->getRoleNames()->sort()->values()->all())->toBe(['admin', 'member'])
+        ->and(Hash::check('mot-de-passe-d-olivia', $olivia->password))->toBeTrue();
+});
+
+it('restores a team account without changing its password', function () {
+    $existing = User::factory()->create([
+        'email' => 'ocaeymaex@c-r.org',
+        'first_name' => 'O.',
+        'last_name' => 'C.',
+        'password' => 'mot-de-passe-choisi',
+        'is_active' => false,
+    ]);
+
+    $this->seed(TenantDatabaseSeeder::class);
+    $this->seed(TenantDatabaseSeeder::class);
+
+    $olivia = User::where('email', 'ocaeymaex@c-r.org')->sole();
+    expect($olivia->id)->toBe($existing->id)
+        ->and($olivia->name)->toBe('Olivia Caeymaex')
+        ->and($olivia->is_active)->toBeTrue()
+        ->and($olivia->getRoleNames()->sort()->values()->all())->toBe(['admin', 'member'])
+        ->and(Hash::check('mot-de-passe-choisi', $olivia->password))->toBeTrue();
+});
+
+it('gives a team account a random password when none is configured', function () {
+    config(['rimef.team.0.password' => null]);
+
+    $this->seed(TenantDatabaseSeeder::class);
+
+    expect(User::where('email', 'ocaeymaex@c-r.org')->sole()->password)->not->toBeEmpty();
 });

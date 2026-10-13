@@ -26,7 +26,7 @@ class EventController extends Controller
     public function __construct(private readonly EventDirectory $directory) {}
 
     /**
-     * Événements de l'onglet demandé, filtrés et triés, par pages de 10.
+     * Événements de l'onglet demandé, filtrés et triés, par pages de 5 (10, 20 ou 50 au choix).
      */
     public function index(ListEventsRequest $request): AnonymousResourceCollection
     {

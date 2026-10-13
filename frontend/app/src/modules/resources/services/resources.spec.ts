@@ -13,7 +13,7 @@ describe('resource query', () => {
       enregistrees: '1',
       tri: 'titre',
       page: '2',
-      par_page: '24',
+      par_page: '18',
     });
 
     expect(query).toEqual({
@@ -23,17 +23,17 @@ describe('resource query', () => {
       toggles: { linked: false, by_member: false, with_event: false, saved: true },
       sort: 'title',
       page: 2,
-      perPage: 24,
+      perPage: 18,
     });
   });
 
-  it('falls back to the most recent, 12 per page, and ignores malformed values', () => {
-    const query = queryFromRoute({ tri: 'hasard', date: 'hier', page: '0', par_page: '1000' });
+  it('falls back to the most recent, 9 per page, and ignores malformed values', () => {
+    const query = queryFromRoute({ tri: 'hasard', date: 'hier', page: '0', par_page: '8' });
 
     expect(query.sort).toBe('recent');
     expect(query.date).toBe('');
     expect(query.page).toBe(1);
-    expect(query.perPage).toBe(12);
+    expect(query.perPage).toBe(9);
     expect(isFiltered(query)).toBe(false);
   });
 
@@ -44,7 +44,7 @@ describe('resource query', () => {
       reseau: '1',
       tri: 'anciennes',
     });
-    const route = routeFromQuery({ ...query, q: '  guide ', perPage: 48 });
+    const route = routeFromQuery({ ...query, q: '  guide ', perPage: 36 });
 
     expect(route).toEqual({
       q: 'guide',
@@ -52,18 +52,18 @@ describe('resource query', () => {
       date: 'recent',
       reseau: '1',
       tri: 'anciennes',
-      par_page: '48',
+      par_page: '36',
     });
     expect(queryFromRoute(route as Record<string, string | string[]>)).toEqual({
       ...query,
       q: 'guide',
-      perPage: 48,
+      perPage: 36,
     });
     expect(routeFromQuery(queryFromRoute({}))).toEqual({});
   });
 
   it('tells when the library is restricted', () => {
-    expect(isFiltered(queryFromRoute({ tri: 'titre', par_page: '24' }))).toBe(false);
+    expect(isFiltered(queryFromRoute({ tri: 'titre', par_page: '18' }))).toBe(false);
     expect(isFiltered(queryFromRoute({ type: 'tool' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ date: '2026' }))).toBe(true);
     expect(isFiltered(queryFromRoute({ evenement: '1' }))).toBe(true);

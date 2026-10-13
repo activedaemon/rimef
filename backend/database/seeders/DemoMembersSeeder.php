@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
 use App\Models\User;
+use Database\Seeders\Concerns\DemoAccounts;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -17,11 +18,15 @@ use Illuminate\Support\Str;
 /**
  * Médiatrices de l'annuaire (fondatrices et profils fictifs), en environnement local uniquement
  * (TenantDatabaseSeeder). Relançable : les comptes sont retrouvés par email.
- * Les comptes reçoivent un mot de passe aléatoire : ils ne servent pas à se connecter.
+ * Les comptes fictifs reçoivent un mot de passe aléatoire : ils ne servent pas à se connecter.
+ * Les comptes de l'équipe (TeamAccountsSeeder) gardent leur vraie adresse et leur mot de passe ;
+ * ce seeder ne fait que compléter leur profil de démonstration.
  * Photos : member-photos/<prénom-nom>.webp.
  */
 class DemoMembersSeeder extends Seeder
 {
+    use DemoAccounts;
+
     /**
      * prénom, nom, pays, organisation, disponible, expertises, rôles supplémentaires
      *
@@ -107,7 +112,7 @@ class DemoMembersSeeder extends Seeder
             [$firstName, $lastName, $country, $organization, $available, $memberExpertises] = $member;
 
             $user = User::query()->firstOrCreate(
-                ['email' => Str::slug("{$firstName}.{$lastName}", '.').'@example.org'],
+                ['email' => $this->demoEmail(Str::slug("{$firstName}.{$lastName}", '.'))],
                 [
                     'first_name' => $firstName,
                     'last_name' => $lastName,

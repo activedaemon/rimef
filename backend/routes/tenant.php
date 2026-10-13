@@ -91,6 +91,7 @@ Route::middleware([
         // Bibliothèque de ressources
         Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
         Route::get('/resources/filters', [ResourceController::class, 'filters'])->name('resources.filters');
+        Route::get('/resources/voices', [ResourceController::class, 'voices'])->name('resources.voices');
         Route::put('/resources/{resource}/save', [ResourceController::class, 'save'])
             ->whereNumber('resource')
             ->name('resources.save');
