@@ -109,7 +109,12 @@ export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: st
 
 export type SortKey = 'date' | 'attendees';
 
-/** Recherche en cours : onglet, texte, filtres, mois ou jour, critères oui / non, tri et page. */
+/** Tailles de page proposées (même liste côté API : EventDirectory::PER_PAGE_OPTIONS). */
+export const PER_PAGE_OPTIONS = [10, 20, 50] as const;
+export type PerPage = (typeof PER_PAGE_OPTIONS)[number];
+const DEFAULT_PER_PAGE: PerPage = 10;
+
+/** Recherche en cours : onglet, texte, filtres, mois ou jour, critères oui / non, tri, page et taille. */
 export interface AgendaQuery {
   period: Period;
   q: string;
@@ -121,6 +126,7 @@ export interface AgendaQuery {
   toggles: Record<ToggleKey, boolean>;
   sort: SortKey;
   page: number;
+  perPage: PerPage;
 }
 
 export function emptySelection(): Record<FilterKey, string[]> {
@@ -149,6 +155,7 @@ export function queryFromRoute(query: LocationQuery): AgendaQuery {
   const day =
     typeof query.jour === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(query.jour) ? query.jour : '';
   const page = typeof query.page === 'string' ? Number(query.page) : 1;
+  const perPage = PER_PAGE_OPTIONS.find((option) => String(option) === query.par_page);
 
   return {
     period: period ?? 'upcoming',
@@ -159,6 +166,7 @@ export function queryFromRoute(query: LocationQuery): AgendaQuery {
     toggles,
     sort: query.tri === 'mediatrices' ? 'attendees' : 'date',
     page: Number.isInteger(page) && page > 1 ? page : 1,
+    perPage: perPage ?? DEFAULT_PER_PAGE,
   };
 }
 
@@ -178,6 +186,7 @@ export function routeFromQuery(query: AgendaQuery): LocationQueryRaw {
   }
   if (query.sort === 'attendees') route.tri = 'mediatrices';
   if (query.page > 1) route.page = String(query.page);
+  if (query.perPage !== DEFAULT_PER_PAGE) route.par_page = String(query.perPage);
   return route;
 }
 
@@ -201,6 +210,7 @@ export async function fetchEvents(query: AgendaQuery, signal?: AbortSignal): Pro
   const params: Record<string, unknown> = {
     period: query.period,
     page: query.page,
+    per_page: query.perPage,
     sort: query.sort,
     timezone: timezone(),
   };

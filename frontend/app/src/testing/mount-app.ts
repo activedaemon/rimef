@@ -44,7 +44,11 @@ const SECTION_ROUTES: RouteRecordRaw[] = [
     path: '/ressources',
     name: 'resources',
     component: Blank,
-    meta: { searchPlaceholder: 'Rechercher une ressource…', searchScope: 'ressources' },
+    meta: {
+      searchPlaceholder: 'Rechercher une ressource…',
+      searchScope: 'ressources',
+      searchInPage: true,
+    },
   },
 ];
 

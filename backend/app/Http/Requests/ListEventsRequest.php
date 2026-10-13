@@ -39,6 +39,7 @@ class ListEventsRequest extends FormRequest
             'crowd' => ['boolean'],
             'sort' => ['nullable', Rule::in(['date', 'attendees'])],
             'page' => ['integer', 'min:1'],
+            'per_page' => ['integer', Rule::in(EventDirectory::PER_PAGE_OPTIONS)],
             // Fuseau de l'utilisatrice, pour les mois et les jours
             'timezone' => ['nullable', 'timezone:all'],
         ];

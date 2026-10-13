@@ -41,15 +41,15 @@ const YEAR = new Date().getFullYear();
     align-items: center;
     justify-content: space-between;
     gap: var(--s-2) var(--s-8);
-    padding-block: var(--s-5);
+    padding-block: var(--s-2);
   }
 
   // Filigrane ancré dans le coin droit, rogné par le pied de page
   &__ornament {
     position: absolute;
     right: max(var(--gutter), calc((100% - var(--container)) / 2 + var(--gutter)));
-    bottom: -48px;
-    height: 190px;
+    bottom: -40px;
+    height: 150px;
     opacity: 0.12;
     pointer-events: none;
     user-select: none;
@@ -67,7 +67,7 @@ const YEAR = new Date().getFullYear();
     display: flex;
     flex-wrap: wrap;
     margin: 0 0 0 calc(-1 * var(--s-6));
-    padding: 4px 0;
+    padding: 0;
     list-style: none;
   }
 
@@ -114,7 +114,7 @@ const YEAR = new Date().getFullYear();
   .app-footer__inner {
     flex-direction: column;
     align-items: flex-start;
-    padding-block: var(--s-5) var(--s-6);
+    padding-block: var(--s-2) var(--s-4);
   }
 
   .app-footer__nav {
@@ -128,8 +128,8 @@ const YEAR = new Date().getFullYear();
 
   .app-footer__ornament {
     right: var(--s-2);
-    bottom: -36px;
-    height: 150px;
+    bottom: -32px;
+    height: 130px;
   }
 }
 </style>

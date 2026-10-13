@@ -36,4 +36,14 @@ class Expertise extends Model
     {
         return $this->belongsToMany(Event::class);
     }
+
+    /**
+     * Ressources de la bibliothèque dont c'est une thématique.
+     *
+     * @return BelongsToMany<\App\Models\Resource, $this>
+     */
+    public function resources(): BelongsToMany
+    {
+        return $this->belongsToMany(Resource::class);
+    }
 }

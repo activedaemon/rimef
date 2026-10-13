@@ -22,7 +22,7 @@ class TenantDatabaseSeeder extends Seeder
 
         // Médiatrices fictives et événements de démonstration : jamais hors du poste de développement.
         if (app()->environment('local')) {
-            $this->call([DemoMembersSeeder::class, DemoEventsSeeder::class]);
+            $this->call([DemoMembersSeeder::class, DemoEventsSeeder::class, DemoResourcesSeeder::class]);
         }
     }
 }

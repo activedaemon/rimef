@@ -23,6 +23,7 @@ import {
   FILTER_LABELS,
   PERIOD_LABELS,
   PERIODS,
+  PER_PAGE_OPTIONS,
   TOGGLE_KEYS,
   TOGGLES,
   groupByMonth,
@@ -123,6 +124,11 @@ const groups = computed(() =>
     ? groupByMonth(agenda.events.value)
     : [{ key: '', events: agenda.events.value }]
 );
+
+const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
+  label: `${value} par page`,
+  value,
+}));
 
 // Changement de page : retour en douceur en haut des résultats
 const resultsBar = ref<ComponentPublicInstance | HTMLElement | null>(null);
@@ -307,7 +313,7 @@ onMounted(() => void agenda.start());
             </div>
 
             <nav
-              v-if="agenda.lastPage.value > 1"
+              v-if="agenda.total.value > PER_PAGE_OPTIONS[0]"
               class="agenda-pager"
               aria-label="Pagination des événements"
             >
@@ -315,9 +321,23 @@ onMounted(() => void agenda.start());
                 Événements <b>{{ agenda.from.value }}–{{ agenda.to.value }}</b> sur
                 {{ agenda.total.value }}
               </p>
+              <q-select
+                :model-value="query.perPage"
+                :options="PER_PAGE_CHOICES"
+                emit-value
+                map-options
+                dense
+                outlined
+                options-dense
+                class="rimef-select agenda-pager__size"
+                aria-label="Nombre d’événements par page"
+                @update:model-value="agenda.setPerPage"
+              />
               <AppPagination
+                v-if="agenda.lastPage.value > 1"
                 :model-value="agenda.page.value"
                 :max="agenda.lastPage.value"
+                class="agenda-pager__pages"
                 @update:model-value="changePage"
               />
             </nav>
@@ -332,7 +352,7 @@ onMounted(() => void agenda.start());
           />
           <QuoteBlock
             variant="card"
-            text="Des rencontres d’aujourd’hui pour un monde de demain."
+            text="Construire, rencontre après rencontre, une communauté de médiatrices francophones."
             class="agenda-quote"
           />
         </aside>
@@ -368,6 +388,12 @@ onMounted(() => void agenda.start());
   display: grid;
   gap: 20px;
   margin-top: 6px;
+}
+
+// Citation plus longue que sur l'accueil : police réduite, toute la largeur de la carte
+.agenda-side .agenda-quote :deep(.quote-block__text) {
+  max-width: none;
+  font-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
 }
 
 // Onglets (maquette .tabs) : soulignement pétrole, compteur atténué
@@ -519,9 +545,10 @@ onMounted(() => void agenda.start());
 }
 
 .agenda-pager {
-  display: flex;
+  // Plage à gauche, taille de page au milieu, pages à droite (comme au Réseau)
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   margin-top: 36px;
   padding-top: 20px;
@@ -536,6 +563,14 @@ onMounted(() => void agenda.start());
       font-weight: 600;
       color: var(--ink);
     }
+  }
+
+  &__size {
+    min-width: 140px;
+  }
+
+  &__pages {
+    justify-self: end;
   }
 }
 
@@ -581,6 +616,7 @@ onMounted(() => void agenda.start());
   }
 
   .agenda-pager {
+    display: flex;
     flex-direction: column;
     gap: 12px;
     margin-top: 28px;

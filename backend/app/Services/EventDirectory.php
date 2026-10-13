@@ -32,6 +32,9 @@ class EventDirectory
 {
     public const PER_PAGE = 10;
 
+    /** Tailles de page au choix (Agenda). */
+    public const PER_PAGE_OPTIONS = [10, 20, 50];
+
     /** Avatars affichés sur chaque événement (« +X » pour les autres). */
     public const VISIBLE_ATTENDEES = 3;
 
@@ -44,7 +47,7 @@ class EventDirectory
     public const MEMBER_UPCOMING = 3;
 
     /**
-     * @param  array{period?: string, q?: string|null, type?: list<string>, region?: list<string>, theme?: list<int>, month?: string, day?: string, favorites?: bool, my_zones?: bool, my_themes?: bool, online?: bool, crowd?: bool, sort?: string|null, timezone?: string}  $filters
+     * @param  array{period?: string, q?: string|null, type?: list<string>, region?: list<string>, theme?: list<int>, month?: string, day?: string, favorites?: bool, my_zones?: bool, my_themes?: bool, online?: bool, crowd?: bool, sort?: string|null, per_page?: int|string, timezone?: string}  $filters
      * @return LengthAwarePaginator<int, Event>
      */
     public function search(array $filters, User $viewer): LengthAwarePaginator
@@ -73,7 +76,7 @@ class EventDirectory
         // Passés : les plus récents d'abord
         $query->orderBy('starts_at', $period === 'past' ? 'desc' : 'asc')->orderBy('id');
 
-        return $query->paginate(self::PER_PAGE)->withQueryString();
+        return $query->paginate((int) ($filters['per_page'] ?? self::PER_PAGE))->withQueryString();
     }
 
     /**

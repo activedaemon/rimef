@@ -184,6 +184,27 @@ it('paginates by 10', function () {
         ->assertJsonPath('meta.last_page', 2);
 });
 
+it('paginates by 20 or 50 on request, and nothing else', function () {
+    foreach (range(1, 21) as $day) {
+        agendaEvent("Événement {$day}", "2026-11-{$day} 09:00");
+    }
+
+    listEvents($this, ['per_page' => 20])
+        ->assertOk()
+        ->assertJsonCount(20, 'data')
+        ->assertJsonPath('meta.per_page', 20)
+        ->assertJsonPath('meta.last_page', 2);
+
+    listEvents($this, ['per_page' => 50])
+        ->assertOk()
+        ->assertJsonCount(21, 'data')
+        ->assertJsonPath('meta.last_page', 1);
+
+    listEvents($this, ['per_page' => 1000])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['per_page']);
+});
+
 it('rejects unknown filter values', function () {
     listEvents($this, ['period' => 'demain', 'type' => ['fete'], 'region' => ['atlantide'], 'month' => 'novembre', 'timezone' => 'Mars/Olympus'])
         ->assertUnprocessable()
