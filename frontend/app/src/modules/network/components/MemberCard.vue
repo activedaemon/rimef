@@ -71,10 +71,10 @@ const photoFailed = ref(false);
 
       <div class="member-card__foot">
         <p v-if="member.next_event" class="member-card__next">
-          Prochainement :
-          <b>
-            <router-link :to="{ name: 'agenda' }">{{ member.next_event.title }}</router-link>
-          </b>
+          <router-link :to="{ name: 'event', params: { slug: member.next_event.slug } }">
+            Prochainement :
+            <b>{{ member.next_event.title }}</b>
+          </router-link>
         </p>
         <p v-else-if="member.is_available" class="member-card__available">
           Disponible pour collaboration
@@ -243,7 +243,9 @@ const photoFailed = ref(false);
       }
     }
 
+    // Toute la ligne mène à l'événement, au-dessus du lien étiré vers le profil
     a {
+      display: block;
       position: relative;
       z-index: 2;
       color: inherit;
@@ -251,7 +253,10 @@ const photoFailed = ref(false);
 
       &:hover,
       &:focus-visible {
-        color: var(--link-hover);
+        &,
+        b {
+          color: var(--link-hover);
+        }
       }
     }
   }
@@ -325,12 +330,12 @@ const photoFailed = ref(false);
         'name foot'
         'country foot'
         'tags foot';
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-content: center;
-      column-gap: 24px;
+      column-gap: 16px;
       min-width: 0;
-      min-height: 128px;
-      padding: 18px 64px 18px 20px;
+      min-height: 112px;
+      padding: 14px 56px 14px 16px;
     }
 
     .member-card__name {
@@ -343,7 +348,7 @@ const photoFailed = ref(false);
 
     .member-card__expertises {
       grid-area: tags;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
     .member-card__foot {

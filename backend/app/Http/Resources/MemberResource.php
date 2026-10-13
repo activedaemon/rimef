@@ -39,6 +39,7 @@ class MemberResource extends JsonResource
             'conversation_id' => isset($this->conversation_id) ? (int) $this->conversation_id : null,
             'next_event' => $this->nextEvent === null ? null : [
                 'id' => $this->nextEvent->id,
+                'slug' => $this->nextEvent->slug,
                 'title' => $this->nextEvent->title,
                 'starts_at' => $this->nextEvent->starts_at->toIso8601String(),
             ],

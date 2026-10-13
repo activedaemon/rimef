@@ -16,7 +16,7 @@ export interface Member {
   /** Conversation déjà engagée avec la personne connectée (fenêtre « Nouveau message »). */
   conversation_id: number | null;
   /** Prochain événement auquel elle participe (starts_at en ISO 8601, UTC). */
-  next_event: { id: number; title: string; starts_at: string } | null;
+  next_event: { id: number; slug: string; title: string; starts_at: string } | null;
   photo_url: string | null;
   expertises: string[];
 }
