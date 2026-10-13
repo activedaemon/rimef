@@ -31,6 +31,7 @@ const PROFILE = {
   conversation: null,
   expertises: [],
   zones: [],
+  upcoming_events: [],
 } as members.MemberProfile;
 
 async function openProfile(viewerId = 1) {
@@ -63,7 +64,6 @@ describe('MemberProfileView', () => {
       'Inviter à un événement',
       'Copier le lien du profil',
       'Recommander à une membre',
-      'Signaler une information',
     ]);
     expect(items.every((item) => item.getAttribute('aria-disabled') === 'true')).toBe(true);
     wrapper.unmount();

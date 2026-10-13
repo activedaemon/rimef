@@ -63,6 +63,7 @@ it('gives the next upcoming event of each mediator, past events ignored', functi
 
     $this->getJson($this->tenantUrl('/api/members?q=Diallo'))
         ->assertJsonPath('data.0.next_event.id', $forum->id)
+        ->assertJsonPath('data.0.next_event.slug', $forum->slug)
         ->assertJsonPath('data.0.next_event.title', 'Forum');
 
     $this->getJson($this->tenantUrl('/api/members?q=Lectrice'))

@@ -1,14 +1,21 @@
 <script setup lang="ts">
-// Fenêtre « Contacter » d'une fiche (maquette) : objet de la demande (saisie libre) et message,
-// écrits dans la messagerie du réseau ; la médiatrice est prévenue par email.
+// Fenêtre « Contacter » d'une fiche, ou de l'enveloppe d'une médiatrice sur la fiche d'un événement
+// (maquette) : message écrit dans la messagerie du réseau ; la médiatrice est prévenue par email.
 // Feuille en bas sur téléphone. Émet `sent` avec la conversation où le message a été écrit.
 import { useQuasar } from 'quasar';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import ContactForm from '@modules/messages/components/ContactForm.vue';
-import type { MemberProfile } from '../services/members';
 
-defineProps<{ profile: MemberProfile }>();
+/** Médiatrice écrite : fiche de l'annuaire ou médiatrice présente à un événement. */
+export interface ContactRecipient {
+  slug: string;
+  name: string;
+  first_name: string;
+  photo_url: string | null;
+}
+
+defineProps<{ profile: ContactRecipient }>();
 const open = defineModel<boolean>({ required: true });
 const emit = defineEmits<{ sent: [conversationId: number] }>();
 

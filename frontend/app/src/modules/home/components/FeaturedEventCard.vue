@@ -1,24 +1,23 @@
 <script setup lang="ts">
-// Événement à la une (maquette Accueil) : visuel, titre, dates, lieu, participantes,
-// actions. « J'y participe » est enregistré par l'API (affiché tout de suite, annulé si refus).
+// Événement à la une (maquette Accueil) : photo de l'événement (visuel neutre sans photo), titre, dates, lieu, participantes,
+// actions. « J'y participe » ouvre la fenêtre « Ma participation » (jours, note).
 import { computed, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
-import { useNotify } from '@/composables/useNotify';
-import { extractApiError } from '@/lib/http';
 import { mediatorCount } from '@/lib/wording';
 import { useSession } from '@/stores/session';
-import { setParticipation, type FeaturedEvent } from '../services/home-feed';
+import ParticipationDialog from '@modules/agenda/components/ParticipationDialog.vue';
+import type { FeaturedEvent } from '../services/home-feed';
 
 const props = defineProps<{ event: FeaturedEvent }>();
 
 /** Avatars affichés avant le « +N ». */
 const VISIBLE_ATTENDEES = 4;
 
-const notify = useNotify();
 const session = useSession();
 const participating = ref(props.event.isParticipating);
+const photoFailed = ref(false);
 const eventLink = computed(() => ({ name: 'event', params: { slug: props.event.slug } }));
 
 // Le total de l'API compte déjà la personne connectée si elle participait au chargement
@@ -35,20 +34,15 @@ const hiddenCount = computed(
   () => count.value - others.value.length - (participating.value ? 1 : 0)
 );
 
-async function toggleParticipation(): Promise<void> {
-  participating.value = !participating.value;
-  try {
-    await setParticipation(props.event.id, participating.value);
-    notify.info(
-      participating.value
-        ? `Votre participation au ${props.event.title} est notée.`
-        : 'Participation retirée.'
-    );
-  } catch (error) {
-    participating.value = !participating.value;
-    notify.error(extractApiError(error, 'Votre participation n’a pas pu être enregistrée.'));
-  }
-}
+/** Fenêtre « Ma participation » : la carte suit la participation enregistrée. */
+const participationOpen = ref(false);
+const dialogEvent = computed(() => ({
+  id: props.event.id,
+  slug: props.event.slug,
+  title: props.event.title,
+  starts_at: props.event.startsAt,
+  ends_at: props.event.endsAt,
+}));
 </script>
 
 <template>
@@ -60,7 +54,16 @@ async function toggleParticipation(): Promise<void> {
 
     <div class="featured-event__body">
       <router-link :to="eventLink" class="featured-event__visual" tabindex="-1" aria-hidden="true">
-        <q-icon name="calendar-event" size="48px" />
+        <img
+          v-if="event.photo && !photoFailed"
+          :src="event.photo"
+          alt=""
+          width="184"
+          height="276"
+          decoding="async"
+          @error="photoFailed = true"
+        />
+        <q-icon v-else name="calendar-event" size="48px" />
       </router-link>
 
       <div class="featured-event__content">
@@ -73,8 +76,8 @@ async function toggleParticipation(): Promise<void> {
             <q-icon name="map-pin" size="15px" />{{ event.place }}
           </span>
         </div>
-        <p v-if="event.description" class="featured-event__description">
-          {{ event.description }}
+        <p v-if="event.summary" class="featured-event__summary">
+          {{ event.summary }}
         </p>
 
         <div class="featured-event__who">
@@ -99,16 +102,24 @@ async function toggleParticipation(): Promise<void> {
           <AppButton label="Voir l’événement" :to="eventLink" />
           <AppButton
             variant="outline"
-            :icon="participating ? 'check' : undefined"
+            :icon="participating ? 'check' : 'calendar-plus'"
             :label="participating ? 'Je participe' : 'J’y participe'"
             :aria-pressed="participating"
             class="featured-event__join"
             :class="{ 'featured-event__join--on': participating }"
-            @click="toggleParticipation"
+            aria-haspopup="dialog"
+            @click="participationOpen = true"
           />
         </div>
       </div>
     </div>
+
+    <ParticipationDialog
+      v-model="participationOpen"
+      :event="dialogEvent"
+      :participating="participating"
+      @saved="participating = $event"
+    />
   </q-card>
 </template>
 
@@ -133,14 +144,27 @@ async function toggleParticipation(): Promise<void> {
     margin-top: 16px;
   }
 
-  // Visuel neutre en attendant les photos des événements
+  // Photo de l'événement, recadrée ; visuel neutre sans photo
   &__visual {
     display: grid;
     place-items: center;
+    overflow: hidden;
     aspect-ratio: 184 / 276;
     border-radius: var(--radius-xs);
     background: var(--petrol-light);
     color: var(--petrol);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+  }
+
+  // Zoom de la photo au survol de la carte, plus marqué que sur les cartes des membres
+  &:hover &__visual img {
+    transform: scale(1.06);
   }
 
   &__content {
@@ -169,7 +193,7 @@ async function toggleParticipation(): Promise<void> {
     margin-top: 14px;
   }
 
-  &__description {
+  &__summary {
     max-width: 46ch;
     margin-top: 12px;
     font-size: var(--fs-sm);

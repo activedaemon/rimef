@@ -16,6 +16,7 @@ import type { FilterOption } from '@/lib/filters';
 import { eventNoun } from '@/lib/wording';
 import AgendaCalendar from '../components/AgendaCalendar.vue';
 import EventRow from '../components/EventRow.vue';
+import ParticipationDialog from '../components/ParticipationDialog.vue';
 import { useAgenda } from '../composables/useAgenda';
 import {
   FILTER_KEYS,
@@ -26,6 +27,7 @@ import {
   TOGGLES,
   groupByMonth,
   monthLabel,
+  type AgendaEvent,
   type FilterKey,
   type Period,
   type SortKey,
@@ -33,6 +35,15 @@ import {
 } from '../services/events';
 
 const agenda = useAgenda();
+
+/** Événement dont la fenêtre « Ma participation » est ouverte. */
+const participationEvent = ref<AgendaEvent | null>(null);
+const participationOpen = ref(false);
+
+function participate(event: AgendaEvent): void {
+  participationEvent.value = event;
+  participationOpen.value = true;
+}
 const { query, filters } = agenda;
 
 function setSelection(key: FilterKey, values: string[]): void {
@@ -289,10 +300,7 @@ onMounted(() => void agenda.start());
                 </h2>
                 <ol class="agenda-events">
                   <li v-for="event in group.events" :key="event.id">
-                    <EventRow
-                      :event="event"
-                      @toggle-participation="agenda.toggleParticipation(event)"
-                    />
+                    <EventRow :event="event" @toggle-participation="participate(event)" />
                   </li>
                 </ol>
               </section>
@@ -330,6 +338,14 @@ onMounted(() => void agenda.start());
         </aside>
       </div>
     </div>
+
+    <ParticipationDialog
+      v-if="participationEvent"
+      v-model="participationOpen"
+      :event="participationEvent"
+      :participating="participationEvent.is_participating"
+      @saved="agenda.onParticipationSaved(participationEvent, $event)"
+    />
   </q-page>
 </template>
 

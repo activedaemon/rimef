@@ -48,6 +48,7 @@ const AMINATA: MemberProfile = {
     { code: 'SN', name: 'Sénégal' },
     { code: 'ML', name: 'Mali' },
   ],
+  upcoming_events: [],
 };
 
 const EMPTY: MemberProfile = {
@@ -108,14 +109,72 @@ describe('MemberProfileSheet', () => {
     wrapper.unmount();
   });
 
-  it('shows the three tabs, events and resources waiting for their content', async () => {
+  it('shows the three tabs, without upcoming events', async () => {
     const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile: AMINATA } });
 
     const tabs = wrapper.findAll('.q-tab');
     expect(tabs.map((tab) => tab.text())).toEqual(['Profil', 'Événements', 'Ressources']);
+    expect(wrapper.find('.side-card__empty').text()).toBe(
+      'Aucun événement à venir pour le moment.'
+    );
 
     await tabs[1]!.trigger('click');
-    expect(wrapper.text()).toContain('Les événements arrivent bientôt');
+    expect(wrapper.text()).toContain('Aucun événement à venir');
+    wrapper.unmount();
+  });
+
+  it('lists her next events in the side card and in the Events tab, with her role', async () => {
+    const profile: MemberProfile = {
+      ...AMINATA,
+      upcoming_events: [
+        {
+          id: 4,
+          slug: 'paris-peace-forum-2026',
+          title: 'Paris Peace Forum',
+          summary: 'Le rendez-vous international de la diplomatie.',
+          type: { value: 'international_forum', label: 'Forum international' },
+          starts_at: '2026-11-10T08:00:00Z',
+          ends_at: '2026-11-11T17:00:00Z',
+          place: 'Paris, France',
+          is_online: false,
+          role: { value: 'speaker', label: 'Intervenante' },
+        },
+        {
+          id: 5,
+          slug: 'sommet-de-la-francophonie-2026',
+          title: 'Sommet de la Francophonie',
+          summary: null,
+          type: { value: 'summit', label: 'Sommet' },
+          starts_at: '2026-11-18T08:00:00Z',
+          ends_at: null,
+          place: 'Kigali, Rwanda',
+          is_online: false,
+          role: { value: 'participant', label: 'Participante' },
+        },
+      ],
+    };
+    const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile } });
+
+    const side = wrapper.findAll('.profile-side .member-event');
+    expect(side).toHaveLength(2);
+    expect(side[0]!.find('h3 a').attributes('href')).toBe('/agenda/paris-peace-forum-2026');
+    expect(side[0]!.find('.member-event__role--speaker').text()).toBe('Intervenante');
+    expect(side[1]!.text()).toContain('Participante');
+
+    const tabs = wrapper.findAll('.q-tab');
+    expect(tabs[1]!.text()).toBe('Événements2');
+    await tabs[1]!.trigger('click');
+    expect(wrapper.find('.profile-list__head p').text()).toBe(
+      '2 rendez-vous où Aminata Diallo sera présente'
+    );
+    expect(wrapper.find('.member-event--wide .member-event__eyebrow').text()).toBe(
+      'Forum international · 2026'
+    );
+    expect(wrapper.find('.member-event--wide .member-event__summary').text()).toBe(
+      'Le rendez-vous international de la diplomatie.'
+    );
+    // Pas de résumé dans la carte de la colonne
+    expect(wrapper.find('.profile-side .member-event__summary').exists()).toBe(false);
     wrapper.unmount();
   });
 

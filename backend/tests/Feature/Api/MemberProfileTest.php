@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\EventRole;
 use App\Enums\OrganizationType;
 use App\Enums\Role;
+use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
 use App\Models\User;
@@ -140,4 +142,29 @@ it('gives the slug in the directory and in the current user', function () {
 
     $this->getJson($this->tenantUrl('/api/members?q=Aminata'))->assertJsonPath('data.0.slug', 'aminata-diallo');
     $this->getJson($this->tenantUrl('/api/user'))->assertJsonPath('data.slug', $this->viewer->slug);
+});
+
+it('gives the next three events of the mediator, with her role, past events excluded', function () {
+    $passed = Event::factory()->create(['title' => 'Passé', 'starts_at' => now()->subWeek()]);
+    $later = Event::factory()->create(['title' => 'Plus tard', 'starts_at' => now()->addMonths(3)]);
+    $forum = Event::factory()->create(['title' => 'Forum', 'summary' => 'Un forum.', 'starts_at' => now()->addWeeks(2), 'city' => 'Paris', 'country_code' => 'FR']);
+    $soon = Event::factory()->create(['title' => 'Bientôt', 'starts_at' => now()->addWeek()]);
+    $fourth = Event::factory()->create(['title' => 'Quatrième', 'starts_at' => now()->addMonths(6)]);
+    $notHers = Event::factory()->create(['title' => 'Sans elle', 'starts_at' => now()->addDay()]);
+
+    $this->mediator->events()->attach([$passed->id, $later->id, $soon->id, $fourth->id]);
+    $this->mediator->events()->attach($forum, ['role' => EventRole::Speaker->value]);
+
+    $response = $this->actingAs($this->viewer)
+        ->getJson($this->tenantUrl('/api/members/aminata-diallo'))
+        ->assertOk();
+
+    expect(array_column($response->json('data.upcoming_events'), 'title'))->toBe(['Bientôt', 'Forum', 'Plus tard'])
+        ->and($response->json('data.upcoming_events.1'))->toMatchArray([
+            'slug' => $forum->slug,
+            'summary' => 'Un forum.',
+            'place' => 'Paris, France',
+            'role' => ['value' => 'speaker', 'label' => 'Intervenante'],
+        ])
+        ->and($response->json('data.upcoming_events.0.role.label'))->toBe('Participante');
 });

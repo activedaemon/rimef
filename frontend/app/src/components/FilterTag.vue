@@ -14,11 +14,12 @@ defineProps<{ label: string }>();
   height: 26px;
   padding: 0 6px 0 10px;
   border-radius: var(--radius-xs);
-  background: var(--paper);
-  box-shadow: inset 0 0 0 1px var(--border);
+  // Mêmes couleurs que la pilule de filtre active (FilterMenu)
+  background: var(--petrol-light);
+  box-shadow: none;
   font-size: var(--fs-xs);
   font-weight: 400;
-  color: var(--ink-2);
+  color: var(--petrol);
   transition:
     color 0.15s,
     box-shadow 0.15s;
@@ -33,8 +34,7 @@ defineProps<{ label: string }>();
   }
 
   &:hover {
-    box-shadow: inset 0 0 0 1px #cfc8ba;
-    color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--petrol);
   }
 
   &:focus-visible {

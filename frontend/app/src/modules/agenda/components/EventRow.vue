@@ -100,7 +100,7 @@ const to = computed(() => ({ name: 'event', params: { slug: props.event.slug } }
           v-if="!event.is_past"
           size="sm"
           variant="outline"
-          :icon="event.is_participating ? 'check' : undefined"
+          :icon="event.is_participating ? 'check' : 'calendar-plus'"
           :label="event.is_participating ? 'Je participe' : 'J’y participe'"
           :aria-pressed="event.is_participating"
           class="event-row__join"

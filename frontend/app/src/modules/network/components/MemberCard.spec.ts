@@ -91,7 +91,12 @@ describe('MemberCard', () => {
       props: {
         member: {
           ...AMINATA,
-          next_event: { id: 1, title: 'Paris Peace Forum', starts_at: '2026-11-12T08:00:00+00:00' },
+          next_event: {
+            id: 1,
+            slug: 'paris-peace-forum',
+            title: 'Paris Peace Forum',
+            starts_at: '2026-11-12T08:00:00+00:00',
+          },
         },
       },
     });
@@ -99,7 +104,9 @@ describe('MemberCard', () => {
     expect(wrapper.find('.member-card__next').text()).toMatch(
       /Prochainement :\s*Paris Peace Forum/
     );
-    expect(wrapper.find('.member-card__next a').attributes('href')).toBe('/agenda');
+    const link = wrapper.find('.member-card__next a');
+    expect(link.attributes('href')).toBe('/agenda/paris-peace-forum');
+    expect(link.text()).toMatch(/Prochainement :\s*Paris Peace Forum/);
     expect(wrapper.text()).not.toContain('Disponible pour collaboration');
     wrapper.unmount();
   });

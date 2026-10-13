@@ -16,7 +16,6 @@ import {
   monthLabel,
   queryFromRoute,
   routeFromQuery,
-  setParticipation,
   todayKey,
   type AgendaEvent,
   type AgendaQuery,
@@ -116,21 +115,9 @@ export function useAgenda() {
     });
   }
 
-  /** « J'y participe » : affiché tout de suite, annulé si l'API refuse. */
-  async function toggleParticipation(event: AgendaEvent): Promise<void> {
-    const participating = !event.is_participating;
-    applyParticipation(event.id, participating);
-    try {
-      await setParticipation(event.id, participating);
-      notify.success(
-        participating
-          ? `C’est noté : vous participez à « ${event.title} ».`
-          : `Votre participation à « ${event.title} » est retirée.`
-      );
-    } catch (error) {
-      applyParticipation(event.id, !participating);
-      notify.error(extractApiError(error, 'Votre participation n’a pas pu être enregistrée.'));
-    }
+  /** Fenêtre « Ma participation » enregistrée : la ligne et le compteur « Mes événements » suivent. */
+  function onParticipationSaved(event: AgendaEvent, participating: boolean): void {
+    if (event.is_participating !== participating) applyParticipation(event.id, participating);
   }
 
   function applyParticipation(id: number, participating: boolean): void {
@@ -204,7 +191,7 @@ export function useAgenda() {
     setMonth,
     setDay,
     reset,
-    toggleParticipation,
+    onParticipationSaved,
     start: () => Promise.all([load(), loadFilters(query.value.period)]),
   };
 }

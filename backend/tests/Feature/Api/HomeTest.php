@@ -42,14 +42,17 @@ it('gives the featured event with its attendees, photos first, and the participa
         'title' => 'Paris Peace Forum',
         'starts_at' => now()->addMonth(),
         'is_featured' => true,
-        'description' => 'Un espace de dialogue.',
+        'description' => 'Un long texte de présentation.',
+        'summary' => 'Un espace de dialogue.',
     ]);
     $forum->participants()->attach([$withoutPhoto->id, $withPhoto->id, $adminOnly->id, $this->viewer->id]);
 
     $this->getJson($this->tenantUrl('/api/home'))
         ->assertOk()
         ->assertJsonPath('data.featured_event.title', 'Paris Peace Forum')
-        ->assertJsonPath('data.featured_event.description', 'Un espace de dialogue.')
+        ->assertJsonPath('data.featured_event.summary', 'Un espace de dialogue.')
+        ->assertJsonMissingPath('data.featured_event.description')
+        ->assertJsonPath('data.featured_event.photo_url', null)
         ->assertJsonPath('data.featured_event.attendee_count', 3)
         ->assertJsonPath('data.featured_event.is_participating', true)
         ->assertJsonPath('data.featured_event.attendees.0.name', 'Médiatrice Zeta')

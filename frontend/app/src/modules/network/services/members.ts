@@ -16,7 +16,7 @@ export interface Member {
   /** Conversation déjà engagée avec la personne connectée (fenêtre « Nouveau message »). */
   conversation_id: number | null;
   /** Prochain événement auquel elle participe (starts_at en ISO 8601, UTC). */
-  next_event: { id: number; title: string; starts_at: string } | null;
+  next_event: { id: number; slug: string; title: string; starts_at: string } | null;
   photo_url: string | null;
   expertises: string[];
 }
@@ -42,6 +42,25 @@ export interface MemberProfile {
   conversation: { id: number; unread_count: number } | null;
   expertises: string[];
   zones: { code: string; name: string }[];
+  /** Trois prochains événements où elle est inscrite, avec son rôle. */
+  upcoming_events: MemberEvent[];
+}
+
+/** Événement à venir d'une médiatrice (fiche de l'annuaire). */
+export interface MemberEvent {
+  id: number;
+  slug: string;
+  title: string;
+  /** Résumé d'une ligne. */
+  summary: string | null;
+  type: { value: string; label: string } | null;
+  /** ISO 8601, UTC. */
+  starts_at: string;
+  ends_at: string | null;
+  /** « Ville, Pays » ou « En ligne ». */
+  place: string | null;
+  is_online: boolean;
+  role: { value: 'participant' | 'speaker'; label: string };
 }
 
 export interface MemberPage {
