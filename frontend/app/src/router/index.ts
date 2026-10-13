@@ -75,6 +75,7 @@ const routes: RouteRecordRaw[] = [
           title: 'Ressources',
           searchPlaceholder: 'Rechercher une ressource…',
           searchScope: 'ressources',
+          searchInPage: true,
         },
       },
       {

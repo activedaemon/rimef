@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ResourceController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
@@ -86,6 +87,17 @@ Route::middleware([
         Route::delete('/members/{user}/favorite', [MemberController::class, 'unfavorite'])
             ->whereNumber('user')
             ->name('members.unfavorite');
+
+        // Bibliothèque de ressources
+        Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+        Route::get('/resources/filters', [ResourceController::class, 'filters'])->name('resources.filters');
+        Route::get('/resources/voices', [ResourceController::class, 'voices'])->name('resources.voices');
+        Route::put('/resources/{resource}/save', [ResourceController::class, 'save'])
+            ->whereNumber('resource')
+            ->name('resources.save');
+        Route::delete('/resources/{resource}/save', [ResourceController::class, 'unsave'])
+            ->whereNumber('resource')
+            ->name('resources.unsave');
 
         // Messagerie interne
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');

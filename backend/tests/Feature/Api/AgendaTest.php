@@ -172,16 +172,42 @@ it('offers the personal criteria only to a profile that fills them in', function
         ->assertJsonPath('data.toggles', ['my_zones' => false, 'my_themes' => false]);
 });
 
-it('paginates by 10', function () {
+it('paginates by 5', function () {
     foreach (range(1, 11) as $day) {
         agendaEvent("Événement {$day}", "2026-11-{$day} 09:00");
     }
 
     listEvents($this)
         ->assertOk()
-        ->assertJsonCount(10, 'data')
+        ->assertJsonCount(5, 'data')
         ->assertJsonPath('meta.total', 11)
+        ->assertJsonPath('meta.last_page', 3);
+});
+
+it('paginates by 10, 20 or 50 on request, and nothing else', function () {
+    foreach (range(1, 21) as $day) {
+        agendaEvent("Événement {$day}", "2026-11-{$day} 09:00");
+    }
+
+    listEvents($this, ['per_page' => 10])
+        ->assertOk()
+        ->assertJsonCount(10, 'data')
+        ->assertJsonPath('meta.last_page', 3);
+
+    listEvents($this, ['per_page' => 20])
+        ->assertOk()
+        ->assertJsonCount(20, 'data')
+        ->assertJsonPath('meta.per_page', 20)
         ->assertJsonPath('meta.last_page', 2);
+
+    listEvents($this, ['per_page' => 50])
+        ->assertOk()
+        ->assertJsonCount(21, 'data')
+        ->assertJsonPath('meta.last_page', 1);
+
+    listEvents($this, ['per_page' => 1000])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['per_page']);
 });
 
 it('rejects unknown filter values', function () {

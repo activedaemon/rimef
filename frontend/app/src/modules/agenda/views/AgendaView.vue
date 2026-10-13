@@ -23,6 +23,7 @@ import {
   FILTER_LABELS,
   PERIOD_LABELS,
   PERIODS,
+  PER_PAGE_OPTIONS,
   TOGGLE_KEYS,
   TOGGLES,
   groupByMonth,
@@ -124,6 +125,11 @@ const groups = computed(() =>
     : [{ key: '', events: agenda.events.value }]
 );
 
+const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
+  label: `${value} par page`,
+  value,
+}));
+
 // Changement de page : retour en douceur en haut des résultats
 const resultsBar = ref<ComponentPublicInstance | HTMLElement | null>(null);
 
@@ -144,9 +150,14 @@ onMounted(() => void agenda.start());
 <template>
   <q-page class="inner-page">
     <div class="container">
-      <PageIntro title="Agenda" lead="Les rencontres, forums et formations du réseau." leaf />
-
       <div class="agenda-layout">
+        <PageIntro
+          title="Agenda"
+          lead="Les rencontres, forums et formations du réseau."
+          class="agenda-intro"
+          leaf
+        />
+
         <div class="agenda-main">
           <div class="agenda-tabs">
             <q-tabs
@@ -307,7 +318,7 @@ onMounted(() => void agenda.start());
             </div>
 
             <nav
-              v-if="agenda.lastPage.value > 1"
+              v-if="agenda.total.value > PER_PAGE_OPTIONS[0]"
               class="agenda-pager"
               aria-label="Pagination des événements"
             >
@@ -315,9 +326,23 @@ onMounted(() => void agenda.start());
                 Événements <b>{{ agenda.from.value }}–{{ agenda.to.value }}</b> sur
                 {{ agenda.total.value }}
               </p>
+              <q-select
+                :model-value="query.perPage"
+                :options="PER_PAGE_CHOICES"
+                emit-value
+                map-options
+                dense
+                outlined
+                options-dense
+                class="rimef-select agenda-pager__size"
+                aria-label="Nombre d’événements par page"
+                @update:model-value="agenda.setPerPage"
+              />
               <AppPagination
+                v-if="agenda.lastPage.value > 1"
                 :model-value="agenda.page.value"
                 :max="agenda.lastPage.value"
+                class="agenda-pager__pages"
                 @update:model-value="changePage"
               />
             </nav>
@@ -332,7 +357,7 @@ onMounted(() => void agenda.start());
           />
           <QuoteBlock
             variant="card"
-            text="Des rencontres d’aujourd’hui pour un monde de demain."
+            text="Construire, rencontre après rencontre, une communauté de médiatrices francophones."
             class="agenda-quote"
           />
         </aside>
@@ -350,15 +375,25 @@ onMounted(() => void agenda.start());
 </template>
 
 <style lang="scss" scoped>
-// Liste et colonne de droite (calendrier, citation) fixée au défilement
+// Intro et liste à gauche ; colonne de droite (calendrier, citation) dès le haut de la page, à
+// hauteur du titre, fixée au défilement
 .agenda-layout {
   display: grid;
+  grid-template-areas:
+    'intro side'
+    'main side';
   grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 32px;
+  grid-template-rows: auto 1fr;
+  column-gap: 32px;
   align-items: start;
 }
 
+.agenda-intro {
+  grid-area: intro;
+}
+
 .agenda-main {
+  grid-area: main;
   min-width: 0;
 }
 
@@ -366,8 +401,16 @@ onMounted(() => void agenda.start());
   position: sticky;
   top: calc(var(--header-h) + 20px + env(safe-area-inset-top, 0px));
   display: grid;
+  grid-area: side;
   gap: 20px;
-  margin-top: 6px;
+  // Aligné sur le haut du titre (marge haute de l'intro)
+  margin-top: var(--s-8);
+}
+
+// Citation plus longue que sur l'accueil : police réduite, toute la largeur de la carte
+.agenda-side .agenda-quote :deep(.quote-block__text) {
+  max-width: none;
+  font-size: clamp(1.4rem, 1.2rem + 0.6vw, 1.75rem);
 }
 
 // Onglets (maquette .tabs) : soulignement pétrole, compteur atténué
@@ -519,9 +562,10 @@ onMounted(() => void agenda.start());
 }
 
 .agenda-pager {
-  display: flex;
+  // Plage à gauche, taille de page au milieu, pages à droite (comme au Réseau)
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   margin-top: 36px;
   padding-top: 20px;
@@ -537,21 +581,32 @@ onMounted(() => void agenda.start());
       color: var(--ink);
     }
   }
+
+  &__size {
+    min-width: 140px;
+  }
+
+  &__pages {
+    justify-self: end;
+  }
 }
 
-// Tablette : une colonne, calendrier et citation côte à côte au-dessus de la liste
+// Tablette : une colonne, intro puis calendrier et citation côte à côte, puis la liste
 @media (max-width: 1079px) {
   .agenda-layout {
+    grid-template-areas:
+      'intro'
+      'side'
+      'main';
     grid-template-columns: 1fr;
-    gap: 28px;
+    grid-template-rows: auto;
   }
 
   .agenda-side {
     position: static;
-    order: -1;
     grid-template-columns: 1fr 1fr;
     align-items: stretch;
-    margin-top: 0;
+    margin: 0 0 28px;
   }
 }
 
@@ -575,12 +630,20 @@ onMounted(() => void agenda.start());
   }
 
   // Calendrier et citation sous la liste
+  .agenda-layout {
+    grid-template-areas:
+      'intro'
+      'main'
+      'side';
+  }
+
   .agenda-side {
-    order: 0;
     grid-template-columns: 1fr;
+    margin: 28px 0 0;
   }
 
   .agenda-pager {
+    display: flex;
     flex-direction: column;
     gap: 12px;
     margin-top: 28px;

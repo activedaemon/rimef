@@ -55,7 +55,18 @@ describe('agenda query', () => {
       toggles: { favorites: false, my_zones: false, my_themes: false, online: true, crowd: false },
       sort: 'attendees',
       page: 2,
+      perPage: 5,
     });
+  });
+
+  it('reads and writes the page size, 5 by default and nothing else', () => {
+    expect(queryFromRoute({ par_page: '10' }).perPage).toBe(10);
+    expect(queryFromRoute({ par_page: '20' }).perPage).toBe(20);
+    expect(queryFromRoute({ par_page: '50' }).perPage).toBe(50);
+    expect(queryFromRoute({ par_page: '1000' }).perPage).toBe(5);
+    expect(queryFromRoute({}).perPage).toBe(5);
+    expect(routeFromQuery({ ...queryFromRoute({}), perPage: 20 })).toEqual({ par_page: '20' });
+    expect(routeFromQuery(queryFromRoute({}))).toEqual({});
   });
 
   it('falls back to upcoming events by date, and ignores malformed values', () => {

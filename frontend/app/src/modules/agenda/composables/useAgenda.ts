@@ -20,6 +20,7 @@ import {
   type AgendaEvent,
   type AgendaQuery,
   type EventFilters,
+  type PerPage,
   type Period,
 } from '../services/events';
 
@@ -87,6 +88,12 @@ export function useAgenda() {
   function goToPage(page: number, replace = false): void {
     const location = { query: routeFromQuery({ ...query.value, page }) };
     void (replace ? router.replace(location) : router.push(location));
+  }
+
+  /** Nouvelle taille de page : on reste sur la page qui contient le premier événement affiché. */
+  function setPerPage(perPage: PerPage): void {
+    const page = Math.floor((Math.max(from.value, 1) - 1) / perPage) + 1;
+    void router.replace({ query: routeFromQuery({ ...query.value, page, perPage }) });
   }
 
   /** Autre onglet : le mois ou le jour choisi ne vaut que pour l'onglet qu'on quitte. */
@@ -187,6 +194,7 @@ export function useAgenda() {
     activeDay,
     update,
     goToPage,
+    setPerPage,
     setPeriod,
     setMonth,
     setDay,

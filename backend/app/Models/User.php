@@ -124,6 +124,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Ressources de la bibliothèque enregistrées avec le signet.
+     *
+     * @return BelongsToMany<\App\Models\Resource, $this>
+     */
+    public function savedResources(): BelongsToMany
+    {
+        return $this->belongsToMany(Resource::class, 'resource_saves')->withTimestamps();
+    }
+
+    /**
      * Conversations de la messagerie interne.
      *
      * @return BelongsToMany<Conversation, $this>

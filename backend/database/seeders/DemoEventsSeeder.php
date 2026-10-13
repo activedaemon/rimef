@@ -8,12 +8,10 @@ use App\Enums\EventRole;
 use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Expertise;
-use App\Models\User;
+use Database\Seeders\Concerns\DemoAccounts;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * Événements repris de la maquette, avec des participantes de l'annuaire : en environnement
@@ -22,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class DemoEventsSeeder extends Seeder
 {
+    use DemoAccounts;
+
     /**
      * Début et fin à l'heure de Paris ; pays null = en ligne ; thématiques = noms d'expertises ;
      * participantes = adresses de DemoMembersSeeder, sans @example.org.
@@ -39,11 +39,26 @@ class DemoEventsSeeder extends Seeder
         ['title' => 'Atelier régional', 'type' => EventType::Workshop, 'start' => '2026-12-05 09:00', 'end' => null, 'city' => 'Rabat', 'country' => 'MA', 'themes' => ['Gouvernance locale', 'Médiation communautaire'], 'participants' => ['leila.bouzid', 'josiane.mbarga', 'esther.mukendi']],
         ['title' => 'Dialogue interreligieux et cohésion sociale', 'type' => EventType::Training, 'start' => '2027-01-14 15:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Dialogue interreligieux', 'Cohésion sociale'], 'participants' => ['fatou.ndiaye', 'mireille.kouassi']],
         ['title' => 'Forum de Genève sur la médiation', 'type' => EventType::InternationalForum, 'start' => '2027-02-09 09:00', 'end' => '2027-02-11 17:00', 'city' => 'Genève', 'country' => 'CH', 'themes' => ['Médiation internationale', 'Policy & plaidoyer'], 'participants' => ['olivia.caeymaex', 'claire.dubois', 'isabelle.moreau', 'marie.claude.tremblay', 'lina.haddad', 'sarah.mensah']],
+        ['title' => 'Négociation et médiation : les fondamentaux', 'type' => EventType::Training, 'start' => '2026-10-21 14:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Recherche et formation', 'Médiation internationale'], 'participants' => ['sarah.mensah', 'christine.rakoto', 'helene.martin']],
+        ['title' => 'Rencontre des médiatrices du Sahel', 'type' => EventType::Conference, 'start' => '2026-10-29 09:00', 'end' => null, 'city' => 'Niamey', 'country' => 'NE', 'themes' => ['Prévention des conflits', 'Femmes, paix et sécurité'], 'participants' => ['mariam.keita', 'fatima.maiga', 'achta.djibrine.sy', 'aminata.diallo']],
+        ['title' => 'Jeunesse et prévention de la violence', 'type' => EventType::Workshop, 'start' => '2026-11-07 09:00', 'end' => null, 'city' => 'Ouagadougou', 'country' => 'BF', 'themes' => ['Jeunesse et paix', 'Prévention des conflits'], 'participants' => ['marguerite.yoli.bi.kone', 'rokia.coulibaly']],
+        ['title' => 'Médiation et changement climatique', 'type' => EventType::Conference, 'start' => '2026-11-14 09:00', 'end' => null, 'city' => 'Montréal', 'country' => 'CA', 'themes' => ['Prévention des conflits', 'Policy & plaidoyer'], 'participants' => ['marie.claude.tremblay', 'isabelle.moreau', 'nathalie.joseph']],
+        ['title' => 'Forum de la société civile africaine', 'type' => EventType::InternationalForum, 'start' => '2026-11-23 09:00', 'end' => '2026-11-24 18:00', 'city' => 'Addis-Abeba', 'country' => 'ET', 'themes' => ['Société civile', 'Dialogue inclusif'], 'participants' => ['esther.omam', 'grace.uwimana', 'josiane.mbarga', 'catherine.samba.panza']],
+        ['title' => 'Dialogue inclusif et transitions politiques', 'type' => EventType::Workshop, 'start' => '2026-12-01 09:00', 'end' => null, 'city' => 'Bamako', 'country' => 'ML', 'themes' => ['Dialogue inclusif', 'Gouvernance locale'], 'participants' => ['mariam.keita', 'rokia.coulibaly', 'fatima.maiga']],
+        ['title' => 'Gérer les émotions en médiation', 'type' => EventType::Training, 'start' => '2026-12-10 15:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Médiation communautaire', 'Recherche et formation'], 'participants' => ['nathalie.joseph', 'helene.martin']],
+        ['title' => 'Conférence annuelle du RIMeF', 'type' => EventType::Conference, 'start' => '2027-01-22 09:00', 'end' => null, 'city' => 'Paris', 'country' => 'FR', 'themes' => ['Femmes, paix et sécurité', 'Société civile'], 'participants' => ['aminata.diallo', 'fatou.ndiaye', 'claire.dubois', 'delphine.borione', 'kalinda.magloire', 'leila.bouzid', 'grace.uwimana']],
+        ['title' => 'Médiation et ressources naturelles', 'type' => EventType::Workshop, 'start' => '2027-02-18 09:00', 'end' => null, 'city' => 'Antananarivo', 'country' => 'MG', 'themes' => ['Prévention des conflits', 'Gouvernance locale'], 'participants' => ['christine.rakoto', 'sarah.mensah']],
+        ['title' => 'Sommet régional femmes, paix et sécurité', 'type' => EventType::Summit, 'start' => '2027-03-08 09:00', 'end' => '2027-03-09 18:00', 'city' => 'Yaoundé', 'country' => 'CM', 'themes' => ['Femmes, paix et sécurité', 'Policy & plaidoyer'], 'participants' => ['josiane.mbarga', 'esther.omam', 'catherine.samba.panza', 'nelly.godelive.mbangu', 'andree.niyonsaba']],
+        ['title' => 'Médiation numérique et réseaux sociaux', 'type' => EventType::Training, 'start' => '2027-04-06 14:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Recherche et formation', 'Jeunesse et paix'], 'participants' => ['lina.haddad', 'sophie.lambert']],
+        ['title' => 'Forum méditerranéen de la médiation', 'type' => EventType::InternationalForum, 'start' => '2027-05-19 09:00', 'end' => '2027-05-20 18:00', 'city' => 'Marseille', 'country' => 'FR', 'themes' => ['Médiation internationale', 'Dialogue interreligieux'], 'participants' => ['leila.bouzid', 'hanane.el.amrani', 'nadia.benali', 'lina.haddad']],
         // Passés
         ['title' => 'Journée internationale de la paix', 'type' => EventType::Conference, 'start' => '2026-09-21 09:00', 'end' => null, 'city' => 'Abidjan', 'country' => 'CI', 'themes' => ['Cohésion sociale', 'Jeunesse et paix'], 'participants' => ['fatou.ndiaye', 'mireille.kouassi', 'marguerite.yoli.bi.kone', 'aminata.diallo', 'rokia.coulibaly']],
         ['title' => 'Médiation et justice transitionnelle', 'type' => EventType::Workshop, 'start' => '2026-09-08 09:00', 'end' => '2026-09-09 17:00', 'city' => 'Tunis', 'country' => 'TN', 'themes' => ['Médiation et justice'], 'participants' => ['leila.bouzid', 'hanane.el.amrani', 'mariam.keita']],
         ['title' => 'Rédiger un accord de paix', 'type' => EventType::Training, 'start' => '2026-06-17 14:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Recherche et formation', 'Médiation internationale'], 'participants' => ['sarah.mensah', 'christine.rakoto']],
         ['title' => 'Sommet des femmes leaders africaines', 'type' => EventType::Summit, 'start' => '2026-05-12 09:00', 'end' => '2026-05-13 18:00', 'city' => 'Kinshasa', 'country' => 'CD', 'themes' => ['Femmes, paix et sécurité', 'Gouvernance locale'], 'participants' => ['esther.mukendi', 'nelly.godelive.mbangu', 'catherine.samba.panza', 'josiane.mbarga', 'achta.djibrine.sy', 'esther.omam']],
+        ['title' => 'Médiation électorale', 'type' => EventType::Workshop, 'start' => '2026-07-08 09:00', 'end' => null, 'city' => 'Conakry', 'country' => 'GN', 'themes' => ['Gouvernance locale', 'Prévention des conflits'], 'participants' => ['aissatou.bah', 'mariam.keita']],
+        ['title' => 'Leadership féminin et négociation', 'type' => EventType::Training, 'start' => '2026-04-15 14:00', 'end' => null, 'city' => null, 'country' => null, 'themes' => ['Femmes, paix et sécurité', 'Recherche et formation'], 'participants' => ['claire.dubois', 'sophie.lambert']],
+        ['title' => 'Cohésion sociale et médiation en Haïti', 'type' => EventType::Conference, 'start' => '2026-03-20 09:00', 'end' => null, 'city' => 'Port-au-Prince', 'country' => 'HT', 'themes' => ['Cohésion sociale', 'Médiation communautaire'], 'participants' => ['kalinda.magloire', 'nathalie.joseph']],
     ];
 
     /**
@@ -65,6 +80,21 @@ class DemoEventsSeeder extends Seeder
         'Médiation et justice transitionnelle' => 'Deux jours d’atelier sur l’articulation entre médiation et justice transitionnelle.',
         'Rédiger un accord de paix' => 'Une formation en ligne aux étapes clés de la rédaction d’un accord de paix.',
         'Sommet des femmes leaders africaines' => 'Des femmes leaders du continent réunies autour de la gouvernance et de la sécurité.',
+        'Négociation et médiation : les fondamentaux' => 'Une formation en ligne aux bases de la négociation raisonnée et de la conduite d’une médiation.',
+        'Rencontre des médiatrices du Sahel' => 'Les médiatrices du Sahel croisent leurs regards sur la prévention des conflits dans la région.',
+        'Jeunesse et prévention de la violence' => 'Un atelier pour associer les jeunes aux démarches de prévention de la violence.',
+        'Médiation et changement climatique' => 'Une conférence sur les conflits liés au climat et le rôle de la médiation pour les prévenir.',
+        'Forum de la société civile africaine' => 'Deux jours de dialogue entre organisations de la société civile du continent.',
+        'Dialogue inclusif et transitions politiques' => 'Un atelier sur la place du dialogue inclusif dans les transitions politiques.',
+        'Gérer les émotions en médiation' => 'Une formation en ligne pour accueillir et apaiser les émotions des parties en médiation.',
+        'Conférence annuelle du RIMeF' => 'Le rendez-vous annuel des membres du réseau : bilan, perspectives et temps d’échange.',
+        'Médiation et ressources naturelles' => 'Un atelier sur les conflits fonciers et l’accès aux ressources naturelles.',
+        'Sommet régional femmes, paix et sécurité' => 'Décideuses et médiatrices d’Afrique centrale réunies autour de l’agenda femmes, paix et sécurité.',
+        'Médiation numérique et réseaux sociaux' => 'Une formation en ligne aux enjeux des réseaux sociaux dans la prévention des conflits.',
+        'Forum méditerranéen de la médiation' => 'Deux jours d’échanges entre médiatrices des deux rives de la Méditerranée.',
+        'Médiation électorale' => 'Un atelier sur la prévention des tensions avant, pendant et après les élections.',
+        'Leadership féminin et négociation' => 'Une formation en ligne pour renforcer la place des femmes à la table des négociations.',
+        'Cohésion sociale et médiation en Haïti' => 'Une conférence sur la médiation communautaire au service de la cohésion sociale en Haïti.',
     ];
 
     /**
@@ -133,7 +163,7 @@ class DemoEventsSeeder extends Seeder
 
             $event->themes()->sync(collect($data['themes'])->map(fn (string $name): ?int => $themes[$name] ?? null)->filter());
 
-            $members = $this->members($data['participants']);
+            $members = $this->demoMemberIds($data['participants']);
             $event->participants()->sync($members->mapWithKeys(fn (int $id, string $name): array => [$id => [
                 'role' => ($page['attendees'][$name]['role'] ?? EventRole::Participant)->value,
                 'attendance_days' => $page['attendees'][$name]['days'] ?? null,
@@ -149,27 +179,13 @@ class DemoEventsSeeder extends Seeder
     }
 
     /**
-     * Comptes des participantes, par adresse sans @example.org.
-     *
-     * @param  list<string>  $names
-     * @return Collection<string, int>
-     */
-    private function members(array $names): Collection
-    {
-        return User::query()
-            ->whereIn('email', array_map(fn (string $name): string => "{$name}@example.org", $names))
-            ->pluck('id', 'email')
-            ->mapWithKeys(fn (int $id, string $email): array => [Str::before($email, '@') => $id]);
-    }
-
-    /**
      * Remplace le programme de l'événement.
      *
      * @param  list<array{start: string, title: string, detail?: string, speaker?: string, network?: bool}>  $sessions
      */
     private function syncSessions(Event $event, array $sessions): void
     {
-        $speakers = $this->members(array_values(array_filter(array_column($sessions, 'speaker'))));
+        $speakers = $this->demoMemberIds(array_values(array_filter(array_column($sessions, 'speaker'))));
 
         $event->sessions()->delete();
         foreach ($sessions as $session) {

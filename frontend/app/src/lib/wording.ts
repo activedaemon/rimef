@@ -14,3 +14,8 @@ export function mediatorCount(count: number): string {
 export function eventNoun(count: number): string {
   return count > 1 ? 'événements' : 'événement';
 }
+
+/** « ressource » ou « ressources » selon le nombre. */
+export function resourceNoun(count: number): string {
+  return count > 1 ? 'ressources' : 'ressource';
+}
