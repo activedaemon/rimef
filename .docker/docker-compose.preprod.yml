@@ -1,13 +1,18 @@
 # =============================================================================
 # RIMeF - Preprod (recette) sur le serveur Active Daemon
 # =============================================================================
-# Hébergement temporaire, à côté du K3s de Seckup :
+# Hébergement temporaire, derrière le Traefik de Seckup (seul détenteur des
+# ports 80/443 du serveur). Comme activedaemon-site, RIMeF rejoint son réseau
+# `seckup-proxy` et se déclare par des labels ; Traefik émet les certificats.
 #
-#   Internet ─► ingress K3s (TLS cert-manager)  ─► 172.17.0.1:9380  nginx (SPA + API)
-#                                               ─► 172.17.0.1:9381  Mailpit (UI)
+#   Internet ─► Traefik (seckup-traefik) ─► rimef.active-daemon.com       → nginx (SPA + API)
+#                                       ─► mail.rimef.active-daemon.com  → Mailpit (UI)
 #
-# Les ports ne sont publiés que sur l'interface docker0 de l'hôte : rien n'est
-# joignable directement depuis Internet. Le relais K3s est dans infra/k3s/.
+# Aucun port publié sur l'hôte. Sur un futur serveur dédié, surcharger
+# TRAEFIK_NETWORK / TRAEFIK_ENTRYPOINT / TRAEFIK_CERTRESOLVER (compose.env).
+#
+# Sur `seckup-proxy`, des services de Seckup portent les mêmes noms (nginx…) :
+# entre conteneurs RIMeF, on se vise par container_name (rimef-preprod-*).
 #
 # Le code n'est pas dans les images : il est déployé façon Capistrano dans
 # ${RELEASE_ROOT} (releases/, shared/, current →) par infra/scripts/deploy.sh,
@@ -67,7 +72,7 @@ services:
   # ===========================================================================
   # Mailpit : capture de tous les emails (aucun envoi réel)
   # ===========================================================================
-  # UI exposée via l'ingress (mail.rimef.active-daemon.com) : l'authentification
+  # UI exposée par Traefik (mail.rimef.active-daemon.com) : l'authentification
   # est obligatoire, le compose refuse de démarrer sans.
   mailpit:
     image: axllent/mailpit:v1.21
@@ -78,8 +83,6 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
       MP_UI_AUTH: "${MAILPIT_UI_AUTH:?MAILPIT_UI_AUTH requis : Mailpit est exposé, refus de démarrer sans mot de passe}"
-    ports:
-      - "${BIND_IP:-172.17.0.1}:${MAILPIT_PORT:-9381}:8025"
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 10s
@@ -87,6 +90,17 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    networks: [default, proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-seckup-proxy}"
+      - "traefik.http.routers.rimef-preprod-mail.rule=Host(`${MAILPIT_HOST:-mail.rimef.active-daemon.com}`)"
+      - "traefik.http.routers.rimef-preprod-mail.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.rimef-preprod-mail.tls=true"
+      - "traefik.http.routers.rimef-preprod-mail.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt-tls}"
+      # Protection du formulaire de connexion contre les essais en rafale
+      - "traefik.http.routers.rimef-preprod-mail.middlewares=rate-limit@file"
+      - "traefik.http.services.rimef-preprod-mail.loadbalancer.server.port=8025"
 
   # ===========================================================================
   # PHP-FPM (Laravel) et worker de la file d'attente (emails)
@@ -121,8 +135,6 @@ services:
     volumes:
       - "${RELEASE_ROOT:?RELEASE_ROOT requis}:/var/www:ro"
       - ./backend/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "${BIND_IP:-172.17.0.1}:${APP_PORT:-9380}:80"
     depends_on:
       php:
         condition: service_started
@@ -133,6 +145,23 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    networks: [default, proxy]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-seckup-proxy}"
+      - "traefik.http.routers.rimef-preprod.rule=Host(`${PREPROD_HOST:-rimef.active-daemon.com}`)"
+      - "traefik.http.routers.rimef-preprod.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.rimef-preprod.tls=true"
+      - "traefik.http.routers.rimef-preprod.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt-tls}"
+      - "traefik.http.services.rimef-preprod.loadbalancer.server.port=80"
+
+networks:
+  # Réseau interne de la preprod : nginx ↔ php ↔ MySQL ↔ Mailpit
+  default:
+  # Réseau du Traefik (géré par la stack Seckup, jamais créé ici)
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-seckup-proxy}
 
 volumes:
   rimef-preprod-mysql-data:

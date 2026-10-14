@@ -5,9 +5,9 @@
 #   make -f Makefile.prod <cible>
 # Au quotidien, on le pilote depuis le poste : `make preprod-deploy` (SSH).
 #
-# Hébergement temporaire à côté du K3s de Seckup : stack Docker
-# (.docker/docker-compose.preprod.yml) + relais par l'ingress K3s
-# (infra/k3s/rimef-preprod.yaml). Détails : docs/deploiement-preprod.md
+# Hébergement temporaire : stack Docker (.docker/docker-compose.preprod.yml)
+# branchée sur le Traefik de Seckup (réseau seckup-proxy, labels).
+# Détails : docs/deploiement-preprod.md
 # =============================================================================
 
 SHELL := /bin/bash
@@ -19,12 +19,11 @@ PREPROD_REF  ?= main
 PREPROD_HOST ?= rimef.active-daemon.com
 MAILPIT_HOST ?= mail.rimef.active-daemon.com
 GIT_REPO     ?= $(shell git config --get remote.origin.url)
-# `sudo k3s kubectl` si le kubeconfig de K3s n'est pas lisible par l'utilisateur
-KUBECTL      ?= kubectl
+# Réseau du Traefik qui détient les ports 80/443 (stack Seckup)
+TRAEFIK_NETWORK ?= seckup-proxy
 
 COMPOSE_FILE_PATH := $(CURDIR)/.docker/docker-compose.preprod.yml
 ENV_TEMPLATE      := infra/templates/backend.env.preprod.example
-K3S_MANIFEST      := infra/k3s/rimef-preprod.yaml
 COMPOSE := docker compose -p rimef-preprod --env-file $(SHARED)/compose.env -f $(COMPOSE_FILE_PATH)
 
 # Mot de passe alphanumérique (aucun caractère interprété par compose ou sed)
@@ -47,9 +46,10 @@ help: ## Afficher l'aide
 # ---------------------------------------------------------------------------
 # Mise en place (une fois)
 # ---------------------------------------------------------------------------
-preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, relais K3s, 1er déploiement
+preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, 1er déploiement
 	@test ! -L $(PREPROD_ROOT)/current || { echo "✗ Preprod déjà en place : make -f Makefile.prod preprod-deploy"; exit 1; }
 	@command -v docker >/dev/null || { echo "✗ Docker absent du serveur"; exit 1; }
+	@docker network inspect $(TRAEFIK_NETWORK) >/dev/null 2>&1 || { echo "✗ Réseau Traefik '$(TRAEFIK_NETWORK)' introuvable (TRAEFIK_NETWORK=…)"; exit 1; }
 	@echo -e "$(CYAN)[1/6] Arborescence$(NC)"
 	@mkdir -p $(PREPROD_ROOT)/releases $(SHARED)/storage/framework/{cache/data,sessions,views} $(SHARED)/storage/logs
 	@echo -e "$(CYAN)[2/6] Secrets de la stack (compose.env)$(NC)"
@@ -59,19 +59,22 @@ preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, relais K3
 	     echo "MYSQL_PASSWORD=$(random_password)"; \
 	     echo "MYSQL_ROOT_PASSWORD=$(random_password)"; \
 	     echo "MAILPIT_UI_AUTH=rimef:$(random_password)"; \
+	     echo "TRAEFIK_NETWORK=$(TRAEFIK_NETWORK)"; \
+	     echo "PREPROD_HOST=$(PREPROD_HOST)"; echo "MAILPIT_HOST=$(MAILPIT_HOST)"; \
 	   } > $(SHARED)/compose.env; \
 	   chmod 600 $(SHARED)/compose.env; \
 	   echo "  ✓ $(SHARED)/compose.env"; \
 	 else echo "  ↪ déjà présent, conservé"; fi
 	@echo -e "$(CYAN)[3/6] .env Laravel$(NC)"
-	@if [ ! -f $(SHARED)/.env ]; then \
-	   set -a; . $(SHARED)/compose.env; set +a; \
-	   cp $(ENV_TEMPLATE) $(SHARED)/.env; \
-	   sed -i "s|^APP_KEY=.*|APP_KEY=base64:$$(openssl rand -base64 32)|; s|^DB_PASSWORD=.*|DB_PASSWORD=$$MYSQL_PASSWORD|" $(SHARED)/.env; \
-	   chmod 600 $(SHARED)/.env; \
-	   echo "  ✓ $(SHARED)/.env (mots de passe des comptes : à renseigner avant le 1er déploiement si besoin)"; \
+	@# Un .env préparé à l'avance (copie du modèle avec les mots de passe des comptes)
+	@# est conservé : seuls APP_KEY et DB_PASSWORD vides sont complétés.
+	@if [ ! -f $(SHARED)/.env ]; then cp $(ENV_TEMPLATE) $(SHARED)/.env; echo "  ✓ créé depuis le modèle"; \
 	 else echo "  ↪ déjà présent, conservé"; fi
-	@grep -q '^MAIL_HOST=mailpit$$' $(SHARED)/.env || { echo "✗ Garde-fou : le .env n'envoie pas les emails vers Mailpit — arrêt"; exit 1; }
+	@set -a; . $(SHARED)/compose.env; set +a; \
+	 grep -q '^APP_KEY=.\+' $(SHARED)/.env || sed -i "s|^APP_KEY=.*|APP_KEY=base64:$$(openssl rand -base64 32)|" $(SHARED)/.env; \
+	 grep -q '^DB_PASSWORD=.\+' $(SHARED)/.env || sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$$MYSQL_PASSWORD|" $(SHARED)/.env; \
+	 chmod 600 $(SHARED)/.env
+	@grep -q '^MAIL_HOST=rimef-preprod-mailpit$$' $(SHARED)/.env || { echo "✗ Garde-fou : le .env n'envoie pas les emails vers Mailpit — arrêt"; exit 1; }
 	@echo -e "$(CYAN)[4/6] Mot de passe d'accès au site$(NC)"
 	@if [ ! -s $(SHARED)/basic-auth.htpasswd ]; then \
 	   pass="$(random_password)"; \
@@ -80,14 +83,13 @@ preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, relais K3
 	   chmod 644 $(SHARED)/basic-auth.htpasswd; chmod 600 $(SHARED)/basic-auth.txt; \
 	   echo "  ✓ généré (make -f Makefile.prod preprod-credentials)"; \
 	 else echo "  ↪ déjà présent, conservé"; fi
-	@echo -e "$(CYAN)[5/6] Stack Docker + relais K3s$(NC)"
+	@echo -e "$(CYAN)[5/6] Stack Docker (Traefik émet les certificats au démarrage)$(NC)"
 	@$(MAKE) -s -f Makefile.prod preprod-up
 	@for i in $$(seq 1 45); do \
 	   status=$$(docker inspect -f '{{.State.Health.Status}}' rimef-preprod-mysql 2>/dev/null || echo none); \
 	   [ "$$status" = healthy ] && { echo "  ✓ MySQL prêt"; break; }; \
 	   sleep 2; [ $$i -eq 45 ] && { echo "✗ MySQL non prêt (état : $$status)"; exit 1; }; \
 	 done
-	@$(KUBECTL) apply -f $(K3S_MANIFEST)
 	@echo -e "$(CYAN)[6/6] Premier déploiement ($(PREPROD_REF))$(NC)"
 	@$(MAKE) -s -f Makefile.prod preprod-deploy PREPROD_REF=$(PREPROD_REF)
 	@echo -e "$(GREEN)✓ Preprod en ligne : https://$(PREPROD_HOST)$(NC) — emails : https://$(MAILPIT_HOST)"

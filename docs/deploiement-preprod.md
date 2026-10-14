@@ -5,19 +5,24 @@ serveur dédié. Données de démonstration, emails capturés par Mailpit (aucun
 réel), accès protégé par mot de passe et non référencé.
 
 ```
-Internet ─► ingress NGINX du K3s (Seckup) — TLS Let's Encrypt (cert-manager, HTTP-01)
-              │  rimef.active-daemon.com       → 172.17.0.1:9380
-              │  mail.rimef.active-daemon.com  → 172.17.0.1:9381
+Internet ─► Traefik de Seckup (seckup-traefik, ports 80/443, Let's Encrypt TLS-ALPN)
+              │ réseau Docker seckup-proxy, labels des conteneurs RIMeF
+              │  rimef.active-daemon.com       → rimef-preprod-nginx
+              │  mail.rimef.active-daemon.com  → rimef-preprod-mailpit
               ▼
         Stack Docker « rimef-preprod » (.docker/docker-compose.preprod.yml)
           nginx (SPA + /api, mot de passe, noindex) · php-fpm · queue · MySQL · Mailpit
               │ code monté depuis /srv/rimef/preprod/current
 ```
 
+RIMeF se branche sur le Traefik de Seckup comme le site Active Daemon : la
+configuration de Traefik (`/home/ubuntu/seckup/.docker/prod/traefik/`) n'est pas
+modifiée. Entrypoint `websecure`, certresolver `letsencrypt-tls`, middleware
+`rate-limit@file` devant Mailpit.
+
 | Élément | Fichier |
 |---|---|
 | Stack Docker | `.docker/docker-compose.preprod.yml` (+ `php.prod.ini`, `default.prod.conf`) |
-| Relais K3s | `infra/k3s/rimef-preprod.yaml` |
 | Déploiement | `infra/scripts/deploy.sh`, `Makefile.prod` (serveur), cibles `preprod-*` du `Makefile` (poste) |
 | Modèle `.env` | `infra/templates/backend.env.preprod.example` |
 
@@ -51,37 +56,39 @@ L'alias SSH (`PREPROD_SSH`, défaut `active-daemon`) et le dossier du clone
 
 ## Mise en place (une fois)
 
-1. **DNS** (zone active-daemon.com) : `rimef` et `mail.rimef` en A vers `151.80.20.114`.
-2. **Docker** sur le serveur (Engine + plugin Compose), utilisateur `ubuntu` dans le
-   groupe `docker`. Il cohabite avec K3s (containerd) sans conflit.
-3. **Clé de déploiement** en lecture seule sur `activedaemon/rimef` (GitHub → Deploy keys).
+1. **DNS** : rien à faire, le wildcard `*.active-daemon.com` pointe déjà sur le serveur.
+2. **Docker** : déjà en place (stack Seckup), `ubuntu` est dans le groupe `docker`.
+3. **Clé de déploiement** en lecture seule sur `activedaemon/rimef` (GitHub → Deploy keys),
+   déclarée dans `~/.ssh/config` sous l'alias `github-rimef`.
 4. **Clone de l'outillage** :
    ```bash
    sudo mkdir -p /srv/rimef && sudo chown ubuntu:ubuntu /srv/rimef
-   git clone git@github.com:activedaemon/rimef.git /srv/rimef/app
+   git clone github-rimef:activedaemon/rimef.git /srv/rimef/app
    ```
-   Tant que l'outillage n'est pas fusionné dans `main`, faire un `git checkout` de sa
-   branche dans `/srv/rimef/app`.
-5. **Bootstrap**, depuis le poste : `make preprod-bootstrap`
-   (si `kubectl` demande les droits root : `ssh active-daemon` puis
-   `cd /srv/rimef/app && make -f Makefile.prod preprod-bootstrap KUBECTL="sudo k3s kubectl"`).
-
-   Il génère les secrets (`shared/compose.env`, `shared/.env`, mot de passe du site),
-   démarre la stack, applique le relais K3s et fait le premier déploiement.
-   Pour fixer les mots de passe des comptes dès la création, renseigner
-   `RIMEF_SUPERADMIN_PASSWORD` / `RIMEF_OLIVIA_PASSWORD` dans
-   `/srv/rimef/preprod/shared/.env` puis relancer `make preprod-deploy` : le seeder
-   ne modifie jamais le mot de passe d'un compte existant, il faut donc le faire
-   avant le premier déploiement, sinon passer par « Mot de passe oublié » (Mailpit).
+   Les déploiements clonent depuis la même URL (celle du `remote` de ce clone).
+5. **Mots de passe des comptes** (facultatif) : pour les fixer dès la création, préparer
+   le `.env` avant le bootstrap, qui le complète sans l'écraser :
+   ```bash
+   mkdir -p /srv/rimef/preprod/shared
+   cp /srv/rimef/app/infra/templates/backend.env.preprod.example /srv/rimef/preprod/shared/.env
+   # renseigner RIMEF_SUPERADMIN_PASSWORD et RIMEF_OLIVIA_PASSWORD
+   ```
+   Sinon, mot de passe aléatoire puis « Mot de passe oublié » (email dans Mailpit). Le
+   seeder ne modifie jamais le mot de passe d'un compte existant.
+6. **Bootstrap**, depuis le poste : `make preprod-bootstrap`.
+   Il génère les secrets (`shared/compose.env`, `APP_KEY`, mot de passe du site),
+   démarre la stack (Traefik émet alors les certificats) et fait le premier déploiement.
 
 ## Bon à savoir
 
 - **Photos de personnes réelles** : non versionnées, elles sont absentes de la preprod
   (les profils concernés s'affichent sans photo).
 - **`/api/dev/emails`** est disponible (hors `production`), derrière le mot de passe du site.
-- **Vérifier le relais** si le site ne répond pas : `curl -I http://172.17.0.1:9380/nginx-health`
-  sur le serveur, puis `kubectl -n rimef-preprod get ingress,certificate`. Les pods de
-  l'ingress doivent joindre `172.17.0.1` (interface docker0).
-- **Retrait complet** : `kubectl delete -f infra/k3s/rimef-preprod.yaml`, puis
-  `docker compose -p rimef-preprod … down -v` (supprime la base) et `/srv/rimef/preprod`.
-- Sur un serveur dédié, le relais K3s disparaît : un Traefik devant la même stack suffit.
+- **Dépendance** : la preprod passe par le Traefik de Seckup ; s'il redémarre, elle est
+  coupée le temps du redémarrage.
+- **Diagnostic** : `make preprod-ps`, `make -f Makefile.prod preprod-logs` sur le serveur,
+  `docker logs seckup-traefik 2>&1 | grep -i rimef` (routage, certificats).
+- **Retrait complet** : `docker compose -p rimef-preprod --env-file /srv/rimef/preprod/shared/compose.env -f .docker/docker-compose.preprod.yml down -v`
+  (supprime la base), puis `/srv/rimef/preprod`.
+- Sur un serveur dédié : un Traefik propre devant la même stack, en surchargeant
+  `TRAEFIK_NETWORK`, `TRAEFIK_ENTRYPOINT` et `TRAEFIK_CERTRESOLVER` dans `compose.env`.
