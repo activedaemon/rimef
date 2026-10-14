@@ -79,6 +79,11 @@ export const useSession = defineStore('session', () => {
     }
   }
 
+  /** Recharge le compte après une modification (nom, photo du menu du compte). */
+  async function refresh(): Promise<void> {
+    user.value = await fetchCurrentUser();
+  }
+
   /** Session expirée côté serveur : oublie le membre sans appeler l'API. */
   function clear(): void {
     user.value = null;
@@ -95,6 +100,7 @@ export const useSession = defineStore('session', () => {
     bootstrap,
     login,
     logout,
+    refresh,
     clear,
   };
 });

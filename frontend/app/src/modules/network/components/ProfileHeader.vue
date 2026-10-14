@@ -17,6 +17,7 @@ const props = withDefaults(
     profile: ProfileHeaderData;
     badges?: readonly string[];
     badgeTone?: 'sage' | 'petrol';
+    /** Ligne sous le nom quand la fonction n'est pas renseignée. */
     role?: string;
   }>(),
   { badges: () => ['Membre RIMeF'], badgeTone: 'sage', role: 'Médiatrice' }
@@ -65,10 +66,7 @@ const place = computed(() =>
         </q-badge>
       </div>
       <p class="profile-header__role">
-        {{ role
-        }}<template v-if="profile.job_title">
-          <span aria-hidden="true">·</span><em>{{ profile.job_title }}</em>
-        </template>
+        {{ profile.job_title || role }}
       </p>
 
       <ul
@@ -147,16 +145,6 @@ const place = computed(() =>
     font-size: 1.0625rem;
     font-weight: 500;
     color: var(--petrol);
-
-    span {
-      margin-inline: 6px;
-      font-weight: 400;
-      color: var(--muted);
-    }
-
-    em {
-      font-style: normal;
-    }
   }
 
   &__facts {
@@ -257,16 +245,6 @@ const place = computed(() =>
       align-self: start;
       margin-top: 0;
       font-size: var(--fs-sm);
-
-      span {
-        display: none;
-      }
-
-      em {
-        display: block;
-        font-weight: 400;
-        color: var(--ink-2);
-      }
     }
 
     &__facts,

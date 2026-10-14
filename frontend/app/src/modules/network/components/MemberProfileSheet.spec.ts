@@ -42,6 +42,7 @@ const AMINATA: MemberProfile = {
   audiences: 'Femmes, jeunes',
   is_available: false,
   is_favorite: false,
+  links: [],
   conversation: null,
   expertises: ['Médiation communautaire', 'Gouvernance locale'],
   zones: [
@@ -73,9 +74,7 @@ describe('MemberProfileSheet', () => {
     const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile: AMINATA } });
 
     expect(wrapper.find('h1').text()).toBe('Aminata Diallo');
-    expect(wrapper.find('.profile-header__role').text()).toContain(
-      'Conseillère en paix et sécurité'
-    );
+    expect(wrapper.find('.profile-header__role').text()).toBe('Conseillère en paix et sécurité');
     expect(wrapper.find('.profile-header__facts').text()).toContain('Dakar, Sénégal');
     expect(wrapper.find('.profile-header__facts').text()).toContain('Société civile');
     expect(wrapper.find('blockquote').text()).toBe('« Favoriser le dialogue inclusif. »');
@@ -85,7 +84,7 @@ describe('MemberProfileSheet', () => {
       .map((li) => [li.find('b, p').text(), li.find('span').text()]);
     expect(marks).toEqual([
       ['15 ans', 'd’expérience en médiation'],
-      ['2', 'pays d’intervention'],
+      ['2', 'zones d’intervention'],
       ['Femmes, jeunes', 'publics accompagnés'],
     ]);
 
@@ -102,6 +101,7 @@ describe('MemberProfileSheet', () => {
   it('keeps only the identity of an empty profile', async () => {
     const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile: EMPTY } });
 
+    expect(wrapper.find('.profile-header__role').text()).toBe('Médiatrice');
     expect(wrapper.find('.profile-header__facts').exists()).toBe(false);
     expect(wrapper.find('blockquote').exists()).toBe(false);
     expect(wrapper.find('.profile-marks').exists()).toBe(false);
@@ -265,5 +265,32 @@ describe('MemberProfileSheet', () => {
       expect(wrapper.find('.q-tab--active').text()).toBe('Profil');
       wrapper.unmount();
     }
+  });
+
+  it('shows her links, opened in a new tab', async () => {
+    const { wrapper } = await mountApp(MemberProfileSheet, {
+      props: {
+        profile: {
+          ...AMINATA,
+          links: [
+            {
+              type: 'linkedin',
+              label: 'LinkedIn',
+              url: 'https://www.linkedin.com/in/aminata-diallo/',
+            },
+            { type: 'other', label: 'Podcast', url: 'https://podcast.example.org' },
+          ],
+        },
+      },
+    });
+
+    const links = wrapper.findAll('.profile-links a');
+    expect(links.map((link) => link.text())).toEqual([
+      'linkedin.com/in/aminata-diallo (nouvel onglet)',
+      'podcast.example.org (nouvel onglet)',
+    ]);
+    expect(links[0]!.attributes('target')).toBe('_blank');
+    expect(links[0]!.attributes('rel')).toContain('noopener');
+    wrapper.unmount();
   });
 });

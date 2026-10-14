@@ -21,6 +21,12 @@ export interface Member {
   expertises: string[];
 }
 
+export interface MemberLink {
+  type: 'linkedin' | 'website' | 'organization' | 'other';
+  label: string;
+  url: string;
+}
+
 /** Fiche d'une médiatrice (écran Profil médiatrice) ; champs vides tant que le profil n'est pas complété. */
 export interface MemberProfile {
   id: number;
@@ -38,6 +44,8 @@ export interface MemberProfile {
   audiences: string | null;
   is_available: boolean;
   is_favorite: boolean;
+  /** Liens de la fiche (LinkedIn, site personnel, organisation, autre), dans l'ordre d'affichage. */
+  links: MemberLink[];
   /** Conversation avec la personne connectée (onglet Messages), null sans échange. */
   conversation: { id: number; unread_count: number } | null;
   expertises: string[];
