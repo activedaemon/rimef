@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // En-tête de la fiche (fiche ProfileHeader) : portrait orné de deux feuilles, nom, badge, fonction, lieu, région,
 // organisation, citation ; les actions (favori, modifier…) arrivent par le slot « actions ».
+// Un compte d'administration hors annuaire n'a pas de fiche : nom et photo suffisent, badges et rôle se passent en props.
 import { useQuasar } from 'quasar';
 import { computed } from 'vue';
 
@@ -8,7 +9,18 @@ import MemberAvatar from '@/components/MemberAvatar.vue';
 import { LEAF_PATH, leafTransform } from '@/lib/leaf';
 import type { MemberProfile } from '../services/members';
 
-const props = defineProps<{ profile: MemberProfile }>();
+export type ProfileHeaderData = Pick<MemberProfile, 'name' | 'photo_url'> &
+  Partial<Pick<MemberProfile, 'city' | 'country' | 'organization' | 'job_title' | 'tagline'>>;
+
+const props = withDefaults(
+  defineProps<{
+    profile: ProfileHeaderData;
+    badges?: readonly string[];
+    badgeTone?: 'sage' | 'petrol';
+    role?: string;
+  }>(),
+  { badges: () => ['Membre RIMeF'], badgeTone: 'sage', role: 'Médiatrice' }
+);
 
 const $q = useQuasar();
 // Portrait : 176 px sur ordinateur, 148 px sur tablette, 92 px sur téléphone (maquette)
@@ -42,12 +54,19 @@ const place = computed(() =>
     <div class="profile-header__identity">
       <div class="profile-header__name">
         <h1 id="profile-name">{{ profile.name }}</h1>
-        <q-badge class="rimef-badge" color="sage-light" text-color="sage-ink">
-          Membre RIMeF
+        <q-badge
+          v-for="badge in badges"
+          :key="badge"
+          class="rimef-badge"
+          :color="`${badgeTone}-light`"
+          :text-color="badgeTone === 'sage' ? 'sage-ink' : 'petrol'"
+        >
+          {{ badge }}
         </q-badge>
       </div>
       <p class="profile-header__role">
-        Médiatrice<template v-if="profile.job_title">
+        {{ role
+        }}<template v-if="profile.job_title">
           <span aria-hidden="true">·</span><em>{{ profile.job_title }}</em>
         </template>
       </p>

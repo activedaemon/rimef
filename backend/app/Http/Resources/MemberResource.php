@@ -32,7 +32,7 @@ class MemberResource extends JsonResource
                 'code' => $profile->country_code,
                 'name' => DirectoryCatalog::countryName($profile->country_code),
             ],
-            'organization' => $profile?->organization_type?->label(),
+            'organization' => $profile?->organizationLabel(),
             'is_available' => (bool) $profile?->is_available,
             'is_favorite' => (bool) ($this->is_favorite ?? false),
             // Conversation engagée avec la personne connectée (annuaire seulement)

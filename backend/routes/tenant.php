@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResourceController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,13 @@ Route::middleware([
     Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
         Route::get('/user', CurrentUserController::class)->name('user.current');
         Route::get('/home', HomeController::class)->name('home');
+
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])
+            ->middleware('throttle:10,10')
+            ->name('profile.photo.update');
+        Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
 
         Route::get('/events', [EventController::class, 'index'])->name('events.index');
         Route::get('/events/filters', [EventController::class, 'filters'])->name('events.filters');

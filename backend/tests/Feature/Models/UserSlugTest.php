@@ -21,14 +21,14 @@ it('gives namesakes the first free suffix', function () {
         ->toBe(['aminata-diallo', 'aminata-diallo-2', 'aminata-diallo-3']);
 });
 
-it('updates the slug when the name changes, and keeps it otherwise', function () {
+it('keeps the slug when the name changes, so that shared links keep working', function () {
     $user = User::factory()->create(['first_name' => 'Aminata', 'last_name' => 'Diallo']);
 
     $user->update(['email' => 'aminata@example.org']);
     expect($user->slug)->toBe('aminata-diallo');
 
     $user->update(['last_name' => 'Sow']);
-    expect($user->slug)->toBe('aminata-sow');
+    expect($user->slug)->toBe('aminata-diallo');
 });
 
 it('keeps its own slug when the name only changes its accents', function () {

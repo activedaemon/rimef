@@ -14,6 +14,13 @@ import {
   type LoginPayload,
 } from '@modules/auth/services/auth';
 
+// Mêmes libellés que App\Enums\Role côté API
+const ROLE_LABELS = [
+  ['superadmin', 'Superadministrateur'],
+  ['admin', 'Administratrice'],
+  ['member', 'Membre RIMeF'],
+] as const;
+
 export const useSession = defineStore('session', () => {
   const user = ref<AuthenticatedUser | null>(null);
   const bootstrapped = ref(false);
@@ -32,6 +39,11 @@ export const useSession = defineStore('session', () => {
     }
     return isAdmin.value ? 'Administratrice' : 'Membre RIMeF';
   });
+
+  /** Tous les rôles du compte, du plus étendu au plus restreint (carte « Compte » du profil). */
+  const roleLabels = computed(() =>
+    ROLE_LABELS.filter(([role]) => user.value?.roles.includes(role)).map(([, label]) => label)
+  );
 
   function bootstrap(): Promise<void> {
     bootstrapPromise ??= fetchCurrentUser()
@@ -79,6 +91,7 @@ export const useSession = defineStore('session', () => {
     isSuperAdmin,
     isAdmin,
     roleLabel,
+    roleLabels,
     bootstrap,
     login,
     logout,

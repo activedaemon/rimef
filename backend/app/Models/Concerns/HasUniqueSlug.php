@@ -28,7 +28,7 @@ trait HasUniqueSlug
     abstract protected function slugFallback(): string;
 
     /**
-     * Attributs qui, modifiés, font recalculer le slug.
+     * Attributs qui, modifiés, font recalculer le slug ; liste vide = slug figé à la création.
      *
      * @return list<string>
      */
@@ -38,7 +38,10 @@ trait HasUniqueSlug
     {
         static::saving(function (Model $model): void {
             /** @var Model&HasUniqueSlug $model */
-            if ($model->slug === null || $model->isDirty($model->slugDependsOn())) {
+            $sources = $model->slugDependsOn();
+
+            // isDirty([]) vaudrait « un attribut quelconque a changé »
+            if ($model->slug === null || ($sources !== [] && $model->isDirty($sources))) {
                 $model->slug = $model->uniqueSlug();
             }
         });
