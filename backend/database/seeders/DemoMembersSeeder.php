@@ -55,10 +55,9 @@ class DemoMembersSeeder extends Seeder
         ['Christine', 'Rakoto', 'MG', OrganizationType::CivilSociety, false, ['Jeunesse et paix', 'Cohésion sociale']],
         // Rôles cumulés : administratrice et médiatrice.
         ['Isabelle', 'Moreau', 'FR', OrganizationType::Research, true, ['Dialogue inclusif', 'Médiation internationale'], [Role::Admin]],
-        // Administratrice et médiatrice (personne réelle, photo exclue de git).
+        // Administratrice et médiatrice (personne réelle).
         ['Olivia', 'Caeymaex', 'BE', OrganizationType::CivilSociety, false, ['Médiation internationale', 'Policy & plaidoyer'], [Role::Admin]],
-        // Fondatrices du réseau (personnes réelles, profils d'après leurs pages publiques) ;
-        // leurs photos sont exclues de git.
+        // Fondatrices du réseau (personnes réelles, profils d'après leurs pages publiques).
         ['Marie-Joëlle', 'Zahar', 'CA', OrganizationType::Research, false, ['Médiation internationale', 'Recherche et formation', 'Prévention des conflits']],
         ['Achta', 'Djibrine Sy', 'TD', OrganizationType::CivilSociety, false, ['Femmes, paix et sécurité', 'Médiation communautaire', 'Cohésion sociale']],
         ['Nelly Godelive', 'Mbangu', 'CD', OrganizationType::CivilSociety, false, ['Médiation et justice', 'Femmes, paix et sécurité']],
