@@ -1,0 +1,139 @@
+# =============================================================================
+# RIMeF - Preprod (recette) sur le serveur Active Daemon
+# =============================================================================
+# Hébergement temporaire, à côté du K3s de Seckup :
+#
+#   Internet ─► ingress K3s (TLS cert-manager)  ─► 172.17.0.1:9380  nginx (SPA + API)
+#                                               ─► 172.17.0.1:9381  Mailpit (UI)
+#
+# Les ports ne sont publiés que sur l'interface docker0 de l'hôte : rien n'est
+# joignable directement depuis Internet. Le relais K3s est dans infra/k3s/.
+#
+# Le code n'est pas dans les images : il est déployé façon Capistrano dans
+# ${RELEASE_ROOT} (releases/, shared/, current →) par infra/scripts/deploy.sh,
+# et monté sous /var/www. Les images sont celles du dev, avec la conf de prod.
+#
+# Piloté par Makefile.prod (variables dans ${RELEASE_ROOT}/shared/compose.env) :
+#   docker compose -p rimef-preprod --env-file …/compose.env -f docker-compose.preprod.yml …
+# =============================================================================
+
+x-php: &php
+  build:
+    context: ..
+    dockerfile: .docker/backend/php/Dockerfile
+  image: rimef-preprod-php
+  user: "${APP_UID:-1000}:${APP_GID:-1000}"
+  # Le parent monté existe toujours : on cible /var/www/current/... à l'exécution
+  working_dir: /var/www
+  # Court-circuite l'entrypoint de dev (composer install, key:generate) :
+  # en preprod, c'est deploy.sh qui orchestre ces étapes.
+  entrypoint: ["docker-php-entrypoint"]
+  volumes:
+    - "${RELEASE_ROOT:?RELEASE_ROOT requis}:/var/www"
+    - ./backend/php/php.prod.ini:/usr/local/etc/php/conf.d/zz-rimef.ini:ro
+  environment:
+    TZ: UTC
+    COMPOSER_HOME: /tmp/composer
+  depends_on:
+    mysql:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  # ===========================================================================
+  # MySQL 8.4 : base centrale rimef_central + bases tenant rimef_tenant_*
+  # ===========================================================================
+  mysql:
+    image: mysql:8.4.9
+    container_name: rimef-preprod-mysql
+    environment:
+      MYSQL_DATABASE: rimef_central
+      MYSQL_USER: rimef
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?MYSQL_PASSWORD requis}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD requis}"
+      TZ: UTC
+    volumes:
+      - rimef-preprod-mysql-data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/conf.d/rimef.cnf:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Mailpit : capture de tous les emails (aucun envoi réel)
+  # ===========================================================================
+  # UI exposée via l'ingress (mail.rimef.active-daemon.com) : l'authentification
+  # est obligatoire, le compose refuse de démarrer sans.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: rimef-preprod-mailpit
+    environment:
+      TZ: Europe/Paris
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_UI_AUTH: "${MAILPIT_UI_AUTH:?MAILPIT_UI_AUTH requis : Mailpit est exposé, refus de démarrer sans mot de passe}"
+    ports:
+      - "${BIND_IP:-172.17.0.1}:${MAILPIT_PORT:-9381}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ===========================================================================
+  # PHP-FPM (Laravel) et worker de la file d'attente (emails)
+  # ===========================================================================
+  php:
+    <<: *php
+    container_name: rimef-preprod-php
+    command: ["php-fpm"]
+    healthcheck:
+      test: ["CMD-SHELL", "php -v >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Redémarré à chaque déploiement (le worker garde le code en mémoire).
+  # Tant que la première release n'existe pas, il redémarre en boucle : normal.
+  queue:
+    <<: *php
+    container_name: rimef-preprod-queue
+    command: ["php", "/var/www/current/backend/artisan", "queue:work", "--tries=3", "--backoff=10", "--max-time=3600"]
+
+  # ===========================================================================
+  # Nginx : SPA des membres (frontend/app/dist) + API Laravel (/api)
+  # ===========================================================================
+  nginx:
+    build:
+      context: ..
+      dockerfile: .docker/backend/nginx/Dockerfile
+    image: rimef-preprod-nginx
+    container_name: rimef-preprod-nginx
+    volumes:
+      - "${RELEASE_ROOT:?RELEASE_ROOT requis}:/var/www:ro"
+      - ./backend/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${BIND_IP:-172.17.0.1}:${APP_PORT:-9380}:80"
+    depends_on:
+      php:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/nginx-health -o /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  rimef-preprod-mysql-data:
+    name: rimef-preprod-mysql-data

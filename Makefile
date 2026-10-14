@@ -7,7 +7,8 @@
         tenants-seed tenants-migrate tenants-db-seed queue-restart \
         npm npm-sup front-check front-test shell-front shell-sup \
         shell-mysql \
-        logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit logs-queue
+        logs logs-frontend logs-backend logs-mysql logs-traefik logs-mailpit logs-queue \
+        preprod-sync preprod-bootstrap preprod-deploy preprod-rollback preprod-credentials preprod-ps
 
 # Couleurs
 BLUE    := \033[0;34m
@@ -44,6 +45,9 @@ help: ## @main Afficher ce message d'aide
 	@echo ""
 	@echo "$(MAGENTA)Logs :$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## @logs ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## @logs "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(MAGENTA)Preprod (serveur Active Daemon, via SSH) :$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## @preprod ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## @preprod "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
 # ============================================================================
@@ -243,5 +247,34 @@ logs-traefik: ## @logs Voir uniquement les logs de Traefik
 
 logs-mailpit: ## @logs Voir uniquement les logs de Mailpit
 	@$(COMPOSE) logs -f --tail=100 rimef-mailpit
+
+# ============================================================================
+# Preprod — https://rimef.active-daemon.com (pilotage distant via SSH)
+# ============================================================================
+# Exécute les cibles de Makefile.prod dans le clone du dépôt sur le serveur.
+# Détails : docs/deploiement-preprod.md
+
+PREPROD_SSH ?= active-daemon
+PREPROD_DIR ?= /srv/rimef/app
+PREPROD_REF ?= main
+PREPROD_MAKE = cd $(PREPROD_DIR) && make -f Makefile.prod
+
+preprod-sync: ## @preprod Mettre à jour l'outillage sur le serveur (git pull, ne déploie pas)
+	@ssh $(PREPROD_SSH) 'cd $(PREPROD_DIR) && git pull --ff-only'
+
+preprod-bootstrap: preprod-sync ## @preprod Créer la preprod (une fois) : secrets, stack, relais K3s, 1er déploiement
+	@ssh -t $(PREPROD_SSH) '$(PREPROD_MAKE) preprod-bootstrap PREPROD_REF=$(PREPROD_REF)'
+
+preprod-deploy: preprod-sync ## @preprod Déployer sur la preprod (PREPROD_REF=branche, défaut main)
+	@ssh -t $(PREPROD_SSH) '$(PREPROD_MAKE) preprod-deploy PREPROD_REF=$(PREPROD_REF)'
+
+preprod-rollback: ## @preprod Revenir à la release précédente de la preprod
+	@ssh -t $(PREPROD_SSH) '$(PREPROD_MAKE) preprod-rollback'
+
+preprod-credentials: ## @preprod Afficher les accès à la preprod et à son Mailpit
+	@ssh $(PREPROD_SSH) '$(PREPROD_MAKE) -s preprod-credentials'
+
+preprod-ps: ## @preprod État des conteneurs de la preprod
+	@ssh $(PREPROD_SSH) '$(PREPROD_MAKE) -s preprod-ps'
 
 .DEFAULT_GOAL := help

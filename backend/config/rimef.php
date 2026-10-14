@@ -16,6 +16,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Données de démonstration
+    |--------------------------------------------------------------------------
+    |
+    | Médiatrices, événements et ressources fictifs créés par TenantDatabaseSeeder.
+    | Toujours présents en local ; ailleurs, seulement si ce réglage est activé
+    | (instance de recette). Jamais en production réelle.
+    |
+    */
+
+    'demo_data' => (bool) env('RIMEF_DEMO_DATA', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Superadmin
     |--------------------------------------------------------------------------
     |

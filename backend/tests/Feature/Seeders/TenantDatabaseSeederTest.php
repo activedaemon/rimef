@@ -1,9 +1,12 @@
 <?php
 
+use App\Models\Event;
+use App\Models\Resource;
 use App\Models\User;
 use Database\Seeders\TenantDatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\Concerns\WithTenant;
 
@@ -102,6 +105,23 @@ it('restores a team account without changing its password', function () {
         ->and($olivia->is_active)->toBeTrue()
         ->and($olivia->getRoleNames()->sort()->values()->all())->toBe(['admin', 'member'])
         ->and(Hash::check('mot-de-passe-choisi', $olivia->password))->toBeTrue();
+});
+
+it('creates no demo data outside the local environment by default', function () {
+    $this->seed(TenantDatabaseSeeder::class);
+
+    expect(User::where('email', 'like', '%@example.org')->exists())->toBeFalse();
+});
+
+it('creates the demo data outside the local environment when enabled', function () {
+    Storage::fake('local');
+    config(['rimef.demo_data' => true]);
+
+    $this->seed(TenantDatabaseSeeder::class);
+
+    expect(User::where('email', 'like', '%@example.org')->exists())->toBeTrue()
+        ->and(Event::exists())->toBeTrue()
+        ->and(Resource::exists())->toBeTrue();
 });
 
 it('gives a team account a random password when none is configured', function () {
