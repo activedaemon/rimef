@@ -21,8 +21,8 @@ class TenantDatabaseSeeder extends Seeder
             ExpertiseSeeder::class,
         ]);
 
-        // Médiatrices fictives et événements de démonstration : jamais hors du poste de développement.
-        if (app()->environment('local')) {
+        // Médiatrices fictives et événements de démonstration : poste de développement et recette uniquement.
+        if (app()->environment('local') || config('rimef.demo_data')) {
             $this->call([DemoMembersSeeder::class, DemoEventsSeeder::class, DemoResourcesSeeder::class]);
         }
     }

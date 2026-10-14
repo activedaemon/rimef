@@ -1,0 +1,127 @@
+# =============================================================================
+# Makefile.prod — Preprod RIMeF sur le serveur Active Daemon (côté serveur)
+# =============================================================================
+# Lancé sur le serveur, depuis le clone du dépôt (/srv/rimef/app) :
+#   make -f Makefile.prod <cible>
+# Au quotidien, on le pilote depuis le poste : `make preprod-deploy` (SSH).
+#
+# Hébergement temporaire à côté du K3s de Seckup : stack Docker
+# (.docker/docker-compose.preprod.yml) + relais par l'ingress K3s
+# (infra/k3s/rimef-preprod.yaml). Détails : docs/deploiement-preprod.md
+# =============================================================================
+
+SHELL := /bin/bash
+
+SRV_ROOT     ?= /srv/rimef
+PREPROD_ROOT := $(SRV_ROOT)/preprod
+SHARED       := $(PREPROD_ROOT)/shared
+PREPROD_REF  ?= main
+PREPROD_HOST ?= rimef.active-daemon.com
+MAILPIT_HOST ?= mail.rimef.active-daemon.com
+GIT_REPO     ?= $(shell git config --get remote.origin.url)
+# `sudo k3s kubectl` si le kubeconfig de K3s n'est pas lisible par l'utilisateur
+KUBECTL      ?= kubectl
+
+COMPOSE_FILE_PATH := $(CURDIR)/.docker/docker-compose.preprod.yml
+ENV_TEMPLATE      := infra/templates/backend.env.preprod.example
+K3S_MANIFEST      := infra/k3s/rimef-preprod.yaml
+COMPOSE := docker compose -p rimef-preprod --env-file $(SHARED)/compose.env -f $(COMPOSE_FILE_PATH)
+
+# Mot de passe alphanumérique (aucun caractère interprété par compose ou sed)
+define random_password
+$$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | cut -c1-24)
+endef
+
+GREEN := \033[0;32m
+CYAN  := \033[0;36m
+NC    := \033[0m
+
+.PHONY: help preprod-bootstrap preprod-up preprod-deploy preprod-rollback \
+        preprod-credentials preprod-ps preprod-logs preprod-artisan
+
+help: ## Afficher l'aide
+	@echo -e "$(CYAN)RIMeF — Preprod ($(PREPROD_HOST))$(NC)"
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
+	  awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+
+# ---------------------------------------------------------------------------
+# Mise en place (une fois)
+# ---------------------------------------------------------------------------
+preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, relais K3s, 1er déploiement
+	@test ! -L $(PREPROD_ROOT)/current || { echo "✗ Preprod déjà en place : make -f Makefile.prod preprod-deploy"; exit 1; }
+	@command -v docker >/dev/null || { echo "✗ Docker absent du serveur"; exit 1; }
+	@echo -e "$(CYAN)[1/6] Arborescence$(NC)"
+	@mkdir -p $(PREPROD_ROOT)/releases $(SHARED)/storage/framework/{cache/data,sessions,views} $(SHARED)/storage/logs
+	@echo -e "$(CYAN)[2/6] Secrets de la stack (compose.env)$(NC)"
+	@if [ ! -f $(SHARED)/compose.env ]; then \
+	   { echo "RELEASE_ROOT=$(PREPROD_ROOT)"; \
+	     echo "APP_UID=$$(id -u)"; echo "APP_GID=$$(id -g)"; \
+	     echo "MYSQL_PASSWORD=$(random_password)"; \
+	     echo "MYSQL_ROOT_PASSWORD=$(random_password)"; \
+	     echo "MAILPIT_UI_AUTH=rimef:$(random_password)"; \
+	   } > $(SHARED)/compose.env; \
+	   chmod 600 $(SHARED)/compose.env; \
+	   echo "  ✓ $(SHARED)/compose.env"; \
+	 else echo "  ↪ déjà présent, conservé"; fi
+	@echo -e "$(CYAN)[3/6] .env Laravel$(NC)"
+	@if [ ! -f $(SHARED)/.env ]; then \
+	   set -a; . $(SHARED)/compose.env; set +a; \
+	   cp $(ENV_TEMPLATE) $(SHARED)/.env; \
+	   sed -i "s|^APP_KEY=.*|APP_KEY=base64:$$(openssl rand -base64 32)|; s|^DB_PASSWORD=.*|DB_PASSWORD=$$MYSQL_PASSWORD|" $(SHARED)/.env; \
+	   chmod 600 $(SHARED)/.env; \
+	   echo "  ✓ $(SHARED)/.env (mots de passe des comptes : à renseigner avant le 1er déploiement si besoin)"; \
+	 else echo "  ↪ déjà présent, conservé"; fi
+	@grep -q '^MAIL_HOST=mailpit$$' $(SHARED)/.env || { echo "✗ Garde-fou : le .env n'envoie pas les emails vers Mailpit — arrêt"; exit 1; }
+	@echo -e "$(CYAN)[4/6] Mot de passe d'accès au site$(NC)"
+	@if [ ! -s $(SHARED)/basic-auth.htpasswd ]; then \
+	   pass="$(random_password)"; \
+	   printf 'rimef:%s\n' "$$(openssl passwd -apr1 "$$pass")" > $(SHARED)/basic-auth.htpasswd; \
+	   printf 'Site : https://$(PREPROD_HOST)\nIdentifiant : rimef\nMot de passe : %s\n' "$$pass" > $(SHARED)/basic-auth.txt; \
+	   chmod 644 $(SHARED)/basic-auth.htpasswd; chmod 600 $(SHARED)/basic-auth.txt; \
+	   echo "  ✓ généré (make -f Makefile.prod preprod-credentials)"; \
+	 else echo "  ↪ déjà présent, conservé"; fi
+	@echo -e "$(CYAN)[5/6] Stack Docker + relais K3s$(NC)"
+	@$(MAKE) -s -f Makefile.prod preprod-up
+	@for i in $$(seq 1 45); do \
+	   status=$$(docker inspect -f '{{.State.Health.Status}}' rimef-preprod-mysql 2>/dev/null || echo none); \
+	   [ "$$status" = healthy ] && { echo "  ✓ MySQL prêt"; break; }; \
+	   sleep 2; [ $$i -eq 45 ] && { echo "✗ MySQL non prêt (état : $$status)"; exit 1; }; \
+	 done
+	@$(KUBECTL) apply -f $(K3S_MANIFEST)
+	@echo -e "$(CYAN)[6/6] Premier déploiement ($(PREPROD_REF))$(NC)"
+	@$(MAKE) -s -f Makefile.prod preprod-deploy PREPROD_REF=$(PREPROD_REF)
+	@echo -e "$(GREEN)✓ Preprod en ligne : https://$(PREPROD_HOST)$(NC) — emails : https://$(MAILPIT_HOST)"
+	@$(MAKE) -s -f Makefile.prod preprod-credentials
+
+# ---------------------------------------------------------------------------
+# Cycle de vie
+# ---------------------------------------------------------------------------
+preprod-up: ## (Re)démarrer la stack Docker (reconstruit les images si besoin)
+	@test -f $(SHARED)/compose.env || { echo "✗ Preprod non initialisée : make -f Makefile.prod preprod-bootstrap"; exit 1; }
+	@$(COMPOSE) up -d --build
+
+preprod-deploy: preprod-up ## Déployer une release (PREPROD_REF=branche ou tag, défaut main)
+	@RELEASE_ROOT=$(PREPROD_ROOT) COMPOSE_FILE_PATH=$(COMPOSE_FILE_PATH) \
+	  GIT_REPO="$(GIT_REPO)" GIT_REF=$(PREPROD_REF) KEEP_RELEASES=3 \
+	  bash infra/scripts/deploy.sh deploy
+	@echo -e "$(GREEN)✓ https://$(PREPROD_HOST)$(NC)"
+
+preprod-rollback: ## Revenir à la release précédente (sans annuler les migrations)
+	@RELEASE_ROOT=$(PREPROD_ROOT) COMPOSE_FILE_PATH=$(COMPOSE_FILE_PATH) \
+	  bash infra/scripts/deploy.sh rollback
+
+preprod-credentials: ## Afficher les accès au site et à Mailpit
+	@cat $(SHARED)/basic-auth.txt 2>/dev/null || { echo "✗ Preprod non initialisée"; exit 1; }
+	@echo ""
+	@echo "Emails : https://$(MAILPIT_HOST)"
+	@sed -n 's/^MAILPIT_UI_AUTH=\([^:]*\):\(.*\)$$/Identifiant : \1\nMot de passe : \2/p' $(SHARED)/compose.env
+
+preprod-ps: ## État des conteneurs de la preprod
+	@$(COMPOSE) ps
+
+preprod-logs: ## Logs de la preprod (suivi)
+	@$(COMPOSE) logs -f --tail=100
+
+# Usage : make -f Makefile.prod preprod-artisan ARGS="about"
+preprod-artisan: ## Commande artisan sur la release en ligne (ARGS="...")
+	@$(COMPOSE) exec php sh -lc "cd /var/www/current/backend && php artisan $(ARGS)"

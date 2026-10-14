@@ -121,4 +121,10 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 - Serveur MCP **Laravel Boost** : `.mcp.json` à la racine, via `docker exec` (conteneurs démarrés requis).
 - `make down` et `make fresh` suppriment des données : ne jamais les lancer sans accord explicite.
 
-> Déploiement : à définir.
+### Preprod (recette temporaire)
+
+- `https://rimef.active-daemon.com` sur le serveur Active Daemon, à côté du K3s de Seckup : stack Docker `.docker/docker-compose.preprod.yml`, relayée par l'ingress K3s (`infra/k3s/rimef-preprod.yaml`). Détails : `docs/deploiement-preprod.md`.
+- Déploiement façon Capistrano (modèle Fruxa) : `make preprod-deploy` depuis le poste (SSH → `Makefile.prod` → `infra/scripts/deploy.sh`), `PREPROD_REF=branche` pour recetter une branche.
+- `APP_ENV=staging`, données de démo (`RIMEF_DEMO_DATA=true`), emails capturés par Mailpit (`mail.rimef.active-daemon.com`), mot de passe devant tout le site et `noindex`.
+- Proxys de confiance : `TRUSTED_PROXIES` (`config/trustedproxy.php`).
+- Production : serveur dédié, à définir.
