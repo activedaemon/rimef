@@ -11,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Carte de la bibliothèque : type et appel à l'action, titre, source ou autrice, date de
- * publication, durée, thématiques et signet de la personne connectée.
+ * publication, durée, thématiques et favori de la personne connectée.
  *
  * @mixin Resource
  */
@@ -45,7 +45,7 @@ class ResourceResource extends JsonResource
                 'id' => $theme->id,
                 'name' => $theme->name,
             ])->all(),
-            'is_saved' => (bool) ($this->is_saved ?? false),
+            'is_favorite' => (bool) ($this->is_favorite ?? false),
         ];
     }
 }

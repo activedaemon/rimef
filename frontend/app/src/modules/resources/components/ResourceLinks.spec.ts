@@ -16,7 +16,7 @@ const REPORT: ResourceDetail = {
   duration_minutes: null,
   url: null,
   themes: [],
-  is_saved: false,
+  is_favorite: false,
   summary: null,
   pages: 42,
   languages: ['Français'],

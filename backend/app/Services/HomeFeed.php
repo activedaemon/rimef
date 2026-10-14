@@ -6,23 +6,27 @@ namespace App\Services;
 
 use App\Enums\Role;
 use App\Models\Event;
+use App\Models\Resource;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * Contenu de l'accueil : événement à la une, prochains rendez-vous, dernières inscrites.
+ * Contenu de l'accueil : événement à la une, prochains rendez-vous, dernières inscrites,
+ * dernières ressources de la bibliothèque.
  */
 class HomeFeed
 {
     public const VISIBLE_ATTENDEES = 4;
 
-    public const MEETINGS = 3;
+    public const MEETINGS = 2;
 
     public const NEWS = 3;
 
+    public const RESOURCES = 2;
+
     /**
-     * @return array{featured_event: array<string, mixed>|null, meetings: list<array<string, mixed>>, news: list<array<string, mixed>>}
+     * @return array{featured_event: array<string, mixed>|null, meetings: list<array<string, mixed>>, news: list<array<string, mixed>>, resources: list<array<string, mixed>>}
      */
     public function for(User $viewer): array
     {
@@ -51,6 +55,13 @@ class HomeFeed
             ->limit(self::NEWS)
             ->get();
 
+        $resources = Resource::query()
+            ->with('author')
+            ->orderByDesc('published_on')
+            ->orderBy('id')
+            ->limit(self::RESOURCES)
+            ->get();
+
         return [
             'featured_event' => $featured === null ? null : [
                 ...$this->event($featured),
@@ -63,6 +74,19 @@ class HomeFeed
             'news' => $news->map(fn (User $user): array => [
                 ...$this->person($user),
                 'joined_at' => $user->created_at?->toIso8601String(),
+            ])->all(),
+            'resources' => $resources->map(fn (Resource $resource): array => [
+                'id' => $resource->id,
+                'slug' => $resource->slug,
+                'title' => $resource->title,
+                'type' => [
+                    'value' => $resource->type->value,
+                    'label' => $resource->type->label(),
+                    'action' => $resource->type->action(),
+                ],
+                'source' => $resource->source ?? $resource->author?->name,
+                'published_on' => $resource->published_on->toDateString(),
+                'duration_minutes' => $resource->duration_minutes,
             ])->all(),
         ];
     }

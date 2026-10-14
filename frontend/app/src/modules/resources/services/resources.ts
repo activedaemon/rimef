@@ -19,7 +19,7 @@ export interface LibraryResource {
   /** Lien externe (en attendant la fiche ressource). */
   url: string | null;
   themes: { id: number; name: string }[];
-  is_saved: boolean;
+  is_favorite: boolean;
 }
 
 export interface ResourcePage {
@@ -115,7 +115,7 @@ export interface ResourceFilters extends Record<FilterKey, FilterOption[]> {
 }
 
 /** Critères oui / non de « Plus de filtres » (paramètre d'API = la clé). */
-export const TOGGLE_KEYS = ['linked', 'by_member', 'with_event', 'saved'] as const;
+export const TOGGLE_KEYS = ['linked', 'by_member', 'with_event', 'favorites'] as const;
 export type ToggleKey = (typeof TOGGLE_KEYS)[number];
 
 export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: string }> = {
@@ -134,10 +134,10 @@ export const TOGGLES: Record<ToggleKey, { label: string; hint: string; route: st
     hint: 'Présentées ou discutées lors d’une rencontre',
     route: 'evenement',
   },
-  saved: {
-    label: 'Mes ressources enregistrées',
-    hint: 'Marquées d’un signet',
-    route: 'enregistrees',
+  favorites: {
+    label: 'Mes ressources favorites',
+    hint: 'Ressources marquées avec le marque-page',
+    route: 'favoris',
   },
 };
 
@@ -294,13 +294,13 @@ export async function fetchVoices(): Promise<ResourceVoice[]> {
   return data.data;
 }
 
-/** Signet : enregistre la ressource, ou la retire des ressources enregistrées. */
-export async function setSaved(resourceId: number, saved: boolean): Promise<void> {
+/** Marque-page : ajoute la ressource aux favoris, ou l'en retire. */
+export async function setFavorite(resourceId: number, favorite: boolean): Promise<void> {
   await ensureCsrf();
-  if (saved) {
-    await http.put(`/resources/${resourceId}/save`);
+  if (favorite) {
+    await http.put(`/resources/${resourceId}/favorite`);
   } else {
-    await http.delete(`/resources/${resourceId}/save`);
+    await http.delete(`/resources/${resourceId}/favorite`);
   }
 }
 

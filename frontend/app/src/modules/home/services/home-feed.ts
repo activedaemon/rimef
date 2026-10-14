@@ -49,10 +49,23 @@ export interface NetworkNews {
   when: string;
 }
 
+/** Dernière ressource de la bibliothèque (bloc « Ressources à découvrir »). */
+export interface HomeResource {
+  id: number;
+  slug: string;
+  title: string;
+  type: { value: string; label: string; action: string };
+  /** Éditeur, ou autrice médiatrice du réseau. */
+  source: string | null;
+  published_on: string;
+  duration_minutes: number | null;
+}
+
 export interface HomeFeed {
   featuredEvent: FeaturedEvent | null;
   meetings: Meeting[];
   news: NetworkNews[];
+  resources: HomeResource[];
 }
 
 interface ApiPerson {
@@ -83,6 +96,7 @@ interface ApiHome {
     | null;
   meetings: ApiEvent[];
   news: (ApiPerson & { joined_at: string })[];
+  resources: HomeResource[];
 }
 
 const toPerson = (person: ApiPerson): Person => ({
@@ -94,7 +108,7 @@ const toPerson = (person: ApiPerson): Person => ({
 
 export async function fetchHomeFeed(): Promise<HomeFeed> {
   const { data } = await http.get<{ data: ApiHome }>('/home');
-  const { featured_event: featured, meetings, news } = data.data;
+  const { featured_event: featured, meetings, news, resources } = data.data;
 
   return {
     featuredEvent: featured && {
@@ -124,5 +138,6 @@ export async function fetchHomeFeed(): Promise<HomeFeed> {
       action: 'a rejoint le réseau',
       when: daysAgo(item.joined_at),
     })),
+    resources,
   };
 }

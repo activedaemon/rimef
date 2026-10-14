@@ -17,7 +17,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 /**
- * Bibliothèque du réseau (écran Ressources) et signets.
+ * Bibliothèque du réseau (écran Ressources) et favoris.
  */
 class ResourceController extends Controller
 {
@@ -59,21 +59,21 @@ class ResourceController extends Controller
     }
 
     /**
-     * Enregistre la ressource pour la personne connectée (idempotent).
+     * Ajoute la ressource aux favoris de la personne connectée (idempotent).
      */
-    public function save(Request $request, Resource $resource): Response
+    public function favorite(Request $request, Resource $resource): Response
     {
-        $request->user()->savedResources()->syncWithoutDetaching([$resource->getKey()]);
+        $request->user()->favoriteResources()->syncWithoutDetaching([$resource->getKey()]);
 
         return response()->noContent();
     }
 
     /**
-     * Retire la ressource des ressources enregistrées (idempotent).
+     * Retire la ressource des favoris de la personne connectée (idempotent).
      */
-    public function unsave(Request $request, Resource $resource): Response
+    public function unfavorite(Request $request, Resource $resource): Response
     {
-        $request->user()->savedResources()->detach($resource->getKey());
+        $request->user()->favoriteResources()->detach($resource->getKey());
 
         return response()->noContent();
     }

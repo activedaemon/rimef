@@ -49,7 +49,7 @@ onMounted(async () => {
       <div class="home__blocks">
         <UpcomingMeetingsCard :meetings="feed.meetings" />
         <NetworkNewsCard :news="feed.news" />
-        <ResourcesCard class="home__last-block" />
+        <ResourcesCard :resources="feed.resources" class="home__last-block" />
       </div>
 
       <EditorialBand class="home__band" />

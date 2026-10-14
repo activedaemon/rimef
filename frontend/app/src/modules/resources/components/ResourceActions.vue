@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Actions de la fiche ressource (maquette .fr-actions / .fe-dock) : « Consulter la ressource »
-// (lien externe, nouvel onglet), « Enregistrer » (signet) et menu « … » (copier le lien ;
+// (lien externe, nouvel onglet), « Ajouter aux favoris » (marque-page) et menu « … » (copier le lien ;
 // recommander, associer à un événement et signaler affichés désactivés en attendant).
 // - dock : barre fixée en bas sur téléphone, menu ouvert vers le haut.
 import { copyToClipboard } from 'quasar';
@@ -13,11 +13,11 @@ import type { ResourceDetail } from '../services/resources';
 const props = withDefaults(defineProps<{ resource: ResourceDetail; dock?: boolean }>(), {
   dock: false,
 });
-const emit = defineEmits<{ toggleSaved: [] }>();
+const emit = defineEmits<{ toggleFavorite: [] }>();
 
 const notify = useNotify();
 
-// Signet plein (enregistrée) : tracé SVG de l'icône Tabler « bookmark », rempli par Quasar
+// Marque-page plein (favori) : tracé SVG de l'icône Tabler « bookmark », rempli par Quasar
 // (comme sur les cartes)
 const BOOKMARK_FILLED = 'M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z|0 0 24 24';
 
@@ -51,22 +51,18 @@ async function copyLink(): Promise<void> {
 
     <AppButton
       variant="quiet"
-      :icon="resource.is_saved ? BOOKMARK_FILLED : 'bookmark'"
-      :label="dock ? undefined : resource.is_saved ? 'Enregistrée' : 'Enregistrer'"
+      :icon="resource.is_favorite ? BOOKMARK_FILLED : 'bookmark'"
+      :label="dock ? undefined : resource.is_favorite ? 'Dans mes favoris' : 'Ajouter aux favoris'"
       :aria-label="
-        dock
-          ? resource.is_saved
-            ? 'Retirer des ressources enregistrées'
-            : 'Enregistrer'
-          : undefined
+        dock ? (resource.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris') : undefined
       "
-      :aria-pressed="resource.is_saved"
+      :aria-pressed="resource.is_favorite"
       class="resource-actions__save"
       :class="{
-        'resource-actions__save--on': resource.is_saved,
+        'resource-actions__save--on': resource.is_favorite,
         'resource-actions__square': dock,
       }"
-      @click="emit('toggleSaved')"
+      @click="emit('toggleFavorite')"
     />
 
     <AppButton
@@ -114,7 +110,7 @@ async function copyLink(): Promise<void> {
     padding: 0;
   }
 
-  // Enregistrée : pétrole clair, sans bordure (maquette .save-btn[aria-pressed='true'])
+  // Favori : pétrole clair, sans bordure (maquette .save-btn[aria-pressed='true'])
   &__save--on.app-btn {
     border-color: transparent;
     background: var(--petrol-light);

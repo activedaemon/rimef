@@ -100,13 +100,13 @@ class Resource extends Model
     }
 
     /**
-     * Comptes qui l'ont enregistrée (signet).
+     * Comptes qui l'ont mise en favoris (marque-page).
      *
      * @return BelongsToMany<User, $this>
      */
-    public function savers(): BelongsToMany
+    public function favoredBy(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'resource_saves')->withTimestamps();
+        return $this->belongsToMany(User::class, 'resource_favorites')->withTimestamps();
     }
 
     /**

@@ -95,12 +95,12 @@ Route::middleware([
         Route::get('/resources/{resource:slug}', [ResourceController::class, 'show'])
             ->where('resource', '[a-z0-9-]+')
             ->name('resources.show');
-        Route::put('/resources/{resource}/save', [ResourceController::class, 'save'])
+        Route::put('/resources/{resource}/favorite', [ResourceController::class, 'favorite'])
             ->whereNumber('resource')
-            ->name('resources.save');
-        Route::delete('/resources/{resource}/save', [ResourceController::class, 'unsave'])
+            ->name('resources.favorite');
+        Route::delete('/resources/{resource}/favorite', [ResourceController::class, 'unfavorite'])
             ->whereNumber('resource')
-            ->name('resources.unsave');
+            ->name('resources.unfavorite');
 
         // Messagerie interne
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');

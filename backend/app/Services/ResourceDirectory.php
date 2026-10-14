@@ -51,14 +51,14 @@ class ResourceDirectory
     public const EVENT_ATTENDEES = 3;
 
     /**
-     * @param  array{q?: string|null, type?: list<string>, theme?: list<int>, region?: list<string>, language?: list<string>, date?: string|null, linked?: bool, by_member?: bool, with_event?: bool, saved?: bool, sort?: string|null, per_page?: int|string}  $filters
+     * @param  array{q?: string|null, type?: list<string>, theme?: list<int>, region?: list<string>, language?: list<string>, date?: string|null, linked?: bool, by_member?: bool, with_event?: bool, favorites?: bool, sort?: string|null, per_page?: int|string}  $filters
      * @return LengthAwarePaginator<int, \App\Models\Resource>
      */
     public function search(array $filters, User $viewer): LengthAwarePaginator
     {
         $query = Resource::query()
             ->with(['themes', 'author.memberProfile'])
-            ->withExists(['savers as is_saved' => fn (Builder $query) => $query->whereKey($viewer->getKey())]);
+            ->withExists(['favoredBy as is_favorite' => fn (Builder $query) => $query->whereKey($viewer->getKey())]);
 
         $this->applySearch($query, (string) ($filters['q'] ?? ''));
         $this->applyFilters($query, $filters, $viewer);
@@ -122,7 +122,7 @@ class ResourceDirectory
     /**
      * Fiche d'une ressource : autrice, médiatrices liées et avis (médiatrices de l'annuaire
      * seulement, avec pays et expertises), événement associé avec ses premières participantes,
-     * thématiques et signet de $viewer.
+     * thématiques et favori de $viewer.
      */
     public function detail(Resource $resource, User $viewer): Resource
     {
@@ -151,7 +151,7 @@ class ResourceDirectory
                     ->with('memberProfile')]),
         ]);
 
-        $resource->setAttribute('is_saved', $resource->savers()->whereKey($viewer->getKey())->exists());
+        $resource->setAttribute('is_favorite', $resource->favoredBy()->whereKey($viewer->getKey())->exists());
 
         return $resource;
     }
@@ -304,8 +304,8 @@ class ResourceDirectory
             $query->whereNotNull('resources.event_id');
         }
 
-        if (! empty($filters['saved'])) {
-            $query->whereHas('savers', fn (Builder $query) => $query->whereKey($viewer->getKey()));
+        if (! empty($filters['favorites'])) {
+            $query->whereHas('favoredBy', fn (Builder $query) => $query->whereKey($viewer->getKey()));
         }
     }
 

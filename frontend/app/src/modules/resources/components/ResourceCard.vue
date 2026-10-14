@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Carte de la bibliothèque (fiche ResourceCard) : type et signet, titre, source ou autrice
+// Carte de la bibliothèque (fiche ResourceCard) : type et marque-page, titre, source ou autrice
 // médiatrice, date et durée, deux thématiques, appel à l'action. Toute la carte mène à la fiche
 // de la ressource (lien étiré sur le titre).
 import { computed } from 'vue';
@@ -9,9 +9,9 @@ import { resourceMeta, themeTone, type LibraryResource } from '../services/resou
 import ResourceTypeBadge from './ResourceTypeBadge.vue';
 
 const props = defineProps<{ resource: LibraryResource }>();
-const emit = defineEmits<{ toggleSaved: [] }>();
+const emit = defineEmits<{ toggleFavorite: [] }>();
 
-// Signet plein (enregistré) : tracé SVG de l'icône Tabler « bookmark », rempli par Quasar
+// Marque-page plein (favori) : tracé SVG de l'icône Tabler « bookmark », rempli par Quasar
 // (comme le marque-page de MemberCard)
 const BOOKMARK_FILLED = 'M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z|0 0 24 24';
 
@@ -23,7 +23,7 @@ const meta = computed(() => resourceMeta(props.resource).join(' · '));
 const to = computed(() => ({ name: 'resource', params: { slug: props.resource.slug } }));
 
 const saveLabel = computed(() =>
-  props.resource.is_saved ? 'Retirer des ressources enregistrées' : 'Enregistrer cette ressource'
+  props.resource.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'
 );
 </script>
 
@@ -36,12 +36,16 @@ const saveLabel = computed(() =>
         dense
         :ripple="false"
         class="resource-card__save"
-        :class="{ 'resource-card__save--on': resource.is_saved }"
-        :icon="resource.is_saved ? BOOKMARK_FILLED : 'bookmark'"
-        :aria-pressed="resource.is_saved"
+        :class="{ 'resource-card__save--on': resource.is_favorite }"
+        :icon="resource.is_favorite ? BOOKMARK_FILLED : 'bookmark'"
+        :aria-pressed="resource.is_favorite"
         :aria-label="saveLabel"
-        @click="emit('toggleSaved')"
-      />
+        @click="emit('toggleFavorite')"
+      >
+        <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 6]">
+          {{ saveLabel }}
+        </q-tooltip>
+      </q-btn>
     </div>
 
     <h3 class="resource-card__title">
@@ -110,7 +114,7 @@ const saveLabel = computed(() =>
     gap: 8px;
   }
 
-  // Signet cliquable par-dessus le lien étiré de la carte
+  // Marque-page cliquable par-dessus le lien étiré de la carte
   &__save {
     position: relative;
     z-index: 2;

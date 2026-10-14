@@ -1,8 +1,10 @@
 <?php
 
+use App\Enums\ResourceType;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\MemberProfile;
+use App\Models\Resource;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\WithTenant;
@@ -60,11 +62,12 @@ it('gives the featured event with its attendees, photos first, and the participa
         ->assertJsonCount(3, 'data.featured_event.attendees');
 });
 
-it('lists the next meetings, the featured event and past events excluded', function () {
+it('lists the two next meetings, the featured event and past events excluded', function () {
     Event::factory()->create(['title' => 'Passé', 'starts_at' => now()->subDay()]);
     Event::factory()->create(['title' => 'À la une', 'starts_at' => now()->addDay(), 'is_featured' => true]);
     Event::factory()->create(['title' => 'Plus tard', 'starts_at' => now()->addWeeks(2)]);
     Event::factory()->create(['title' => 'Bientôt', 'starts_at' => now()->addWeek()]);
+    Event::factory()->create(['title' => 'Dans un mois', 'starts_at' => now()->addMonth()]);
 
     $this->getJson($this->tenantUrl('/api/home'))
         ->assertJsonPath('data.meetings.*.title', ['Bientôt', 'Plus tard']);
@@ -88,6 +91,22 @@ it('gives the three latest mediators who joined, inactive accounts excluded', fu
 
     $this->getJson($this->tenantUrl('/api/home'))
         ->assertJsonPath('data.news.*.name', ['Médiatrice Quatrieme', 'Médiatrice Deuxieme', 'Médiatrice Premiere']);
+});
+
+it('gives the two latest resources of the library', function () {
+    $mariam = homeMember('Keita');
+    Resource::factory()->create(['title' => 'Ancienne', 'published_on' => '2025-01-10']);
+    Resource::factory()->create(['title' => 'Rapport', 'type' => ResourceType::Report, 'source' => 'Conciliation Resources', 'published_on' => '2026-04-14']);
+    Resource::factory()->create(['title' => 'Podcast', 'type' => ResourceType::Podcast, 'source' => null, 'author_id' => $mariam->id, 'published_on' => '2025-12-09', 'duration_minutes' => 34]);
+    Resource::factory()->create(['title' => 'Analyse', 'published_on' => '2025-09-15']);
+
+    $this->getJson($this->tenantUrl('/api/home'))
+        ->assertOk()
+        ->assertJsonPath('data.resources.*.title', ['Rapport', 'Podcast'])
+        ->assertJsonPath('data.resources.0.type', ['value' => 'report', 'label' => 'Rapport', 'action' => 'Lire'])
+        ->assertJsonPath('data.resources.0.source', 'Conciliation Resources')
+        ->assertJsonPath('data.resources.1.duration_minutes', 34)
+        ->assertJsonPath('data.resources.1.source', $mariam->name);
 });
 
 it('registers and cancels the participation of the viewer', function () {

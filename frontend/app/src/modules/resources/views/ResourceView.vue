@@ -21,7 +21,7 @@ import { useResourcePage } from '../composables/useResourcePage';
 import type { ResourceMediator } from '../services/resources';
 
 const route = useRoute();
-const { resource, loading, notFound, toggleSaved } = useResourcePage(() =>
+const { resource, loading, notFound, toggleFavorite } = useResourcePage(() =>
   typeof route.params.slug === 'string' ? route.params.slug : null
 );
 
@@ -69,7 +69,7 @@ function write(mediator: ResourceMediator): void {
       <div class="container">
         <ResourceHeader :resource="resource">
           <template #actions>
-            <ResourceActions :resource="resource" @toggle-saved="toggleSaved" />
+            <ResourceActions :resource="resource" @toggle-favorite="toggleFavorite" />
           </template>
         </ResourceHeader>
       </div>
@@ -175,7 +175,7 @@ function write(mediator: ResourceMediator): void {
       <ContactDialog v-if="recipient" v-model="contactOpen" :profile="recipient" />
 
       <q-page-sticky v-if="$q.screen.lt.sm" position="bottom" expand class="resource-dock">
-        <ResourceActions :resource="resource" dock @toggle-saved="toggleSaved" />
+        <ResourceActions :resource="resource" dock @toggle-favorite="toggleFavorite" />
       </q-page-sticky>
     </template>
 

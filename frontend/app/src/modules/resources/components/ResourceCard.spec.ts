@@ -20,7 +20,7 @@ const REPORT: LibraryResource = {
     { id: 5, name: 'Médiation internationale' },
     { id: 6, name: 'Troisième thématique' },
   ],
-  is_saved: false,
+  is_favorite: false,
 };
 
 describe('ResourceCard', () => {
@@ -64,14 +64,14 @@ describe('ResourceCard', () => {
 
   it('toggles the bookmark', async () => {
     const { wrapper } = await mountApp(ResourceCard, {
-      props: { resource: { ...REPORT, is_saved: true } },
+      props: { resource: { ...REPORT, is_favorite: true } },
     });
 
     const save = wrapper.find('.resource-card__save');
     expect(save.attributes('aria-pressed')).toBe('true');
-    expect(save.attributes('aria-label')).toBe('Retirer des ressources enregistrées');
+    expect(save.attributes('aria-label')).toBe('Retirer des favoris');
     await save.trigger('click');
-    expect(wrapper.emitted('toggleSaved')).toHaveLength(1);
+    expect(wrapper.emitted('toggleFavorite')).toHaveLength(1);
     wrapper.unmount();
   });
 });

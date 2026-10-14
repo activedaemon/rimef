@@ -242,7 +242,10 @@ onMounted(() => {
           <template v-else>
             <ul class="resources-grid" :class="{ 'resources-grid--busy': library.loading.value }">
               <li v-for="resource in library.resources.value" :key="resource.id">
-                <ResourceCard :resource="resource" @toggle-saved="library.toggleSaved(resource)" />
+                <ResourceCard
+                  :resource="resource"
+                  @toggle-favorite="library.toggleFavorite(resource)"
+                />
               </li>
             </ul>
 

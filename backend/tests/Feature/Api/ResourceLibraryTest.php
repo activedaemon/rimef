@@ -59,7 +59,7 @@ it('requires an open session', function () {
     $this->getJson($this->tenantUrl('/api/resources/filters'))->assertUnauthorized();
     $this->getJson($this->tenantUrl('/api/resources/voices'))->assertUnauthorized();
     $this->getJson($this->tenantUrl('/api/resources/une-ressource'))->assertUnauthorized();
-    $this->putJson($this->tenantUrl('/api/resources/1/save'))->assertUnauthorized();
+    $this->putJson($this->tenantUrl('/api/resources/1/favorite'))->assertUnauthorized();
 });
 
 it('lists the most recent resources first, with their type, source or author, and themes', function () {
@@ -80,7 +80,7 @@ it('lists the most recent resources first, with their type, source or author, an
         ->assertJsonPath('data.0.published_on', '2025-12-09')
         ->assertJsonPath('data.0.duration_minutes', 34)
         ->assertJsonPath('data.0.themes.0.name', 'Femmes, paix et sécurité')
-        ->assertJsonPath('data.0.is_saved', false)
+        ->assertJsonPath('data.0.is_favorite', false)
         ->assertJsonPath('data.1.source', 'RIMeF')
         ->assertJsonPath('data.1.author', null);
 });
@@ -120,20 +120,20 @@ it('filters by type, theme, region, language and date', function () {
     listResources($this, ['date' => '2025'])->assertJsonPath('data.*.title', ['Vidéo mondiale', 'Article Europe']);
 });
 
-it('filters the resources linked to the network, written by a mediator, tied to an event or saved', function () {
+it('filters the resources linked to the network, written by a mediator, tied to an event or in her favorites', function () {
     $fatou = libraryMember('Fatou', 'Ndiaye');
     $byMember = libraryResource('Écrite', '2026-03-01', ['author_id' => $fatou->id]);
     libraryResource('Recommandée', '2026-02-01')->members()->attach($fatou);
     libraryResource('Présentée', '2026-01-01', ['event_id' => Event::factory()->create()->id]);
     libraryResource('Seule', '2025-12-01');
-    $this->viewer->savedResources()->attach($byMember);
+    $this->viewer->favoriteResources()->attach($byMember);
 
     listResources($this, ['linked' => 1])->assertJsonPath('data.*.title', ['Écrite', 'Recommandée']);
     listResources($this, ['by_member' => 1])->assertJsonPath('data.*.title', ['Écrite']);
     listResources($this, ['with_event' => 1])->assertJsonPath('data.*.title', ['Présentée']);
-    listResources($this, ['saved' => 1])
+    listResources($this, ['favorites' => 1])
         ->assertJsonPath('data.*.title', ['Écrite'])
-        ->assertJsonPath('data.0.is_saved', true);
+        ->assertJsonPath('data.0.is_favorite', true);
 });
 
 it('paginates by 9, or 18 and 36 on request, and nothing else', function () {
@@ -200,18 +200,18 @@ it('lists the filter values with their counts, and the size of the library', fun
         ->assertJsonPath('data.total', 2);
 });
 
-it('saves and unsaves a resource, idempotently', function () {
+it('adds a resource to the favorites and removes it, idempotently', function () {
     $resource = libraryResource('Guide', '2026-01-01');
 
-    $this->putJson($this->tenantUrl("/api/resources/{$resource->id}/save"))->assertNoContent();
-    $this->putJson($this->tenantUrl("/api/resources/{$resource->id}/save"))->assertNoContent();
-    expect($this->viewer->savedResources()->count())->toBe(1);
+    $this->putJson($this->tenantUrl("/api/resources/{$resource->id}/favorite"))->assertNoContent();
+    $this->putJson($this->tenantUrl("/api/resources/{$resource->id}/favorite"))->assertNoContent();
+    expect($this->viewer->favoriteResources()->count())->toBe(1);
 
-    $this->deleteJson($this->tenantUrl("/api/resources/{$resource->id}/save"))->assertNoContent();
-    $this->deleteJson($this->tenantUrl("/api/resources/{$resource->id}/save"))->assertNoContent();
-    expect($this->viewer->savedResources()->count())->toBe(0);
+    $this->deleteJson($this->tenantUrl("/api/resources/{$resource->id}/favorite"))->assertNoContent();
+    $this->deleteJson($this->tenantUrl("/api/resources/{$resource->id}/favorite"))->assertNoContent();
+    expect($this->viewer->favoriteResources()->count())->toBe(0);
 
-    $this->putJson($this->tenantUrl('/api/resources/999/save'))->assertNotFound();
+    $this->putJson($this->tenantUrl('/api/resources/999/favorite'))->assertNotFound();
 });
 
 it('gives the latest reviews of active mediators, with the resource and the mediator', function () {
@@ -270,7 +270,7 @@ it('shows the page of a resource with its organization, mediators, event and rel
     $report->members()->attach($inactive, ['role' => ResourceMemberRole::Mentioned->value]);
     ResourceRecommendation::query()->create(['resource_id' => $report->id, 'user_id' => $fatou->id, 'quote' => 'Un rapport précieux.']);
     ResourceRecommendation::query()->create(['resource_id' => $report->id, 'user_id' => $aminata->id, 'quote' => 'Je le recommande.']);
-    $this->viewer->savedResources()->attach($report);
+    $this->viewer->favoriteResources()->attach($report);
 
     libraryResource('Podcast lié', '2025-12-09', ['type' => ResourceType::Podcast], ['Femmes, paix et sécurité']);
     libraryResource('Sans rapport', '2026-05-01', [], ['Multilatéralisme']);
@@ -283,7 +283,7 @@ it('shows the page of a resource with its organization, mediators, event and rel
         ->assertJsonPath('data.languages', ['Français', 'Anglais'])
         ->assertJsonPath('data.region', 'Afrique de l’Ouest')
         ->assertJsonPath('data.organization', ['name' => 'Conciliation Resources', 'detail' => 'Organisation basée à Londres.', 'url' => 'https://www.c-r.org/'])
-        ->assertJsonPath('data.is_saved', true)
+        ->assertJsonPath('data.is_favorite', true)
         ->assertJsonPath('data.mediators.*.name', ['Aminata Diallo', 'Fatou Ndiaye'])
         ->assertJsonPath('data.mediators.0.role', ['value' => 'contributor', 'label' => 'Contributrice'])
         ->assertJsonPath('data.mediators.0.note', 'Citée au chapitre 3.')

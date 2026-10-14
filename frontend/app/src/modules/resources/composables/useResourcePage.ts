@@ -1,11 +1,11 @@
 // Fiche d'une ressource : chargement par slug (rechargée quand il change), état « introuvable »,
-// signet affiché tout de suite, annulé si l'API refuse.
+// favori affiché tout de suite, annulé si l'API refuse.
 import { isAxiosError } from 'axios';
 import { onBeforeUnmount, ref, watch, type WatchSource } from 'vue';
 
 import { useNotify } from '@/composables/useNotify';
 import { extractApiError } from '@/lib/http';
-import { fetchResource, setSaved, type ResourceDetail } from '../services/resources';
+import { fetchResource, setFavorite, type ResourceDetail } from '../services/resources';
 
 export function useResourcePage(slug: WatchSource<string | null | undefined>) {
   const notify = useNotify();
@@ -37,25 +37,25 @@ export function useResourcePage(slug: WatchSource<string | null | undefined>) {
     }
   }
 
-  async function toggleSaved(): Promise<void> {
+  async function toggleFavorite(): Promise<void> {
     const current = resource.value;
     if (!current) return;
 
-    const saved = !current.is_saved;
-    current.is_saved = saved;
+    const favorite = !current.is_favorite;
+    current.is_favorite = favorite;
     try {
-      await setSaved(current.id, saved);
+      await setFavorite(current.id, favorite);
       notify.success(
-        saved ? 'Ressource enregistrée.' : 'Ressource retirée de vos ressources enregistrées.'
+        favorite ? 'Ressource ajoutée à vos favoris.' : 'Ressource retirée de vos favoris.'
       );
     } catch (error) {
-      current.is_saved = !saved;
-      notify.error(extractApiError(error, 'Le signet n’a pas pu être enregistré. Réessayez.'));
+      current.is_favorite = !favorite;
+      notify.error(extractApiError(error, 'Le favori n’a pas pu être enregistré. Réessayez.'));
     }
   }
 
   watch(slug, load, { immediate: true });
   onBeforeUnmount(() => controller?.abort());
 
-  return { resource, loading, notFound, toggleSaved };
+  return { resource, loading, notFound, toggleFavorite };
 }
