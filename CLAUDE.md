@@ -123,7 +123,7 @@ Lancement depuis `App/` : `make start` (voir `make help`).
 
 ### Preprod (recette temporaire)
 
-- `https://rimef.active-daemon.com` sur le serveur Active Daemon, à côté du K3s de Seckup : stack Docker `.docker/docker-compose.preprod.yml`, relayée par l'ingress K3s (`infra/k3s/rimef-preprod.yaml`). Détails : `docs/deploiement-preprod.md`.
+- `https://rimef.active-daemon.com` sur le serveur Active Daemon : stack Docker `.docker/docker-compose.preprod.yml` branchée sur le Traefik de Seckup (réseau `seckup-proxy`, labels, certresolver `letsencrypt-tls`), sans modifier sa configuration. Entre conteneurs RIMeF, se viser par `container_name` (`rimef-preprod-*`) : le réseau de Traefik contient des services homonymes de Seckup. Détails : `docs/deploiement-preprod.md`.
 - Déploiement façon Capistrano (modèle Fruxa) : `make preprod-deploy` depuis le poste (SSH → `Makefile.prod` → `infra/scripts/deploy.sh`), `PREPROD_REF=branche` pour recetter une branche.
 - `APP_ENV=staging`, données de démo (`RIMEF_DEMO_DATA=true`), emails capturés par Mailpit (`mail.rimef.active-daemon.com`), mot de passe devant tout le site et `noindex`.
 - Proxys de confiance : `TRUSTED_PROXIES` (`config/trustedproxy.php`).

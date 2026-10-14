@@ -262,7 +262,7 @@ PREPROD_MAKE = cd $(PREPROD_DIR) && make -f Makefile.prod
 preprod-sync: ## @preprod Mettre à jour l'outillage sur le serveur (git pull, ne déploie pas)
 	@ssh $(PREPROD_SSH) 'cd $(PREPROD_DIR) && git pull --ff-only'
 
-preprod-bootstrap: preprod-sync ## @preprod Créer la preprod (une fois) : secrets, stack, relais K3s, 1er déploiement
+preprod-bootstrap: preprod-sync ## @preprod Créer la preprod (une fois) : secrets, stack Docker, 1er déploiement
 	@ssh -t $(PREPROD_SSH) '$(PREPROD_MAKE) preprod-bootstrap PREPROD_REF=$(PREPROD_REF)'
 
 preprod-deploy: preprod-sync ## @preprod Déployer sur la preprod (PREPROD_REF=branche, défaut main)
