@@ -51,7 +51,7 @@ Chaque déploiement : clone → `composer --no-dev` → build Vite (conteneur no
 jetable) → `migrate`, `TenantSeeder`, `tenants:migrate`, `tenants:seed`
 (relançables) → `optimize` → bascule de `current` → redémarrage de php et du worker.
 
-L'alias SSH (`PREPROD_SSH`, défaut `active-daemon`) et le dossier du clone
+L'alias SSH (`PREPROD_SSH`, défaut `activedaemon`) et le dossier du clone
 (`PREPROD_DIR`, défaut `/srv/rimef/app`) se surchargent à l'appel.
 
 ## Mise en place (une fois)
