@@ -33,6 +33,55 @@ export interface ResourcePage {
   };
 }
 
+/** Médiatrice liée à une ressource (fiche) : autrice, contributrice, citée ou qui la recommande. */
+export interface ResourceMediator {
+  id: number;
+  slug: string;
+  name: string;
+  first_name: string;
+  photo_url: string | null;
+  country: string | null;
+  expertise: string | null;
+  /** null : elle la recommande seulement (quote). */
+  role: { value: 'author' | 'contributor' | 'mentioned'; label: string } | null;
+  note: string | null;
+  quote: string | null;
+}
+
+/** Fiche d'une ressource : la carte de la bibliothèque et ses détails. */
+export interface ResourceDetail extends LibraryResource {
+  summary: string | null;
+  pages: number | null;
+  languages: string[];
+  /** Libellé de la région, « Monde » sans région. */
+  region: string;
+  organization: { name: string; detail: string | null; url: string | null } | null;
+  mediators: ResourceMediator[];
+  event: {
+    id: number;
+    slug: string;
+    title: string;
+    /** ISO 8601, UTC. */
+    starts_at: string;
+    ends_at: string | null;
+    place: string | null;
+    /** Ce qui relie la ressource à l'événement. */
+    note: string | null;
+    attendee_count: number;
+    attendees: { id: number; slug: string; name: string; photo_url: string | null }[];
+  } | null;
+  /** Dans la même thématique. */
+  related: {
+    id: number;
+    slug: string;
+    title: string;
+    type: { value: string; label: string };
+    source: string | null;
+    published_on: string;
+    duration_minutes: number | null;
+  }[];
+}
+
 /** Avis d'une médiatrice (bandeau « Lues et partagées par les médiatrices »). */
 export interface ResourceVoice {
   id: number;
@@ -231,6 +280,14 @@ export async function fetchResourceFilters(): Promise<ResourceFilters> {
   };
 }
 
+export async function fetchResource(slug: string, signal?: AbortSignal): Promise<ResourceDetail> {
+  const { data } = await http.get<{ data: ResourceDetail }>(
+    `/resources/${encodeURIComponent(slug)}`,
+    { signal }
+  );
+  return data.data;
+}
+
 /** Derniers avis des médiatrices. */
 export async function fetchVoices(): Promise<ResourceVoice[]> {
   const { data } = await http.get<{ data: ResourceVoice[] }>('/resources/voices');
@@ -245,6 +302,19 @@ export async function setSaved(resourceId: number, saved: boolean): Promise<void
   } else {
     await http.delete(`/resources/${resourceId}/save`);
   }
+}
+
+/** Mois de publication, durée et nombre de pages : « Avril 2026 · 34 min ». */
+export function resourceMeta(resource: {
+  published_on: string;
+  duration_minutes: number | null;
+  pages?: number | null;
+}): string[] {
+  return [
+    publishedLabel(resource.published_on),
+    resource.duration_minutes ? `${resource.duration_minutes} min` : null,
+    resource.pages ? `${resource.pages} pages` : null,
+  ].filter((item): item is string => item !== null);
 }
 
 /** « 2026-04-14 » → « Avril 2026 ». */

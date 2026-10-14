@@ -17,6 +17,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -130,12 +131,14 @@ class EventDirectory
 
     /**
      * Fiche d'un événement : toutes les médiatrices de l'annuaire qui y participent (intervenantes
-     * d'abord), le programme avec ses intervenantes, et la participation de $viewer.
+     * d'abord), le programme avec ses intervenantes, les ressources liées et la participation de
+     * $viewer.
      */
     public function detail(Event $event, User $viewer): Event
     {
         $event->load([
             'themes',
+            'resources' => fn (HasMany $query) => $query->with('author')->orderByDesc('published_on')->orderBy('id'),
             'sessions.speaker.memberProfile',
             'sessions.speaker.roles',
             'participants' => fn (BelongsToMany $query) => $this->listed($query)

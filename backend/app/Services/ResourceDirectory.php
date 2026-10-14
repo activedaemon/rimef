@@ -16,7 +16,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Str;
 
@@ -40,6 +43,12 @@ class ResourceDirectory
 
     /** Avis affichés dans le bandeau « Lues et partagées par les médiatrices ». */
     public const VOICES = 3;
+
+    /** Ressources de « Dans la même thématique » (fiche). */
+    public const RELATED = 3;
+
+    /** Avatars des participantes de l'événement associé (fiche, « +X » pour les autres). */
+    public const EVENT_ATTENDEES = 3;
 
     /**
      * @param  array{q?: string|null, type?: list<string>, theme?: list<int>, region?: list<string>, language?: list<string>, date?: string|null, linked?: bool, by_member?: bool, with_event?: bool, saved?: bool, sort?: string|null, per_page?: int|string}  $filters
@@ -108,6 +117,88 @@ class ResourceDirectory
             ],
             'total' => $resources->count(),
         ];
+    }
+
+    /**
+     * Fiche d'une ressource : autrice, médiatrices liées et avis (médiatrices de l'annuaire
+     * seulement, avec pays et expertises), événement associé avec ses premières participantes,
+     * thématiques et signet de $viewer.
+     */
+    public function detail(Resource $resource, User $viewer): Resource
+    {
+        $profile = fn (Relation $query) => $query->with('memberProfile.expertises');
+
+        $resource->load([
+            'themes',
+            'author' => fn (BelongsTo $query) => $profile($this->listed($query)),
+            'members' => fn (BelongsToMany $query) => $profile($this->listed($query))
+                ->orderBy('users.last_name')
+                ->orderBy('users.first_name'),
+            'recommendations' => fn (HasMany $query) => $query
+                ->whereHas('member', fn (Builder $query) => $this->listed($query))
+                ->with('member.memberProfile.expertises')
+                ->latest()
+                ->orderByDesc('id'),
+            'event' => fn (BelongsTo $query) => $query
+                ->withCount(['participants as attendee_count' => fn (Builder $query) => $this->listed($query)])
+                ->with(['participants' => fn (BelongsToMany $query) => $this->listed($query)
+                    ->leftJoin('member_profiles', 'member_profiles.user_id', '=', 'users.id')
+                    ->select('users.*')
+                    // Les participantes avec photo d'abord, comme sur l'Agenda
+                    ->orderByRaw('member_profiles.photo_path IS NULL')
+                    ->orderBy('users.last_name')
+                    ->limit(self::EVENT_ATTENDEES)
+                    ->with('memberProfile')]),
+        ]);
+
+        $resource->setAttribute('is_saved', $resource->savers()->whereKey($viewer->getKey())->exists());
+
+        return $resource;
+    }
+
+    /**
+     * Autres ressources qui partagent une thématique avec $resource, les plus récentes d'abord.
+     *
+     * @return Collection<int, \App\Models\Resource>
+     */
+    public function related(Resource $resource, int $limit = self::RELATED): Collection
+    {
+        $themes = $resource->themes()->pluck('expertises.id');
+
+        if ($themes->isEmpty()) {
+            return new Collection;
+        }
+
+        return Resource::query()
+            ->whereKeyNot($resource->getKey())
+            ->whereHas('themes', fn (Builder $query) => $query->whereIn('expertises.id', $themes))
+            ->with('author')
+            ->orderByDesc('published_on')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Contributions d'une médiatrice (fiche membre) : ressources qu'elle a écrites ou auxquelles
+     * elle est liée (contributrice, citée), les plus récentes d'abord, avec son lien et
+     * l'événement associé.
+     *
+     * @return Collection<int, \App\Models\Resource>
+     */
+    public function contributionsOf(User $member): Collection
+    {
+        return Resource::query()
+            ->where(fn (Builder $query) => $query
+                ->where('resources.author_id', $member->getKey())
+                ->orWhereHas('members', fn (Builder $query) => $query->whereKey($member->getKey())))
+            ->with([
+                'event',
+                'members' => fn (BelongsToMany $query) => $query->whereKey($member->getKey()),
+            ])
+            ->orderByDesc('published_on')
+            ->orderBy('id')
+            ->get();
     }
 
     /**
@@ -226,12 +317,12 @@ class ResourceDirectory
     /**
      * Médiatrices de l'annuaire : comptes actifs ayant le rôle member.
      *
-     * @template TQuery of Builder|BelongsToMany
+     * @template TQuery of Builder|Relation
      *
      * @param  TQuery  $query
      * @return TQuery
      */
-    private function listed(Builder|BelongsToMany $query): Builder|BelongsToMany
+    private function listed(Builder|Relation $query): Builder|Relation
     {
         return $query->role(Role::Member->value)->where('users.is_active', true);
     }

@@ -1,18 +1,15 @@
 <script setup lang="ts">
 // En-tête de la fiche (maquette .fe-head) : photo avec la pastille date (visuel aux couleurs de
-// la charte sans photo), titre, type et statut, dates et lieu, aperçu des médiatrices présentes
-// (ouvre l'onglet « Médiatrices présentes ») ; les actions arrivent par le slot « actions ».
+// la charte sans photo), titre, type et statut, dates et lieu ; les actions arrivent par le slot
+// « actions ». Les médiatrices présentes sont dans le bloc du réseau et leur onglet.
 import { computed, ref, watch } from 'vue';
 
 import DateTile from '@/components/DateTile.vue';
-import MemberAvatar from '@/components/MemberAvatar.vue';
 import { dayAndMonth, formatDateRange } from '@/lib/dates';
 import { LEAF_PATH, leafTransform } from '@/lib/leaf';
-import { mediatorNoun } from '@/lib/wording';
 import { STATUS_LABELS, type EventDetail } from '../services/events';
 
 const props = defineProps<{ event: EventDetail }>();
-const emit = defineEmits<{ showPeople: [] }>();
 
 const photoFailed = ref(false);
 watch(
@@ -30,18 +27,6 @@ const dates = computed(() => formatDateRange(props.event.starts_at, props.event.
 const place = computed(() => [props.event.venue, props.event.place].filter(Boolean).join(', '));
 
 const isPast = computed(() => props.event.status === 'past');
-const preview = computed(() => props.event.attendees.slice(0, 3));
-const peopleText = computed(() => {
-  const count = props.event.attendee_count;
-  const verb = isPast.value
-    ? count > 1
-      ? 'y ont participé'
-      : 'y a participé'
-    : count > 1
-      ? 'y participent'
-      : 'y participe';
-  return `${mediatorNoun(count)} du réseau ${verb}`;
-});
 </script>
 
 <template>
@@ -104,29 +89,6 @@ const peopleText = computed(() => {
           <span>{{ place }}</span>
         </li>
       </ul>
-
-      <q-btn
-        v-if="event.attendee_count"
-        unelevated
-        no-caps
-        :ripple="false"
-        class="event-header__people"
-        @click="emit('showPeople')"
-      >
-        <span class="event-header__stack" aria-hidden="true">
-          <MemberAvatar
-            v-for="person in preview"
-            :key="person.id"
-            :name="person.name"
-            :photo="person.photo_url"
-            :size="30"
-          />
-        </span>
-        <span class="event-header__people-text">
-          <b>{{ event.attendee_count }}</b> {{ peopleText }}
-        </span>
-        <q-icon name="arrow-right" size="15px" aria-hidden="true" />
-      </q-btn>
     </div>
 
     <div v-if="$slots.actions" class="event-header__actions">
@@ -228,54 +190,6 @@ const peopleText = computed(() => {
     }
   }
 
-  // Aperçu « du réseau » (maquette .fe-net) : pilule paper, avatars, nombre en pétrole
-  &__people.q-btn {
-    min-height: 0;
-    margin-top: 18px;
-    padding: 8px 14px 8px 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    background: var(--paper);
-    font-size: var(--fs-sm);
-    font-weight: 400;
-    color: var(--ink-2);
-    text-align: left;
-
-    :deep(.q-focus-helper) {
-      display: none;
-    }
-
-    :deep(.q-btn__content) {
-      flex-wrap: nowrap;
-      gap: 12px;
-    }
-
-    &:hover {
-      border-color: var(--border-hover);
-    }
-
-    b {
-      font-weight: 600;
-      color: var(--petrol);
-    }
-
-    .q-icon {
-      color: var(--petrol);
-    }
-  }
-
-  &__stack {
-    display: flex;
-
-    > * + * {
-      margin-left: -8px;
-    }
-
-    :deep(.member-avatar) {
-      box-shadow: 0 0 0 2px var(--paper);
-    }
-  }
-
   &__actions {
     padding-top: 70px;
   }
@@ -312,12 +226,6 @@ const peopleText = computed(() => {
     &__actions {
       display: none;
     }
-  }
-}
-
-@media (min-width: 720px) {
-  .event-header__people-text {
-    white-space: nowrap;
   }
 }
 </style>

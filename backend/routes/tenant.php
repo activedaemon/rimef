@@ -92,6 +92,9 @@ Route::middleware([
         Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
         Route::get('/resources/filters', [ResourceController::class, 'filters'])->name('resources.filters');
         Route::get('/resources/voices', [ResourceController::class, 'voices'])->name('resources.voices');
+        Route::get('/resources/{resource:slug}', [ResourceController::class, 'show'])
+            ->where('resource', '[a-z0-9-]+')
+            ->name('resources.show');
         Route::put('/resources/{resource}/save', [ResourceController::class, 'save'])
             ->whereNumber('resource')
             ->name('resources.save');

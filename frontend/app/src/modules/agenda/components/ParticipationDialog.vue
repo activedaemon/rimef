@@ -58,21 +58,26 @@ function fill(attendance: Attendance | null | undefined, wantsToMeet: boolean): 
   meet.value = wantsToMeet || props.presetMeet;
 }
 
-watch(open, async (value) => {
-  if (!value) return;
-  fill(props.attendance, props.wantsToMeet);
-  if (!props.participating || props.attendance !== undefined) return;
+// Immédiat : la fenêtre peut être créée déjà ouverte (Agenda, accueil : v-if au premier clic)
+watch(
+  open,
+  async (value) => {
+    if (!value) return;
+    fill(props.attendance, props.wantsToMeet);
+    if (!props.participating || props.attendance !== undefined) return;
 
-  loading.value = true;
-  try {
-    const event = await fetchEvent(props.event.slug);
-    fill(event.attendance, event.wants_to_meet);
-  } catch {
-    // Préremplissage par défaut : tous les jours, sans note
-  } finally {
-    loading.value = false;
-  }
-});
+    loading.value = true;
+    try {
+      const event = await fetchEvent(props.event.slug);
+      fill(event.attendance, event.wants_to_meet);
+    } catch {
+      // Préremplissage par défaut : tous les jours, sans note
+    } finally {
+      loading.value = false;
+    }
+  },
+  { immediate: true }
+);
 
 const canSave = computed(() => days.value.length > 0 && !saving.value && !loading.value);
 

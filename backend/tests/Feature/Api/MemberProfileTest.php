@@ -2,10 +2,14 @@
 
 use App\Enums\EventRole;
 use App\Enums\OrganizationType;
+use App\Enums\ResourceMemberRole;
+use App\Enums\ResourceType;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
+use App\Models\Resource;
+use App\Models\ResourceRecommendation;
 use App\Models\User;
 use App\Services\Messaging;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -167,4 +171,28 @@ it('gives the next three events of the mediator, with her role, past events excl
             'role' => ['value' => 'speaker', 'label' => 'Intervenante'],
         ])
         ->and($response->json('data.upcoming_events.0.role.label'))->toBe('Participante');
+});
+
+it('lists the contributions of a mediator, with her part and the related event', function () {
+    $forum = Event::factory()->create(['title' => 'Paris Peace Forum']);
+    Resource::factory()->create(['title' => 'Écrite', 'type' => ResourceType::Article, 'source' => null, 'author_id' => $this->mediator->id, 'published_on' => '2025-11-18']);
+    Resource::factory()->create(['title' => 'Contribution', 'type' => ResourceType::Report, 'published_on' => '2026-04-14', 'event_id' => $forum->id])
+        ->members()->attach($this->mediator, ['role' => ResourceMemberRole::Contributor->value]);
+    Resource::factory()->create(['title' => 'Citée', 'type' => ResourceType::Podcast, 'published_on' => '2025-12-09', 'duration_minutes' => 34])
+        ->members()->attach($this->mediator, ['role' => ResourceMemberRole::Mentioned->value]);
+    $recommended = Resource::factory()->create(['title' => 'Recommandée', 'published_on' => '2026-05-01']);
+    ResourceRecommendation::query()->create(['resource_id' => $recommended->id, 'user_id' => $this->mediator->id, 'quote' => 'À lire.']);
+    Resource::factory()->create(['title' => 'Sans elle', 'published_on' => '2026-06-01']);
+
+    $this->actingAs($this->viewer)
+        ->getJson($this->tenantUrl('/api/members/aminata-diallo'))
+        ->assertOk()
+        ->assertJsonPath('data.resources.*.title', ['Contribution', 'Citée', 'Écrite'])
+        ->assertJsonPath('data.resources.0.role', ['value' => 'contributor', 'label' => 'Contributrice'])
+        ->assertJsonPath('data.resources.0.type', ['value' => 'report', 'label' => 'Rapport', 'action' => 'Lire'])
+        ->assertJsonPath('data.resources.0.event', ['slug' => $forum->slug, 'title' => 'Paris Peace Forum'])
+        ->assertJsonPath('data.resources.1.role.label', 'Citée')
+        ->assertJsonPath('data.resources.1.duration_minutes', 34)
+        ->assertJsonPath('data.resources.2.role', ['value' => 'author', 'label' => 'Autrice'])
+        ->assertJsonPath('data.resources.2.event', null);
 });

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListResourcesRequest;
+use App\Http\Resources\ResourceDetailResource;
 use App\Http\Resources\ResourceRecommendationResource;
 use App\Http\Resources\ResourceResource;
 use App\Models\Resource;
@@ -44,6 +45,17 @@ class ResourceController extends Controller
     public function voices(): AnonymousResourceCollection
     {
         return ResourceRecommendationResource::collection($this->directory->voices());
+    }
+
+    /**
+     * Fiche d'une ressource, retrouvée par son slug (/ressources/women-mediators-and-inclusive-peace-processes).
+     */
+    public function show(Request $request, Resource $resource): ResourceDetailResource
+    {
+        $resource = $this->directory->detail($resource, $request->user());
+        $resource->setRelation('related', $this->directory->related($resource));
+
+        return new ResourceDetailResource($resource);
     }
 
     /**

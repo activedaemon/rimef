@@ -66,8 +66,10 @@ watch(page, async () => {
 <style lang="scss" scoped>
 .app-pagination {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
 
   // Survols de la charte à la place du voile gris de Quasar
   :deep(.q-focus-helper) {
@@ -81,8 +83,8 @@ watch(page, async () => {
 
   // Précédent / Suivant discrets : texte seul, comme les numéros non sélectionnés
   &__step {
-    min-height: 44px;
-    padding: 0 10px;
+    min-height: 32px;
+    padding: 0 8px;
     border-radius: var(--radius-xs);
     background: transparent;
     font-size: var(--fs-sm);
@@ -118,13 +120,16 @@ watch(page, async () => {
 
   // Numéros : texte ink-2, page en cours pleine en pétrole
   &__numbers :deep(.q-pagination__middle) {
-    gap: 4px;
+    flex-wrap: nowrap;
+    gap: 2px;
 
     > .q-btn {
-      min-width: 44px;
-      min-height: 44px;
+      // Quasar écrit padding, min-width et min-height en style en ligne sur chaque numéro
+      // (3px 2px, 2em, 0) : seul !important les remplace
+      min-width: 32px !important;
+      min-height: 32px !important;
       margin: 0;
-      padding: 0 8px;
+      padding: 0 4px !important;
       border: 1px solid transparent;
       border-radius: var(--radius-xs);
       font-size: var(--fs-sm);
@@ -148,8 +153,8 @@ watch(page, async () => {
 
     // Points de suspension : simple texte atténué
     > .q-btn.disabled {
-      min-width: 20px;
-      padding: 0;
+      min-width: 20px !important;
+      padding: 0 !important;
       opacity: 1 !important;
       color: var(--muted);
     }
@@ -175,6 +180,11 @@ watch(page, async () => {
 
     &__status {
       display: block;
+    }
+
+    // Zone tactile de 44 px sur téléphone
+    &__step {
+      min-height: 44px;
     }
   }
 }

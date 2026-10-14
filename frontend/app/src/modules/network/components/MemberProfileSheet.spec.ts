@@ -49,6 +49,7 @@ const AMINATA: MemberProfile = {
     { code: 'ML', name: 'Mali' },
   ],
   upcoming_events: [],
+  resources: [],
 };
 
 const EMPTY: MemberProfile = {
@@ -109,17 +110,14 @@ describe('MemberProfileSheet', () => {
     wrapper.unmount();
   });
 
-  it('shows the three tabs, without upcoming events', async () => {
+  it('shows only the Profile tab without events, resources or conversation', async () => {
     const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile: AMINATA } });
 
     const tabs = wrapper.findAll('.q-tab');
-    expect(tabs.map((tab) => tab.text())).toEqual(['Profil', 'Événements', 'Ressources']);
+    expect(tabs.map((tab) => tab.text())).toEqual(['Profil']);
     expect(wrapper.find('.side-card__empty').text()).toBe(
       'Aucun événement à venir pour le moment.'
     );
-
-    await tabs[1]!.trigger('click');
-    expect(wrapper.text()).toContain('Aucun événement à venir');
     wrapper.unmount();
   });
 
@@ -178,6 +176,62 @@ describe('MemberProfileSheet', () => {
     wrapper.unmount();
   });
 
+  it('lists her contributions in the side card and in the Resources tab', async () => {
+    const report = {
+      id: 1,
+      slug: 'women-mediators',
+      title: 'Women Mediators',
+      type: { value: 'report', label: 'Rapport', action: 'Lire' },
+      source: 'Conciliation Resources',
+      published_on: '2026-04-14',
+      duration_minutes: null,
+      role: { value: 'contributor' as const, label: 'Contributrice' },
+      event: { slug: 'paris-peace-forum-2026', title: 'Paris Peace Forum' },
+    };
+    const profile: MemberProfile = {
+      ...AMINATA,
+      resources: [
+        report,
+        {
+          ...report,
+          id: 2,
+          slug: 'paroles',
+          title: 'Paroles',
+          published_on: '2025-12-09',
+          event: null,
+        },
+        {
+          ...report,
+          id: 3,
+          slug: 'guide',
+          title: 'Guide',
+          published_on: '2025-10-06',
+          event: null,
+        },
+      ],
+    };
+    const { wrapper } = await mountApp(MemberProfileSheet, { props: { profile } });
+
+    const side = wrapper.findAll('.profile-side .resource-row');
+    expect(side).toHaveLength(2);
+    expect(side[0]!.find('h3 a').attributes('href')).toBe('/ressources/women-mediators');
+    expect(side[0]!.find('.resource-row__facts').text()).toBe('Rapport · Avril 2026');
+
+    const tabs = wrapper.findAll('.q-tab');
+    // Sans événement à venir : Profil, puis Ressources
+    expect(tabs.map((item) => item.text())).toEqual(['Profil', 'Ressources3']);
+    await tabs[1]!.trigger('click');
+    const rows = wrapper.findAll('.profile-resources.profile-list__rows .resource-row');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]!.find('.eyebrow').text()).toBe('Rapport · Avril 2026 · Contributrice');
+    expect(rows[0]!.find('.resource-row__note a').attributes('href')).toBe(
+      '/agenda/paris-peace-forum-2026'
+    );
+    expect(rows[0]!.find('.resource-row__action').text()).toBe('Lire');
+    expect(rows[1]!.find('.resource-row__note').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('adds the Messages tab only when a conversation exists, with its unread messages', async () => {
     const withConversation = { ...AMINATA, conversation: { id: 3, unread_count: 2 } };
     const { wrapper, router } = await mountApp(MemberProfileSheet, {
@@ -186,11 +240,11 @@ describe('MemberProfileSheet', () => {
     });
 
     const tabs = wrapper.findAll('.q-tab');
-    expect(tabs).toHaveLength(4);
-    expect(tabs[3]!.attributes('aria-label')).toBe('Messages, 2 non lus');
-    expect(tabs[3]!.find('.profile-tabs__badge').text()).toBe('2');
+    expect(tabs).toHaveLength(2);
+    expect(tabs[1]!.attributes('aria-label')).toBe('Messages, 2 non lus');
+    expect(tabs[1]!.find('.profile-tabs__badge').text()).toBe('2');
 
-    await tabs[3]!.trigger('click');
+    await tabs[1]!.trigger('click');
     await flushPromises();
 
     expect(router.currentRoute.value.query.onglet).toBe('messages');
@@ -201,13 +255,15 @@ describe('MemberProfileSheet', () => {
     wrapper.unmount();
   });
 
-  it('opens the tab given in the URL, but not Messages without a conversation', async () => {
-    const { wrapper } = await mountApp(MemberProfileSheet, {
-      path: '/reseau/aminata-diallo?onglet=messages',
-      props: { profile: AMINATA },
-    });
+  it('opens the tab given in the URL, but not a hidden one', async () => {
+    for (const onglet of ['messages', 'evenements', 'ressources']) {
+      const { wrapper } = await mountApp(MemberProfileSheet, {
+        path: `/reseau/aminata-diallo?onglet=${onglet}`,
+        props: { profile: AMINATA },
+      });
 
-    expect(wrapper.find('.q-tab--active').text()).toBe('Profil');
-    wrapper.unmount();
+      expect(wrapper.find('.q-tab--active').text()).toBe('Profil');
+      wrapper.unmount();
+    }
   });
 });

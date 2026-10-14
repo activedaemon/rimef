@@ -4,7 +4,6 @@
 // ouvert dans l'URL, ?onglet=programme), colonne d'informations pratiques. Sur téléphone, les
 // actions passent dans une barre fixée au-dessus de la barre d'onglets. L'enveloppe d'une
 // médiatrice ouvre la fenêtre de message sur place, sans quitter la fiche.
-// Les ressources ne sont pas encore reliées aux événements : l'onglet affiche un message d'attente.
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -17,6 +16,7 @@ import EventAttendeeCard from '../components/EventAttendeeCard.vue';
 import EventHeader from '../components/EventHeader.vue';
 import EventNetwork from '../components/EventNetwork.vue';
 import EventProgram from '../components/EventProgram.vue';
+import EventResources from '../components/EventResources.vue';
 import EventSide from '../components/EventSide.vue';
 import ParticipationDialog from '../components/ParticipationDialog.vue';
 import { useEventPage } from '../composables/useEventPage';
@@ -109,14 +109,17 @@ const peopleTitle = computed(() => {
 </script>
 
 <template>
-  <q-page class="inner-page event-page" :class="{ 'event-page--docked': event }">
+  <q-page
+    class="inner-page event-page"
+    :class="{ 'event-page--docked': event && event.status !== 'past' }"
+  >
     <div class="container">
       <BackLink :to="{ name: 'agenda' }" label="Retour à l’agenda" class="event-page__back" />
     </div>
 
     <template v-if="event">
       <div class="container">
-        <EventHeader :event="event" @show-people="showPeople">
+        <EventHeader :event="event">
           <template #actions>
             <EventActions :event="event" @participate="participate()" />
           </template>
@@ -144,7 +147,13 @@ const peopleTitle = computed(() => {
                 Médiatrices présentes<span class="event-tabs__count">({{ attendees.length }})</span>
               </span>
             </q-tab>
-            <q-tab name="ressources" label="Ressources liées" />
+            <q-tab name="ressources">
+              <span class="q-tab__label">
+                Ressources liées<span v-if="event.resources.length" class="event-tabs__count"
+                  >({{ event.resources.length }})</span
+                >
+              </span>
+            </q-tab>
           </q-tabs>
         </div>
       </div>
@@ -184,65 +193,60 @@ const peopleTitle = computed(() => {
           </q-tab-panel>
 
           <q-tab-panel name="programme" class="event-body__main">
-            <q-card flat tag="article" class="rimef-card event-card">
-              <EventProgram v-if="event.program.length" :days="event.program" />
-              <EmptyState
-                v-else
-                icon="list-details"
-                title="Le programme n’est pas encore disponible"
-                text="Il sera affiché ici dès sa publication."
-              />
+            <q-card v-if="event.program.length" flat tag="article" class="rimef-card event-card">
+              <EventProgram :days="event.program" />
             </q-card>
+            <EmptyState
+              v-else
+              icon="list-details"
+              title="Le programme n’est pas encore disponible"
+              text="Il sera affiché ici dès sa publication."
+            />
           </q-tab-panel>
 
           <q-tab-panel name="mediatrices" class="event-body__main">
-            <q-card flat tag="article" class="rimef-card event-card">
-              <template v-if="attendees.length">
-                <div class="event-people__toolbar">
-                  <h2>{{ peopleTitle }}</h2>
-                  <q-btn-toggle
-                    v-if="hasSpeakers"
-                    v-model="roleFilter"
-                    :options="ROLE_OPTIONS"
-                    no-caps
-                    unelevated
-                    :ripple="false"
-                    class="event-people__filter"
-                    aria-label="Filtrer par rôle"
-                  />
-                </div>
-                <ul class="event-people__grid">
-                  <li v-for="person in shownAttendees" :key="person.id">
-                    <EventAttendeeCard
-                      :attendee="person"
-                      :event-days="allDays"
-                      full
-                      @write="write"
-                    />
-                  </li>
-                </ul>
-              </template>
-              <EmptyState
-                v-else
-                icon="users-group"
-                title="Aucune médiatrice du réseau pour le moment"
-                :text="
-                  event.status === 'past'
-                    ? 'Aucune médiatrice du réseau n’y a participé.'
-                    : 'Indiquez que vous y participez pour que le réseau le sache.'
-                "
-              />
+            <q-card v-if="attendees.length" flat tag="article" class="rimef-card event-card">
+              <div class="event-people__toolbar">
+                <h2>{{ peopleTitle }}</h2>
+                <q-btn-toggle
+                  v-if="hasSpeakers"
+                  v-model="roleFilter"
+                  :options="ROLE_OPTIONS"
+                  no-caps
+                  unelevated
+                  :ripple="false"
+                  class="event-people__filter"
+                  aria-label="Filtrer par rôle"
+                />
+              </div>
+              <ul class="event-people__grid">
+                <li v-for="person in shownAttendees" :key="person.id">
+                  <EventAttendeeCard :attendee="person" :event-days="allDays" full @write="write" />
+                </li>
+              </ul>
             </q-card>
+            <EmptyState
+              v-else
+              icon="users-group"
+              title="Aucune médiatrice du réseau pour le moment"
+              :text="
+                event.status === 'past'
+                  ? 'Aucune médiatrice du réseau n’y a participé.'
+                  : 'Indiquez que vous y participez pour que le réseau le sache.'
+              "
+            />
           </q-tab-panel>
 
           <q-tab-panel name="ressources" class="event-body__main">
-            <q-card flat tag="article" class="rimef-card event-card">
-              <EmptyState
-                icon="book"
-                title="Les ressources arrivent bientôt"
-                text="Rapports, articles et podcasts liés à cet événement seront affichés ici."
-              />
+            <q-card v-if="event.resources.length" flat tag="article" class="rimef-card event-card">
+              <EventResources :resources="event.resources" />
             </q-card>
+            <EmptyState
+              v-else
+              icon="book"
+              title="Aucune ressource liée pour le moment"
+              text="Les rapports, articles et podcasts présentés lors de cet événement seront affichés ici."
+            />
           </q-tab-panel>
         </q-tab-panels>
 
@@ -261,7 +265,12 @@ const peopleTitle = computed(() => {
 
       <ContactDialog v-if="recipient" v-model="contactOpen" :profile="recipient" />
 
-      <q-page-sticky v-if="$q.screen.lt.sm" position="bottom" expand class="event-dock">
+      <q-page-sticky
+        v-if="$q.screen.lt.sm && event.status !== 'past'"
+        position="bottom"
+        expand
+        class="event-dock"
+      >
         <EventActions :event="event" dock @participate="participate()" />
       </q-page-sticky>
     </template>

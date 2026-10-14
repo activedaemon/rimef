@@ -16,6 +16,7 @@ const ROUTE_NAMES = [
   ['/', 'home'],
   ['/reseau/:slug', 'member'],
   ['/agenda/:slug', 'event'],
+  ['/ressources/:slug', 'resource'],
   ['/messages', 'messages'],
   ['/messages/:id', 'conversation'],
   ['/recherche', 'search'],

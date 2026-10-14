@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Carte de la bibliothèque (fiche ResourceCard) : type et signet, titre, source ou autrice
-// médiatrice, date et durée, deux thématiques, appel à l'action. Toute la carte ouvre la
-// ressource (lien étiré sur le titre, nouvel onglet) en attendant la fiche ressource.
+// médiatrice, date et durée, deux thématiques, appel à l'action. Toute la carte mène à la fiche
+// de la ressource (lien étiré sur le titre).
 import { computed } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
-import { publishedLabel, themeTone, type LibraryResource } from '../services/resources';
+import { resourceMeta, themeTone, type LibraryResource } from '../services/resources';
 import ResourceTypeBadge from './ResourceTypeBadge.vue';
 
 const props = defineProps<{ resource: LibraryResource }>();
@@ -19,14 +19,8 @@ const MAX_THEMES = 2;
 
 const themes = computed(() => props.resource.themes.slice(0, MAX_THEMES));
 
-const meta = computed(() =>
-  [
-    publishedLabel(props.resource.published_on),
-    props.resource.duration_minutes ? `${props.resource.duration_minutes} min` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-);
+const meta = computed(() => resourceMeta(props.resource).join(' · '));
+const to = computed(() => ({ name: 'resource', params: { slug: props.resource.slug } }));
 
 const saveLabel = computed(() =>
   props.resource.is_saved ? 'Retirer des ressources enregistrées' : 'Enregistrer cette ressource'
@@ -34,12 +28,7 @@ const saveLabel = computed(() =>
 </script>
 
 <template>
-  <q-card
-    flat
-    tag="article"
-    class="rimef-card resource-card"
-    :class="{ 'resource-card--link': resource.url }"
-  >
+  <q-card flat tag="article" class="rimef-card resource-card">
     <div class="resource-card__top">
       <ResourceTypeBadge :type="resource.type" />
       <q-btn
@@ -56,10 +45,7 @@ const saveLabel = computed(() =>
     </div>
 
     <h3 class="resource-card__title">
-      <a v-if="resource.url" :href="resource.url" target="_blank" rel="noopener noreferrer">
-        {{ resource.title }}
-      </a>
-      <template v-else>{{ resource.title }}</template>
+      <router-link :to="to">{{ resource.title }}</router-link>
     </h3>
 
     <p v-if="resource.author" class="resource-card__source">
@@ -82,7 +68,7 @@ const saveLabel = computed(() =>
       </li>
     </ul>
 
-    <div v-if="resource.url" class="resource-card__foot" aria-hidden="true">
+    <div class="resource-card__foot" aria-hidden="true">
       <span
         class="resource-card__cta"
         :class="{ 'resource-card__cta--listen': resource.type.value === 'podcast' }"
@@ -106,7 +92,7 @@ const saveLabel = computed(() =>
     border-color 0.2s,
     box-shadow 0.2s;
 
-  &--link:hover {
+  &:hover {
     border-color: var(--card-hover-border);
     box-shadow: var(--shadow-hover);
   }
@@ -181,7 +167,7 @@ const saveLabel = computed(() =>
     }
   }
 
-  &--link:hover &__title a {
+  &:hover &__title a {
     color: var(--petrol-dark);
   }
 
@@ -275,7 +261,7 @@ const saveLabel = computed(() =>
     transition: transform 0.2s;
   }
 
-  &--link:hover &__go {
+  &:hover &__go {
     transform: translateX(3px);
   }
 }

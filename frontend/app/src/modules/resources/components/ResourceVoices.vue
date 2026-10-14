@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Bandeau « Lues et partagées par les médiatrices » (maquette Ressources .voices) : les derniers
-// avis des médiatrices, chacun avec sa phrase, la ressource concernée et la médiatrice (vers son
-// profil). Fond sable, feuilles en coin. « Partager une ressource » annonce le futur formulaire
+// avis des médiatrices, chacun avec sa phrase, la ressource concernée (vers sa fiche) et la
+// médiatrice (vers son profil). Fond sable, feuilles en coin. « Partager une ressource » annonce le futur formulaire
 // de proposition. Colonne de droite sur ordinateur, bandeau sous la grille sur tablette et mobile.
 import AppButton from '@/components/AppButton.vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
@@ -52,14 +52,9 @@ function memberDetail(voice: ResourceVoice): string {
           <blockquote class="resource-voice__quote">« {{ voice.quote }} »</blockquote>
           <p class="resource-voice__on">
             À propos de
-            <a
-              v-if="voice.resource.url"
-              :href="voice.resource.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              >{{ voice.resource.title }}</a
-            >
-            <b v-else>{{ voice.resource.title }}</b>
+            <router-link :to="{ name: 'resource', params: { slug: voice.resource.slug } }">{{
+              voice.resource.title
+            }}</router-link>
           </p>
           <figcaption class="resource-voice__who">
             <MemberAvatar :name="voice.member.name" :photo="voice.member.photo_url" :size="34" />
@@ -176,11 +171,6 @@ function memberDetail(voice: ResourceVoice): string {
       &:hover {
         color: var(--link-hover);
       }
-    }
-
-    b {
-      font-weight: 500;
-      color: var(--ink-2);
     }
   }
 

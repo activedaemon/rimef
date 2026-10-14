@@ -7,10 +7,10 @@
 import { type ComponentPublicInstance, computed, onMounted, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
-import AppPagination from '@/components/AppPagination.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
 import FilterTag from '@/components/FilterTag.vue';
+import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import type { FilterOption } from '@/lib/filters';
 import { resourceNoun } from '@/lib/wording';
@@ -86,11 +86,6 @@ const sort = computed({
 
 // Taille de la bibliothèque, sans filtre (« 86 ressources »)
 const libraryTotal = computed(() => filters.value?.total ?? library.total.value);
-
-const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
-  label: `${value} par page`,
-  value,
-}));
 
 // Changement de page : retour en douceur en haut des résultats
 const resultsBar = ref<ComponentPublicInstance | HTMLElement | null>(null);
@@ -251,35 +246,19 @@ onMounted(() => {
               </li>
             </ul>
 
-            <nav
-              v-if="library.total.value > PER_PAGE_OPTIONS[0]"
-              class="resources-pager"
-              aria-label="Pagination des ressources"
-            >
-              <p class="resources-pager__range" aria-live="polite">
-                Ressources <b>{{ library.from.value }}–{{ library.to.value }}</b> sur
-                {{ library.total.value }}
-              </p>
-              <q-select
-                :model-value="query.perPage"
-                :options="PER_PAGE_CHOICES"
-                emit-value
-                map-options
-                dense
-                outlined
-                options-dense
-                class="rimef-select resources-pager__size"
-                aria-label="Nombre de ressources par page"
-                @update:model-value="library.setPerPage"
-              />
-              <AppPagination
-                v-if="library.lastPage.value > 1"
-                :model-value="library.page.value"
-                :max="library.lastPage.value"
-                class="resources-pager__pages"
-                @update:model-value="changePage"
-              />
-            </nav>
+            <ListPager
+              noun="Ressources"
+              items-label="ressources"
+              :total="library.total.value"
+              :from="library.from.value"
+              :to="library.to.value"
+              :page="library.page.value"
+              :last-page="library.lastPage.value"
+              :per-page="query.perPage"
+              :per-page-options="PER_PAGE_OPTIONS"
+              @update:page="changePage"
+              @update:per-page="library.setPerPage"
+            />
           </template>
         </div>
 
@@ -401,36 +380,6 @@ onMounted(() => {
   }
 }
 
-.resources-pager {
-  // Plage à gauche, taille de page au milieu, pages à droite (comme au Réseau)
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  margin-top: 36px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-
-  &__range {
-    font-size: var(--fs-sm);
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-
-    b {
-      font-weight: 600;
-      color: var(--ink);
-    }
-  }
-
-  &__size {
-    min-width: 140px;
-  }
-
-  &__pages {
-    justify-self: end;
-  }
-}
-
 // À côté de la colonne des avis : 3 cartes par rangée au lieu de 4
 @media (min-width: 1080px) {
   .resources-layout--with-voices .resources-grid {
@@ -463,14 +412,6 @@ onMounted(() => {
   .resources-grid {
     grid-template-columns: 1fr;
     gap: 12px;
-  }
-
-  .resources-pager {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 28px;
-    padding-top: 16px;
   }
 }
 </style>

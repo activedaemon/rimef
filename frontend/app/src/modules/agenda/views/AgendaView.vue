@@ -6,10 +6,10 @@
 import { type ComponentPublicInstance, computed, onMounted, ref } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
-import AppPagination from '@/components/AppPagination.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
 import FilterTag from '@/components/FilterTag.vue';
+import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
 import type { FilterOption } from '@/lib/filters';
@@ -124,11 +124,6 @@ const groups = computed(() =>
     ? groupByMonth(agenda.events.value)
     : [{ key: '', events: agenda.events.value }]
 );
-
-const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
-  label: `${value} par page`,
-  value,
-}));
 
 // Changement de page : retour en douceur en haut des résultats
 const resultsBar = ref<ComponentPublicInstance | HTMLElement | null>(null);
@@ -284,6 +279,16 @@ onMounted(() => void agenda.start());
           </div>
 
           <EmptyState
+            v-else-if="
+              !agenda.events.value.length && query.period === 'mine' && !agenda.filtered.value
+            "
+            icon="calendar-user"
+            title="Vous ne participez à aucun événement pour le moment"
+            text="Indiquez « J’y participe » sur un événement pour le retrouver ici et faire savoir au réseau que vous y serez."
+            class="agenda-empty"
+          />
+
+          <EmptyState
             v-else-if="!agenda.events.value.length"
             icon="calendar"
             title="Aucun événement ne correspond"
@@ -311,41 +316,29 @@ onMounted(() => void agenda.start());
                 </h2>
                 <ol class="agenda-events">
                   <li v-for="event in group.events" :key="event.id">
-                    <EventRow :event="event" @toggle-participation="participate(event)" />
+                    <EventRow
+                      :event="event"
+                      :hide-mine="query.period === 'mine'"
+                      @toggle-participation="participate(event)"
+                    />
                   </li>
                 </ol>
               </section>
             </div>
 
-            <nav
-              v-if="agenda.total.value > PER_PAGE_OPTIONS[0]"
-              class="agenda-pager"
-              aria-label="Pagination des événements"
-            >
-              <p class="agenda-pager__range" aria-live="polite">
-                Événements <b>{{ agenda.from.value }}–{{ agenda.to.value }}</b> sur
-                {{ agenda.total.value }}
-              </p>
-              <q-select
-                :model-value="query.perPage"
-                :options="PER_PAGE_CHOICES"
-                emit-value
-                map-options
-                dense
-                outlined
-                options-dense
-                class="rimef-select agenda-pager__size"
-                aria-label="Nombre d’événements par page"
-                @update:model-value="agenda.setPerPage"
-              />
-              <AppPagination
-                v-if="agenda.lastPage.value > 1"
-                :model-value="agenda.page.value"
-                :max="agenda.lastPage.value"
-                class="agenda-pager__pages"
-                @update:model-value="changePage"
-              />
-            </nav>
+            <ListPager
+              noun="Événements"
+              items-label="événements"
+              :total="agenda.total.value"
+              :from="agenda.from.value"
+              :to="agenda.to.value"
+              :page="agenda.page.value"
+              :last-page="agenda.lastPage.value"
+              :per-page="query.perPage"
+              :per-page-options="PER_PAGE_OPTIONS"
+              @update:page="changePage"
+              @update:per-page="agenda.setPerPage"
+            />
           </template>
         </div>
 
@@ -560,37 +553,6 @@ onMounted(() => void agenda.start());
   padding: 0;
   list-style: none;
 }
-
-.agenda-pager {
-  // Plage à gauche, taille de page au milieu, pages à droite (comme au Réseau)
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  margin-top: 36px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-
-  &__range {
-    font-size: var(--fs-sm);
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-
-    b {
-      font-weight: 600;
-      color: var(--ink);
-    }
-  }
-
-  &__size {
-    min-width: 140px;
-  }
-
-  &__pages {
-    justify-self: end;
-  }
-}
-
 // Tablette : une colonne, intro puis calendrier et citation côte à côte, puis la liste
 @media (max-width: 1079px) {
   .agenda-layout {
@@ -610,7 +572,7 @@ onMounted(() => void agenda.start());
   }
 }
 
-// Téléphone : onglets fixés sous l'en-tête, pagination empilée (les filtres passent à la ligne)
+// Téléphone : onglets fixés sous l'en-tête (les filtres passent à la ligne)
 @media (max-width: 719px) {
   .agenda-tabs {
     position: sticky;
@@ -640,14 +602,6 @@ onMounted(() => void agenda.start());
   .agenda-side {
     grid-template-columns: 1fr;
     margin: 28px 0 0;
-  }
-
-  .agenda-pager {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 28px;
-    padding-top: 16px;
   }
 }
 </style>

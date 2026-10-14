@@ -4,7 +4,7 @@
 // agenda » (Google, Outlook, copier date et lieu) et menu « … » (copier le lien ; recommander
 // et signaler affichés désactivés en attendant les notifications).
 // - dock : barre fixée en bas sur téléphone, menus en boutons carrés ouverts vers le haut.
-// Événement terminé : ni participation, ni ajout à l'agenda.
+// Événement terminé : aucune action (ni participation, ni ajout à l'agenda, ni menu « … »).
 import { copyToClipboard } from 'quasar';
 import { computed } from 'vue';
 
@@ -72,9 +72,9 @@ function copyDetails(): void {
       aria-haspopup="menu"
       :class="{ 'event-actions__square': dock }"
     >
-      <q-menu v-bind="menuPosition" :offset="[0, 6]" class="event-menu">
+      <q-menu v-bind="menuPosition" :offset="[0, 6]" class="rimef-menu">
         <q-list role="menu" aria-label="Ajouter à mon agenda" dense>
-          <q-item-label header class="event-menu__label">Ajouter le {{ dates }} à</q-item-label>
+          <q-item-label header class="rimef-menu__label">Ajouter le {{ dates }} à</q-item-label>
           <q-item
             v-close-popup
             clickable
@@ -103,7 +103,7 @@ function copyDetails(): void {
             v-close-popup
             clickable
             role="menuitem"
-            class="event-menu__separated"
+            class="rimef-menu__separated"
             @click="copyDetails"
           >
             <q-item-section avatar><q-icon name="copy" size="16px" /></q-item-section>
@@ -114,13 +114,14 @@ function copyDetails(): void {
     </AppButton>
 
     <AppButton
+      v-if="!isPast"
       variant="quiet"
       icon="dots"
       aria-label="Plus d’actions"
       aria-haspopup="menu"
       class="event-actions__square"
     >
-      <q-menu v-bind="menuPosition" :offset="[0, 6]" class="event-menu">
+      <q-menu v-bind="menuPosition" :offset="[0, 6]" class="rimef-menu">
         <q-list role="menu" aria-label="Plus d’actions" dense>
           <q-item
             v-close-popup
@@ -135,7 +136,7 @@ function copyDetails(): void {
             <q-item-section avatar><q-icon name="share" size="16px" /></q-item-section>
             <q-item-section>Recommander à une médiatrice</q-item-section>
           </q-item>
-          <q-item disable role="menuitem" aria-disabled="true" class="event-menu__separated">
+          <q-item disable role="menuitem" aria-disabled="true" class="rimef-menu__separated">
             <q-item-section avatar><q-icon name="flag" size="16px" /></q-item-section>
             <q-item-section>Signaler une information erronée</q-item-section>
           </q-item>
@@ -171,45 +172,6 @@ function copyDetails(): void {
 
   &--dock .event-actions__join {
     flex: 1;
-  }
-}
-</style>
-
-<style lang="scss">
-// Menus de la fiche (téléportés hors du composant) : maquette .menu-pop
-.event-menu {
-  min-width: 250px;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card);
-  box-shadow: var(--shadow-float);
-
-  .q-item {
-    min-height: 40px;
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
-    border-radius: var(--radius-xs);
-  }
-
-  .q-item__section--avatar {
-    min-width: 0;
-    padding-right: 10px;
-    color: var(--muted);
-  }
-
-  .event-menu__label {
-    padding: 6px 10px 4px;
-    font-size: var(--fs-eyebrow);
-    font-weight: 500;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .event-menu__separated {
-    margin-top: 5px;
-    border-top: 1px solid var(--border);
   }
 }
 </style>

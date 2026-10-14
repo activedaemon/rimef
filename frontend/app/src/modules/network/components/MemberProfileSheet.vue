@@ -1,16 +1,19 @@
 <script setup lang="ts">
-// Fiche d'une médiatrice (maquette Profil médiatrice) : en-tête, repères, onglets Profil /
-// Événements / Ressources, et Messages quand la personne connectée a déjà échangé avec elle.
+// Fiche d'une médiatrice (maquette Profil médiatrice) : en-tête, repères, onglets Profil,
+// Événements et Ressources quand elle en a, Messages quand la personne connectée a déjà échangé
+// avec elle (un onglet vide n'est pas affiché).
 // Partagée par /reseau/:slug et « Mon profil » : les actions de l'en-tête arrivent par le
 // slot « actions ». L'onglet ouvert figure dans l'URL (?onglet=messages).
 // Événements : les trois prochains où elle est inscrite (carte de la colonne et onglet).
-// Les ressources ne sont pas encore reliées aux médiatrices : message d'attente.
+// Ressources : ses contributions (autrice, contributrice, citée), les deux plus récentes dans la
+// colonne, toutes dans l'onglet.
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import EmptyState from '@/components/EmptyState.vue';
 import ConversationThread from '@modules/messages/components/ConversationThread.vue';
-import type { MemberProfile } from '../services/members';
+import ResourceRow from '@modules/resources/components/ResourceRow.vue';
+import { publishedLabel } from '@modules/resources/services/resources';
+import type { MemberProfile, MemberResource } from '../services/members';
 import MemberEventItem from './MemberEventItem.vue';
 import ProfileHeader from './ProfileHeader.vue';
 import ProfileMarks from './ProfileMarks.vue';
@@ -28,14 +31,34 @@ const conversation = computed(() => props.profile.conversation);
 const unread = ref(0);
 watch(conversation, (value) => (unread.value = value?.unread_count ?? 0), { immediate: true });
 
+const events = computed(() => props.profile.upcoming_events);
+const resources = computed(() => props.profile.resources);
+
+/** Onglets affichés : Profil toujours, les autres seulement s'ils ont du contenu. */
+function isShown(name: Tab): boolean {
+  switch (name) {
+    case 'evenements':
+      return events.value.length > 0;
+    case 'ressources':
+      return resources.value.length > 0;
+    case 'messages':
+      return conversation.value !== null;
+    default:
+      return true;
+  }
+}
+
+/** Onglet de l'URL, ou Profil s'il n'existe pas ou n'est pas affiché pour cette médiatrice. */
 function tabFromUrl(): Tab {
-  const value = route.query.onglet;
-  const wanted = TABS.find((name) => name === value) ?? 'profil';
-  return wanted === 'messages' && !conversation.value ? 'profil' : wanted;
+  const wanted = TABS.find((name) => name === route.query.onglet) ?? 'profil';
+  return isShown(wanted) ? wanted : 'profil';
 }
 
 const tab = ref<Tab>(tabFromUrl());
-watch([() => route.query.onglet, conversation], () => (tab.value = tabFromUrl()));
+watch(
+  [() => route.query.onglet, conversation, events, resources],
+  () => (tab.value = tabFromUrl())
+);
 watch(tab, (value) => {
   const onglet = value === 'profil' ? undefined : value;
   if (route.query.onglet !== onglet) void router.replace({ query: { ...route.query, onglet } });
@@ -47,12 +70,20 @@ const messagesLabel = computed(() =>
     : 'Messages'
 );
 
-const events = computed(() => props.profile.upcoming_events);
 const eventsCount = computed(() =>
   events.value.length > 1
     ? `${events.value.length} rendez-vous où ${props.profile.name} sera présente`
     : `1 rendez-vous où ${props.profile.name} sera présente`
 );
+
+const RECENT_RESOURCES = 2;
+
+/** « Rapport · Avril 2026 · Contributrice ». */
+function resourceEyebrow(resource: MemberResource): string {
+  return [resource.type.label, publishedLabel(resource.published_on), resource.role.label].join(
+    ' · '
+  );
+}
 
 const isEmpty = computed(
   () => !props.profile.bio && !props.profile.expertises.length && !props.profile.zones.length
@@ -81,14 +112,16 @@ const isEmpty = computed(
           aria-label="Sections du profil"
         >
           <q-tab name="profil" label="Profil" />
-          <q-tab name="evenements">
+          <q-tab v-if="events.length" name="evenements">
             <span class="q-tab__label">
-              Événements<span v-if="events.length" class="profile-tabs__count">{{
-                events.length
-              }}</span>
+              Événements<span class="profile-tabs__count">{{ events.length }}</span>
             </span>
           </q-tab>
-          <q-tab name="ressources" label="Ressources" />
+          <q-tab v-if="resources.length" name="ressources">
+            <span class="q-tab__label">
+              Ressources<span class="profile-tabs__count">{{ resources.length }}</span>
+            </span>
+          </q-tab>
           <q-tab v-if="conversation" name="messages" :aria-label="messagesLabel">
             <span class="q-tab__label">Messages</span>
             <q-badge
@@ -168,14 +201,35 @@ const isEmpty = computed(
           >
             <div class="card-head">
               <h2 id="profile-contributions" class="card-title">Contributions récentes</h2>
+              <q-btn
+                v-if="resources.length"
+                flat
+                no-caps
+                label="Voir toutes"
+                class="link-more"
+                @click="tab = 'ressources'"
+              />
             </div>
-            <p class="side-card__empty">Aucune contribution pour le moment.</p>
+            <ul v-if="resources.length" class="profile-resources">
+              <ResourceRow
+                v-for="resource in resources.slice(0, RECENT_RESOURCES)"
+                :key="resource.id"
+                :slug="resource.slug"
+                :title="resource.title"
+                :type="resource.type"
+                :published-on="resource.published_on"
+                :source="resource.source"
+                :facts="`${resource.type.label} · ${publishedLabel(resource.published_on)}`"
+                compact
+              />
+            </ul>
+            <p v-else class="side-card__empty">Aucune contribution pour le moment.</p>
           </q-card>
         </aside>
       </q-tab-panel>
 
-      <q-tab-panel name="evenements" class="profile-panel">
-        <q-card v-if="events.length" flat tag="section" class="rimef-card profile-list">
+      <q-tab-panel v-if="events.length" name="evenements" class="profile-panel">
+        <q-card flat tag="section" class="rimef-card profile-list">
           <div class="profile-list__head">
             <h2>Événements à venir</h2>
             <p>{{ eventsCount }}</p>
@@ -184,20 +238,35 @@ const isEmpty = computed(
             <MemberEventItem v-for="event in events" :key="event.id" :event="event" wide />
           </ul>
         </q-card>
-        <EmptyState
-          v-else
-          icon="calendar-event"
-          title="Aucun événement à venir"
-          :text="`Les prochains rendez-vous de ${profile.first_name} seront affichés ici.`"
-        />
       </q-tab-panel>
 
-      <q-tab-panel name="ressources" class="profile-panel">
-        <EmptyState
-          icon="book"
-          title="Les ressources arrivent bientôt"
-          :text="`Les publications et prises de parole de ${profile.first_name} seront affichées ici.`"
-        />
+      <q-tab-panel v-if="resources.length" name="ressources" class="profile-panel">
+        <q-card flat tag="section" class="rimef-card profile-list">
+          <div class="profile-list__head">
+            <h2>Contributions</h2>
+            <p>Publications et prises de parole de {{ profile.name }}</p>
+          </div>
+          <ul class="profile-resources profile-list__rows">
+            <ResourceRow
+              v-for="resource in resources"
+              :key="resource.id"
+              :slug="resource.slug"
+              :title="resource.title"
+              :type="resource.type"
+              :published-on="resource.published_on"
+              :source="resource.source"
+              :eyebrow="resourceEyebrow(resource)"
+              :note="resource.event?.title ?? null"
+            >
+              <template v-if="resource.event" #note>
+                Présenté au
+                <router-link :to="{ name: 'event', params: { slug: resource.event.slug } }">{{
+                  resource.event.title
+                }}</router-link>
+              </template>
+            </ResourceRow>
+          </ul>
+        </q-card>
       </q-tab-panel>
 
       <!-- Chargé à la première ouverture de l'onglet (panneaux non conservés par q-tab-panels) -->
@@ -276,10 +345,19 @@ const isEmpty = computed(
   }
 }
 
-.profile-events {
+.profile-events,
+.profile-resources {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+// « Présenté au Paris Peace Forum » : lien vers la fiche de l'événement
+.profile-resources a {
+  color: var(--petrol);
+  text-decoration: underline;
+  text-decoration-color: rgba(35, 76, 85, 0.35);
+  text-underline-offset: 3px;
 }
 
 // Onglet Événements (maquette .p-panel-wide, .p-list-head, .p-list)
@@ -305,10 +383,6 @@ const isEmpty = computed(
   &__rows {
     padding: 8px 30px;
   }
-}
-
-.profile-messages {
-  max-width: 820px;
 }
 
 .q-tab-panel {
