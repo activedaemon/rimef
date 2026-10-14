@@ -254,7 +254,7 @@ logs-mailpit: ## @logs Voir uniquement les logs de Mailpit
 # Exécute les cibles de Makefile.prod dans le clone du dépôt sur le serveur.
 # Détails : docs/deploiement-preprod.md
 
-PREPROD_SSH ?= active-daemon
+PREPROD_SSH ?= activedaemon
 PREPROD_DIR ?= /srv/rimef/app
 PREPROD_REF ?= main
 PREPROD_MAKE = cd $(PREPROD_DIR) && make -f Makefile.prod
