@@ -81,8 +81,6 @@ L'alias SSH (`PREPROD_SSH`, défaut `active-daemon`) et le dossier du clone
 
 ## Bon à savoir
 
-- **Photos de personnes réelles** : non versionnées, elles sont absentes de la preprod
-  (les profils concernés s'affichent sans photo).
 - **`/api/dev/emails`** est disponible (hors `production`), derrière le mot de passe du site.
 - **Dépendance** : la preprod passe par le Traefik de Seckup ; s'il redémarre, elle est
   coupée le temps du redémarrage.
