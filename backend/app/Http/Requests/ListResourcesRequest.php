@@ -35,7 +35,7 @@ class ListResourcesRequest extends FormRequest
             'linked' => ['boolean'],
             'by_member' => ['boolean'],
             'with_event' => ['boolean'],
-            'saved' => ['boolean'],
+            'favorites' => ['boolean'],
             'sort' => ['nullable', Rule::in(ResourceDirectory::SORTS)],
             'page' => ['integer', 'min:1'],
             'per_page' => ['integer', Rule::in(ResourceDirectory::PER_PAGE_OPTIONS)],

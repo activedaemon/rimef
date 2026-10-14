@@ -82,6 +82,18 @@ const FORUM: events.EventDetail = {
       ],
     },
   ],
+  resources: [
+    {
+      id: 4,
+      slug: 'women-mediators',
+      title: 'Women Mediators',
+      type: { value: 'report', label: 'Rapport', action: 'Lire' },
+      source: 'Conciliation Resources',
+      published_on: '2026-04-14',
+      duration_minutes: null,
+      note: 'Présenté au panel du forum.',
+    },
+  ],
 };
 
 async function openEvent(path = '/agenda/paris-peace-forum-2026', viewerId = 1) {
@@ -177,6 +189,19 @@ describe('EventView', () => {
     wrapper.unmount();
   });
 
+  it('lists the linked resources, each leading to its page', async () => {
+    const { wrapper } = await openEvent('/agenda/paris-peace-forum-2026?onglet=ressources');
+
+    expect(wrapper.text()).toContain('Ressources liées(1)');
+    const item = wrapper.find('.resource-row');
+    expect(item.find('h3 a').text()).toBe('Women Mediators');
+    expect(item.find('h3 a').attributes('href')).toBe('/ressources/women-mediators');
+    expect(item.find('.resource-row__facts').text()).toBe('Conciliation Resources · Avril 2026');
+    expect(item.find('.resource-row__note').text()).toBe('Présenté au panel du forum.');
+    expect(item.find('.resource-row__action').text()).toBe('Lire');
+    wrapper.unmount();
+  });
+
   it('opens the message window on the page, and hides the envelope on her own card', async () => {
     const { wrapper } = await openEvent('/agenda/paris-peace-forum-2026?onglet=mediatrices', 3);
 
@@ -241,7 +266,7 @@ describe('EventView', () => {
     wrapper.unmount();
   });
 
-  it('offers neither participation nor calendar on a past event', async () => {
+  it('offers no action on a past event', async () => {
     vi.mocked(events.fetchEvent).mockResolvedValue({
       ...structuredClone(FORUM),
       status: 'past',
@@ -251,7 +276,9 @@ describe('EventView', () => {
 
     expect(wrapper.text()).toContain('Terminé');
     expect(wrapper.find('.event-actions__join').exists()).toBe(false);
-    expect(wrapper.find('[aria-label="Plus d’actions"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="Plus d’actions"]').exists()).toBe(false);
+    // Sans action : pas de place réservée à la barre du téléphone
+    expect(wrapper.find('.event-page--docked').exists()).toBe(false);
     wrapper.unmount();
   });
 

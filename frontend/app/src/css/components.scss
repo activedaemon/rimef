@@ -173,3 +173,40 @@
     color: var(--muted);
   }
 }
+
+// Menus d'actions des fiches (q-menu, téléportés hors des composants) : maquette .menu-pop
+.rimef-menu {
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+
+  .q-item {
+    min-height: 40px;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    border-radius: var(--radius-xs);
+  }
+
+  .q-item__section--avatar {
+    min-width: 0;
+    padding-right: 10px;
+    color: var(--muted);
+  }
+
+  .rimef-menu__label {
+    padding: 6px 10px 4px;
+    font-size: var(--fs-eyebrow);
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .rimef-menu__separated {
+    margin-top: 5px;
+    border-top: 1px solid var(--border);
+  }
+}

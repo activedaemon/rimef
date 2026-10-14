@@ -14,7 +14,7 @@ import {
   isFiltered,
   queryFromRoute,
   routeFromQuery,
-  setSaved,
+  setFavorite,
   type LibraryResource,
   type PerPage,
   type ResourceFilters,
@@ -99,15 +99,15 @@ export function useResources() {
     void router.replace({ query: routeFromQuery({ ...queryFromRoute({}), sort, perPage }) });
   }
 
-  /** Signet : affiché tout de suite, annulé si l'API refuse. */
-  async function toggleSaved(resource: LibraryResource): Promise<void> {
-    const saved = !resource.is_saved;
-    replaceResource(resource.id, { is_saved: saved });
+  /** Marque-page : affiché tout de suite, annulé si l'API refuse. */
+  async function toggleFavorite(resource: LibraryResource): Promise<void> {
+    const favorite = !resource.is_favorite;
+    replaceResource(resource.id, { is_favorite: favorite });
     try {
-      await setSaved(resource.id, saved);
+      await setFavorite(resource.id, favorite);
     } catch (error) {
-      replaceResource(resource.id, { is_saved: !saved });
-      notify.error(extractApiError(error, 'Le signet n’a pas pu être enregistré. Réessayez.'));
+      replaceResource(resource.id, { is_favorite: !favorite });
+      notify.error(extractApiError(error, 'Le favori n’a pas pu être enregistré. Réessayez.'));
     }
   }
 
@@ -162,7 +162,7 @@ export function useResources() {
     goToPage,
     setPerPage,
     reset,
-    toggleSaved,
+    toggleFavorite,
     start: () => Promise.all([load(), loadFilters()]),
   };
 }

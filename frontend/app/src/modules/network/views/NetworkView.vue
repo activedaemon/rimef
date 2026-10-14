@@ -5,10 +5,10 @@
 import { type ComponentPublicInstance, computed, onMounted, ref, watch } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
-import AppPagination from '@/components/AppPagination.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
 import FilterTag from '@/components/FilterTag.vue';
+import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
 import MemberCard from '../components/MemberCard.vue';
@@ -85,11 +85,6 @@ const sort = computed({
   get: () => query.value.sort,
   set: (value) => directory.update({ sort: value }),
 });
-
-const PER_PAGE_CHOICES = PER_PAGE_OPTIONS.map((value) => ({
-  label: `${value} par page`,
-  value,
-}));
 
 // Changement de page : retour en douceur en haut des résultats (barre de tri visible)
 const resultsBar = ref<ComponentPublicInstance | null>(null);
@@ -208,35 +203,19 @@ onMounted(() => void directory.start());
           </li>
         </ul>
 
-        <nav
-          v-if="directory.total.value > PER_PAGE_OPTIONS[0]"
-          class="network-pager"
-          aria-label="Pagination des médiatrices"
-        >
-          <p class="network-pager__range" aria-live="polite">
-            Médiatrices <b>{{ directory.from.value }}–{{ directory.to.value }}</b> sur
-            {{ directory.total.value }}
-          </p>
-          <q-select
-            :model-value="directory.query.value.perPage"
-            :options="PER_PAGE_CHOICES"
-            emit-value
-            map-options
-            dense
-            outlined
-            options-dense
-            class="rimef-select network-pager__size"
-            aria-label="Nombre de médiatrices par page"
-            @update:model-value="directory.setPerPage"
-          />
-          <AppPagination
-            v-if="directory.lastPage.value > 1"
-            :model-value="directory.page.value"
-            :max="directory.lastPage.value"
-            class="network-pager__pages"
-            @update:model-value="changePage"
-          />
-        </nav>
+        <ListPager
+          noun="Médiatrices"
+          items-label="médiatrices"
+          :total="directory.total.value"
+          :from="directory.from.value"
+          :to="directory.to.value"
+          :page="directory.page.value"
+          :last-page="directory.lastPage.value"
+          :per-page="directory.query.value.perPage"
+          :per-page-options="PER_PAGE_OPTIONS"
+          @update:page="changePage"
+          @update:per-page="directory.setPerPage"
+        />
       </template>
     </div>
   </q-page>
@@ -295,37 +274,6 @@ onMounted(() => void directory.start());
     opacity: 0.55;
   }
 }
-
-.network-pager {
-  // Plage à gauche, taille de page au milieu, pages à droite (maquette .r-pager)
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
-  margin-top: 36px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-
-  &__range {
-    font-size: var(--fs-sm);
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-
-    b {
-      font-weight: 600;
-      color: var(--ink);
-    }
-  }
-
-  &__size {
-    min-width: 140px;
-  }
-
-  &__pages {
-    justify-self: end;
-  }
-}
-
 // Citation compacte à droite de l'intro : même hauteur que le titre et sa phrase
 .network-quote.q-card {
   padding: 24px 28px;
@@ -364,15 +312,6 @@ onMounted(() => void directory.start());
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-top: 16px;
-  }
-
-  // Pagination compacte, éléments empilés
-  .network-pager {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 28px;
-    padding-top: 16px;
   }
 }
 

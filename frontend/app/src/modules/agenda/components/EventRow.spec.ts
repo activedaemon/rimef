@@ -54,6 +54,22 @@ describe('EventRow', () => {
     wrapper.unmount();
   });
 
+  it('marks her events with the stripe and the check, unless asked not to', async () => {
+    const mine = { ...FORUM, is_participating: true };
+    const marked = await mountApp(EventRow, { props: { event: mine } });
+    expect(marked.wrapper.find('.event-row--mine').exists()).toBe(true);
+    expect(marked.wrapper.find('.event-row__check').exists()).toBe(true);
+    marked.wrapper.unmount();
+
+    const { wrapper } = await mountApp(EventRow, { props: { event: mine, hideMine: true } });
+    expect(wrapper.find('.event-row--mine').exists()).toBe(false);
+    expect(wrapper.find('.event-row__check').exists()).toBe(false);
+    // Le texte pour les lecteurs d'écran et le bouton restent
+    expect(wrapper.find('.sr-only').text()).toBe('Vous participez');
+    expect(wrapper.find('.event-row__join').text()).toContain('Je participe');
+    wrapper.unmount();
+  });
+
   it('has no participation button on a past event', async () => {
     const { wrapper } = await mountApp(EventRow, {
       props: { event: { ...FORUM, is_past: true, is_participating: true, attendee_count: 1 } },

@@ -21,8 +21,11 @@ withDefaults(defineProps<{ title: string; text?: string; icon?: string }>(), {
   justify-items: center;
   gap: var(--s-3);
   padding: var(--s-12) var(--s-6);
-  border: 1px dashed var(--border-hover);
+  // Même présentation partout : carte blanche (fiche Card), sans carte autour
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
   text-align: center;
 
   &__icon {

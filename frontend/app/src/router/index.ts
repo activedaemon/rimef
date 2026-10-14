@@ -68,15 +68,27 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        // Routes imbriquées : l'onglet « Ressources » reste actif sur la fiche d'une ressource
         path: 'ressources',
-        name: 'resources',
-        component: () => import('@modules/resources/views/ResourcesView.vue'),
+        component: RouterView,
         meta: {
-          title: 'Ressources',
           searchPlaceholder: 'Rechercher une ressource…',
           searchScope: 'ressources',
-          searchInPage: true,
         },
+        children: [
+          {
+            path: '',
+            name: 'resources',
+            component: () => import('@modules/resources/views/ResourcesView.vue'),
+            meta: { title: 'Ressources', searchInPage: true },
+          },
+          {
+            path: ':slug([a-z0-9-]+)',
+            name: 'resource',
+            component: () => import('@modules/resources/views/ResourceView.vue'),
+            meta: { title: 'Ressource' },
+          },
+        ],
       },
       {
         // Routes imbriquées : l'onglet « Profil » reste actif sur /profil/modifier

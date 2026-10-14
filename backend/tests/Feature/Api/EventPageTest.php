@@ -2,10 +2,12 @@
 
 use App\Enums\EventRole;
 use App\Enums\EventType;
+use App\Enums\ResourceType;
 use App\Enums\Role;
 use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\MemberProfile;
+use App\Models\Resource;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -253,4 +255,37 @@ it('gives the talks of a speaker from the program', function () {
             'detail' => 'Panel',
             'starts_at' => '2026-11-10T13:30:00+00:00',
         ]]);
+});
+
+it('lists the resources of the library linked to the event, the most recent first', function () {
+    $aminata = pageMember('Aminata', 'Diallo', 'SN');
+    Resource::factory()->create([
+        'title' => 'Women Mediators',
+        'type' => ResourceType::Report,
+        'source' => 'Conciliation Resources',
+        'published_on' => '2026-04-14',
+        'event_id' => $this->event->id,
+        'event_note' => 'Présenté au panel du forum.',
+    ]);
+    Resource::factory()->create([
+        'title' => 'Ce que le forum a retenu',
+        'type' => ResourceType::Podcast,
+        'source' => null,
+        'author_id' => $aminata->id,
+        'published_on' => '2025-11-18',
+        'duration_minutes' => 34,
+        'event_id' => $this->event->id,
+    ]);
+    Resource::factory()->create(['title' => 'Sans rapport', 'published_on' => '2026-05-01']);
+
+    $this->getJson($this->tenantUrl('/api/events/paris-peace-forum-2026'))
+        ->assertOk()
+        ->assertJsonPath('data.resources.*.title', ['Women Mediators', 'Ce que le forum a retenu'])
+        ->assertJsonPath('data.resources.0.slug', 'women-mediators')
+        ->assertJsonPath('data.resources.0.type', ['value' => 'report', 'label' => 'Rapport', 'action' => 'Lire'])
+        ->assertJsonPath('data.resources.0.source', 'Conciliation Resources')
+        ->assertJsonPath('data.resources.0.note', 'Présenté au panel du forum.')
+        ->assertJsonPath('data.resources.1.source', 'Aminata Diallo')
+        ->assertJsonPath('data.resources.1.duration_minutes', 34)
+        ->assertJsonPath('data.resources.1.note', null);
 });

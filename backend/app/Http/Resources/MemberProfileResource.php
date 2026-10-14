@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Enums\EventRole;
+use App\Enums\ResourceMemberRole;
 use App\Models\Event;
 use App\Models\Expertise;
 use App\Models\MemberZone;
+use App\Models\Resource;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
 use Illuminate\Http\Request;
@@ -16,7 +18,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * Fiche d'une médiatrice (écran Profil médiatrice). Sans profil rempli, seuls l'identité et le nom sont renseignés.
  * Profil, expertises et zones chargés au préalable ; `is_favorite`, `conversation` et
- * `upcoming_events` posés par le contrôleur.
+ * `upcoming_events` et `contributions` posés par le contrôleur.
  *
  * @mixin User
  */
@@ -63,6 +65,25 @@ class MemberProfileResource extends JsonResource
                 'is_online' => $event->is_online,
                 'role' => $this->role($event),
             ])->values()->all(),
+            // Ressources qu'elle a écrites ou auxquelles elle est liée (posées par le contrôleur)
+            'resources' => collect($this->contributions ?? [])->map(fn (Resource $resource): array => [
+                'id' => $resource->id,
+                'slug' => $resource->slug,
+                'title' => $resource->title,
+                'type' => [
+                    'value' => $resource->type->value,
+                    'label' => $resource->type->label(),
+                    'action' => $resource->type->action(),
+                ],
+                'source' => $resource->source,
+                'published_on' => $resource->published_on->toDateString(),
+                'duration_minutes' => $resource->duration_minutes,
+                'role' => $this->contributionRole($resource),
+                'event' => $resource->event === null ? null : [
+                    'slug' => $resource->event->slug,
+                    'title' => $resource->event->title,
+                ],
+            ])->values()->all(),
             'expertises' => $profile === null ? [] : $profile->expertises
                 ->map(fn (Expertise $expertise): string => $expertise->name)->values()->all(),
             'zones' => $profile === null ? [] : $profile->zones
@@ -79,6 +100,23 @@ class MemberProfileResource extends JsonResource
     private function role(Event $event): array
     {
         $role = EventRole::tryFrom((string) $event->pivot?->getAttribute('role')) ?? EventRole::Participant;
+
+        return ['value' => $role->value, 'label' => $role->label()];
+    }
+
+    /**
+     * Lien de la médiatrice avec une de ses contributions : autrice, ou son rôle de contributrice
+     * ou de médiatrice citée.
+     *
+     * @return array{value: string, label: string}
+     */
+    private function contributionRole(Resource $resource): array
+    {
+        if ($resource->author_id === $this->id) {
+            return ['value' => 'author', 'label' => 'Autrice'];
+        }
+
+        $role = $resource->members->first()?->pivot->getAttribute('role') ?? ResourceMemberRole::Contributor;
 
         return ['value' => $role->value, 'label' => $role->label()];
     }

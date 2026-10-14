@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListResourcesRequest;
+use App\Http\Resources\ResourceDetailResource;
 use App\Http\Resources\ResourceRecommendationResource;
 use App\Http\Resources\ResourceResource;
 use App\Models\Resource;
@@ -16,7 +17,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 /**
- * Bibliothèque du réseau (écran Ressources) et signets.
+ * Bibliothèque du réseau (écran Ressources) et favoris.
  */
 class ResourceController extends Controller
 {
@@ -47,21 +48,32 @@ class ResourceController extends Controller
     }
 
     /**
-     * Enregistre la ressource pour la personne connectée (idempotent).
+     * Fiche d'une ressource, retrouvée par son slug (/ressources/women-mediators-and-inclusive-peace-processes).
      */
-    public function save(Request $request, Resource $resource): Response
+    public function show(Request $request, Resource $resource): ResourceDetailResource
     {
-        $request->user()->savedResources()->syncWithoutDetaching([$resource->getKey()]);
+        $resource = $this->directory->detail($resource, $request->user());
+        $resource->setRelation('related', $this->directory->related($resource));
+
+        return new ResourceDetailResource($resource);
+    }
+
+    /**
+     * Ajoute la ressource aux favoris de la personne connectée (idempotent).
+     */
+    public function favorite(Request $request, Resource $resource): Response
+    {
+        $request->user()->favoriteResources()->syncWithoutDetaching([$resource->getKey()]);
 
         return response()->noContent();
     }
 
     /**
-     * Retire la ressource des ressources enregistrées (idempotent).
+     * Retire la ressource des favoris de la personne connectée (idempotent).
      */
-    public function unsave(Request $request, Resource $resource): Response
+    public function unfavorite(Request $request, Resource $resource): Response
     {
-        $request->user()->savedResources()->detach($resource->getKey());
+        $request->user()->favoriteResources()->detach($resource->getKey());
 
         return response()->noContent();
     }

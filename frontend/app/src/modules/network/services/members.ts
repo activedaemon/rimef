@@ -44,6 +44,21 @@ export interface MemberProfile {
   zones: { code: string; name: string }[];
   /** Trois prochains événements où elle est inscrite, avec son rôle. */
   upcoming_events: MemberEvent[];
+  /** Ressources qu'elle a écrites ou auxquelles elle est liée, les plus récentes d'abord. */
+  resources: MemberResource[];
+}
+
+/** Contribution d'une médiatrice à une ressource (onglet Ressources de sa fiche). */
+export interface MemberResource {
+  id: number;
+  slug: string;
+  title: string;
+  type: { value: string; label: string; action: string };
+  source: string | null;
+  published_on: string;
+  duration_minutes: number | null;
+  role: { value: 'author' | 'contributor' | 'mentioned'; label: string };
+  event: { slug: string; title: string } | null;
 }
 
 /** Événement à venir d'une médiatrice (fiche de l'annuaire). */

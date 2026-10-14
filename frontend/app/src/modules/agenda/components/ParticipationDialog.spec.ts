@@ -45,6 +45,23 @@ describe('ParticipationDialog', () => {
     vi.mocked(events.fetchEvent).mockReset();
   });
 
+  it('fills the days when it is created already open (first click on the Agenda)', async () => {
+    await mountApp(ParticipationDialog, {
+      props: { modelValue: true, event: FORUM, participating: false },
+    });
+    await flushPromises();
+
+    expect(button('Confirmer ma participation').getAttribute('aria-disabled')).not.toBe('true');
+    button('Confirmer ma participation').click();
+    await flushPromises();
+
+    expect(events.saveParticipation).toHaveBeenCalledWith(4, {
+      days: null,
+      note: null,
+      wants_to_meet: false,
+    });
+  });
+
   it('lists the days of the event, all checked, and saves them as all days', async () => {
     const { wrapper } = await openDialog();
 

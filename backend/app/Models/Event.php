@@ -69,6 +69,16 @@ class Event extends Model
     }
 
     /**
+     * Ressources de la bibliothèque présentées ou discutées lors de l'événement.
+     *
+     * @return HasMany<\App\Models\Resource, $this>
+     */
+    public function resources(): HasMany
+    {
+        return $this->hasMany(Resource::class);
+    }
+
+    /**
      * Thématiques, dans le vocabulaire des expertises des médiatrices.
      *
      * @return BelongsToMany<Expertise, $this>

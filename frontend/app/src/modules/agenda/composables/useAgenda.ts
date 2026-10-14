@@ -122,9 +122,14 @@ export function useAgenda() {
     });
   }
 
-  /** Fenêtre « Ma participation » enregistrée : la ligne et le compteur « Mes événements » suivent. */
+  /**
+   * Fenêtre « Ma participation » enregistrée : la ligne et le compteur « Mes événements » suivent.
+   * Participation retirée depuis « Mes événements » : la liste est rechargée, l'événement en sort.
+   */
   function onParticipationSaved(event: AgendaEvent, participating: boolean): void {
-    if (event.is_participating !== participating) applyParticipation(event.id, participating);
+    if (event.is_participating === participating) return;
+    applyParticipation(event.id, participating);
+    if (!participating && query.value.period === 'mine') void load();
   }
 
   function applyParticipation(id: number, participating: boolean): void {

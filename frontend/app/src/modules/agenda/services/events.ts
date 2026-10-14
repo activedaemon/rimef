@@ -402,6 +402,20 @@ export const STATUS_LABELS: Record<EventStatus, string> = {
 };
 
 /** Fiche d'un événement : toutes les médiatrices présentes et le programme. */
+/** Ressource liée à un événement (onglet « Ressources liées »). */
+export interface EventResource {
+  id: number;
+  slug: string;
+  title: string;
+  type: { value: string; label: string; action: string };
+  /** Éditeur, ou autrice médiatrice du réseau. */
+  source: string | null;
+  published_on: string;
+  duration_minutes: number | null;
+  /** Ce qui relie la ressource à l'événement. */
+  note: string | null;
+}
+
 export interface EventDetail extends Omit<AgendaEvent, 'attendees'> {
   status: EventStatus;
   /** La personne connectée propose de se retrouver sur place. */
@@ -417,6 +431,8 @@ export interface EventDetail extends Omit<AgendaEvent, 'attendees'> {
   links: { label: string; url: string }[];
   attendees: EventAttendee[];
   program: ProgramDay[];
+  /** Ressources de la bibliothèque liées, les plus récentes d'abord. */
+  resources: EventResource[];
 }
 
 export async function fetchEvent(slug: string, signal?: AbortSignal): Promise<EventDetail> {

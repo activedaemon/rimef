@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Models\Event;
 use App\Models\EventSession;
 use App\Models\Expertise;
+use App\Models\Resource;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ use Illuminate\Http\Request;
  * ses liens, toutes les médiatrices présentes (rôle, jours de présence, note, créneaux où elle
  * intervient, pays, expertises, proposition de se retrouver sur place ; wants_to_meet et
  * attendance = participation de la personne connectée) et son
- * programme découpé en jours dans le fuseau de l'utilisatrice (paramètre « timezone »).
+ * programme découpé en jours dans le fuseau de l'utilisatrice (paramètre « timezone ») et les
+ * ressources de la bibliothèque qui y sont liées.
  *
  * @mixin Event
  */
@@ -47,6 +49,20 @@ class EventDetailResource extends EventResource
             'languages' => $this->languages,
             'links' => array_values($this->links ?? []),
             'attendees' => $this->participants->map(fn (User $user): array => $this->attendee($user))->all(),
+            'resources' => $this->resources->map(fn (Resource $resource): array => [
+                'id' => $resource->id,
+                'slug' => $resource->slug,
+                'title' => $resource->title,
+                'type' => [
+                    'value' => $resource->type->value,
+                    'label' => $resource->type->label(),
+                    'action' => $resource->type->action(),
+                ],
+                'source' => $resource->source ?? $resource->author?->name,
+                'published_on' => $resource->published_on->toDateString(),
+                'duration_minutes' => $resource->duration_minutes,
+                'note' => $resource->event_note,
+            ])->all(),
             'program' => $this->sessions
                 ->groupBy(fn (EventSession $session): string => $session->starts_at->setTimezone($timezone)->toDateString())
                 ->map(fn ($sessions, string $date): array => [

@@ -3,6 +3,7 @@
 // participation de la personne connectée = liseré sauge à gauche et coche sur la date
 // (sans ligne de texte en plus, qui décalait la ligne) ; à droite les médiatrices présentes (3 avatars et « +X ») et les
 // actions « Voir l'événement » / « J'y participe ». Toute la ligne mène à la fiche (lien étiré).
+// - hideMine : sans liseré ni coche, quand toute la liste est déjà celle de ses événements.
 import { computed } from 'vue';
 
 import AppButton from '@/components/AppButton.vue';
@@ -12,7 +13,9 @@ import { dayAndMonth } from '@/lib/dates';
 import { mediatorNoun } from '@/lib/wording';
 import { dayCount, type AgendaEvent } from '../services/events';
 
-const props = defineProps<{ event: AgendaEvent }>();
+const props = withDefaults(defineProps<{ event: AgendaEvent; hideMine?: boolean }>(), {
+  hideMine: false,
+});
 const emit = defineEmits<{ toggleParticipation: [] }>();
 
 const tile = computed(() => {
@@ -36,15 +39,11 @@ const peopleText = computed(() => {
 });
 
 const to = computed(() => ({ name: 'event', params: { slug: props.event.slug } }));
+const markMine = computed(() => props.event.is_participating && !props.hideMine);
 </script>
 
 <template>
-  <q-card
-    flat
-    tag="article"
-    class="rimef-card event-row"
-    :class="{ 'event-row--mine': event.is_participating }"
-  >
+  <q-card flat tag="article" class="rimef-card event-row" :class="{ 'event-row--mine': markMine }">
     <div class="event-row__date">
       <DateTile
         size="xl"
@@ -53,7 +52,7 @@ const to = computed(() => ({ name: 'event', params: { slug: props.event.slug } }
         :note="tile.note"
         :past="event.is_past"
       />
-      <span v-if="event.is_participating" class="event-row__check" aria-hidden="true">
+      <span v-if="markMine" class="event-row__check" aria-hidden="true">
         <q-icon name="check" size="12px" />
       </span>
     </div>

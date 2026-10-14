@@ -22,7 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Le slug (titre, unique) servira d'adresse à la fiche : /ressources/women-mediators-and-inclusive-peace-processes.
  */
 #[Fillable([
-    'type', 'title', 'summary', 'source', 'author_id', 'published_on', 'duration_minutes', 'region', 'languages', 'url', 'event_id',
+    'type', 'title', 'summary', 'source', 'source_detail', 'source_url', 'author_id', 'published_on', 'duration_minutes', 'pages',
+    'region', 'languages', 'url', 'event_id', 'event_note',
 ])]
 class Resource extends Model
 {
@@ -86,23 +87,26 @@ class Resource extends Model
     }
 
     /**
-     * Médiatrices du réseau liées : autrices, contributrices ou recommandations.
+     * Médiatrices du réseau liées (contributrices ou citées), avec leur rôle (ResourceMemberRole)
+     * et la note qui explique le lien.
      *
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, ResourceMember>
      */
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'resource_member');
+        return $this->belongsToMany(User::class, 'resource_member')
+            ->using(ResourceMember::class)
+            ->withPivot(['role', 'note']);
     }
 
     /**
-     * Comptes qui l'ont enregistrée (signet).
+     * Comptes qui l'ont mise en favoris (marque-page).
      *
      * @return BelongsToMany<User, $this>
      */
-    public function savers(): BelongsToMany
+    public function favoredBy(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'resource_saves')->withTimestamps();
+        return $this->belongsToMany(User::class, 'resource_favorites')->withTimestamps();
     }
 
     /**

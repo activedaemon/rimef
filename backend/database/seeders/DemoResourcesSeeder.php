@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\Region;
+use App\Enums\ResourceMemberRole;
 use App\Enums\ResourceType;
 use App\Models\Event;
 use App\Models\Expertise;
@@ -31,7 +32,7 @@ class DemoResourcesSeeder extends Seeder
      */
     private const RESOURCES = [
         // Maquette
-        ['title' => 'Women Mediators and Inclusive Peace Processes', 'type' => ResourceType::Report, 'source' => 'Conciliation Resources', 'date' => '2026-04-14', 'region' => Region::WestAfrica, 'languages' => ['fr', 'en'], 'themes' => ['Femmes, paix et sécurité', 'Médiation internationale'], 'members' => ['aminata.diallo', 'fatou.ndiaye'], 'event' => 'Paris Peace Forum', 'url' => 'https://www.c-r.org/'],
+        ['title' => 'Women Mediators and Inclusive Peace Processes', 'type' => ResourceType::Report, 'source' => 'Conciliation Resources', 'date' => '2026-04-14', 'region' => Region::WestAfrica, 'languages' => ['fr', 'en'], 'themes' => ['Femmes, paix et sécurité', 'Médiation internationale'], 'members' => ['aminata.diallo'], 'event' => 'Paris Peace Forum', 'url' => 'https://www.c-r.org/'],
         ['title' => 'Médiation locale et résilience communautaire', 'type' => ResourceType::Article, 'source' => 'International Alert', 'date' => '2026-01-20', 'region' => Region::WestAfrica, 'languages' => ['fr'], 'themes' => ['Gouvernance locale', 'Médiation communautaire'], 'url' => 'https://www.international-alert.org/fr/'],
         ['title' => 'Paroles de médiatrices : du local au multilatéral', 'type' => ResourceType::Podcast, 'source' => 'RIMeF', 'date' => '2025-12-09', 'duration' => 34, 'region' => null, 'languages' => ['fr'], 'themes' => ['Femmes, paix et sécurité', 'Multilatéralisme'], 'members' => ['aminata.diallo']],
         ['title' => 'Femmes, paix et sécurité : quels leviers pour agir ?', 'type' => ResourceType::Video, 'source' => 'ONU Femmes', 'date' => '2025-11-20', 'duration' => 28, 'region' => null, 'languages' => ['fr', 'en'], 'themes' => ['Femmes, paix et sécurité', 'Policy & plaidoyer'], 'url' => 'https://www.unwomen.org/fr'],
@@ -67,6 +68,39 @@ class DemoResourcesSeeder extends Seeder
         ['resource' => 'Women Mediators and Inclusive Peace Processes', 'member' => 'fatou.ndiaye', 'quote' => 'Un rapport précieux pour défendre la place des femmes à la table des négociations.'],
     ];
 
+    /**
+     * Fiche détaillée des ressources qui en ont une, par titre : résumé, nombre de pages,
+     * présentation et site de l'organisation, note du lien avec l'événement ; rôle
+     * (ResourceMemberRole, contributrice par défaut) et note des médiatrices liées.
+     *
+     * @var array<string, array{summary?: string, pages?: int, source_detail?: string, source_url?: string, event_note?: string, members?: array<string, array{role?: ResourceMemberRole, note?: string}>}>
+     */
+    private const PAGES = [
+        'Women Mediators and Inclusive Peace Processes' => [
+            'summary' => 'Ce rapport explore la contribution des femmes médiatrices aux processus de paix inclusifs et les conditions nécessaires pour renforcer leur participation et leur visibilité.',
+            'pages' => 42,
+            'source_detail' => 'Organisation indépendante de consolidation de la paix, basée à Londres.',
+            'source_url' => 'https://www.c-r.org/',
+            'event_note' => 'Présenté au panel « Femmes médiatrices et diplomatie de la paix », avec Aminata Diallo.',
+            'members' => [
+                'aminata.diallo' => ['note' => 'Son expérience de médiation en Casamance est citée dans le chapitre consacré à la médiation locale.'],
+            ],
+        ],
+        'Guide pratique de la médiation communautaire' => [
+            'summary' => 'Un guide pas à pas pour préparer, conduire et suivre une médiation entre communautés : écoute des parties, choix des facilitatrices, accords et suivi.',
+            'pages' => 28,
+            'members' => [
+                'andree.niyonsaba' => ['note' => 'Elle a testé le guide avec les comités de paix locaux du Burundi.'],
+            ],
+        ],
+        'Paroles de médiatrices : du local au multilatéral' => [
+            'summary' => 'Trois médiatrices racontent leur parcours, de la médiation dans leur quartier aux tables de négociation internationales.',
+            'members' => [
+                'aminata.diallo' => ['note' => 'Invitée de l’épisode, elle revient sur ses années de médiation en Casamance.'],
+            ],
+        ],
+    ];
+
     public function run(): void
     {
         $themes = Expertise::query()->pluck('id', 'name');
@@ -74,9 +108,15 @@ class DemoResourcesSeeder extends Seeder
         foreach (self::RESOURCES as $data) {
             $members = $this->demoMemberIds([...($data['members'] ?? []), ...(isset($data['author']) ? [$data['author']] : [])]);
 
+            $page = self::PAGES[$data['title']] ?? [];
+
             $resource = Resource::query()->updateOrCreate(['title' => $data['title']], [
                 'type' => $data['type'],
+                'summary' => $page['summary'] ?? null,
                 'source' => $data['source'] ?? null,
+                'source_detail' => $page['source_detail'] ?? null,
+                'source_url' => $page['source_url'] ?? null,
+                'pages' => $page['pages'] ?? null,
                 'author_id' => isset($data['author']) ? $members[$data['author']] ?? null : null,
                 'published_on' => $data['date'],
                 'duration_minutes' => $data['duration'] ?? null,
@@ -84,10 +124,14 @@ class DemoResourcesSeeder extends Seeder
                 'languages' => $data['languages'],
                 'url' => $data['url'] ?? null,
                 'event_id' => isset($data['event']) ? Event::query()->where('title', $data['event'])->value('id') : null,
+                'event_note' => $page['event_note'] ?? null,
             ]);
 
             $resource->themes()->sync(collect($data['themes'])->map(fn (string $name): ?int => $themes[$name] ?? null)->filter());
-            $resource->members()->sync($members->only($data['members'] ?? [])->values());
+            $resource->members()->sync($members->only($data['members'] ?? [])->mapWithKeys(fn (int $id, string $name): array => [$id => [
+                'role' => ($page['members'][$name]['role'] ?? ResourceMemberRole::Contributor)->value,
+                'note' => $page['members'][$name]['note'] ?? null,
+            ]])->all());
         }
 
         $this->seedVoices();

@@ -32,6 +32,7 @@ const PROFILE = {
   expertises: [],
   zones: [],
   upcoming_events: [],
+  resources: [],
 } as members.MemberProfile;
 
 async function openProfile(viewerId = 1) {

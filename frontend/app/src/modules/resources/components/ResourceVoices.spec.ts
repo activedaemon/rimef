@@ -35,8 +35,7 @@ describe('ResourceVoices', () => {
     );
     const resource = wrapper.find('.resource-voice__on a');
     expect(resource.text()).toBe('Women Mediators and Inclusive Peace Processes');
-    expect(resource.attributes('href')).toBe('https://www.c-r.org/');
-    expect(resource.attributes('target')).toBe('_blank');
+    expect(resource.attributes('href')).toBe('/ressources/women-mediators');
     const member = wrapper.find('.resource-voice__name');
     expect(member.text()).toBe('Fatou Ndiaye');
     expect(member.attributes('href')).toBe('/reseau/fatou-ndiaye');
@@ -46,23 +45,13 @@ describe('ResourceVoices', () => {
     wrapper.unmount();
   });
 
-  it('names the resource without a link when it has no address, and skips an empty profile', async () => {
+  it('skips the detail line of a mediator without country or expertise', async () => {
     const { wrapper } = await mountApp(ResourceVoices, {
       props: {
-        voices: [
-          {
-            ...FATOU,
-            resource: { ...FATOU.resource, url: null },
-            member: { ...FATOU.member, country: null, expertise: null },
-          },
-        ],
+        voices: [{ ...FATOU, member: { ...FATOU.member, country: null, expertise: null } }],
       },
     });
 
-    expect(wrapper.find('.resource-voice__on a').exists()).toBe(false);
-    expect(wrapper.find('.resource-voice__on b').text()).toBe(
-      'Women Mediators and Inclusive Peace Processes'
-    );
     expect(wrapper.find('.resource-voice__who small').exists()).toBe(false);
     wrapper.unmount();
   });

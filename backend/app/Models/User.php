@@ -124,13 +124,13 @@ class User extends Authenticatable
     }
 
     /**
-     * Ressources de la bibliothèque enregistrées avec le signet.
+     * Ressources de la bibliothèque mises en favoris avec le marque-page.
      *
      * @return BelongsToMany<\App\Models\Resource, $this>
      */
-    public function savedResources(): BelongsToMany
+    public function favoriteResources(): BelongsToMany
     {
-        return $this->belongsToMany(Resource::class, 'resource_saves')->withTimestamps();
+        return $this->belongsToMany(Resource::class, 'resource_favorites')->withTimestamps();
     }
 
     /**

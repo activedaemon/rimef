@@ -20,19 +20,17 @@ const REPORT: LibraryResource = {
     { id: 5, name: 'Médiation internationale' },
     { id: 6, name: 'Troisième thématique' },
   ],
-  is_saved: false,
+  is_favorite: false,
 };
 
 describe('ResourceCard', () => {
-  it('shows the type, title, source, month and two themes, opening the resource in a new tab', async () => {
+  it('shows the type, title, source, month and two themes, linked to the resource page', async () => {
     const { wrapper } = await mountApp(ResourceCard, { props: { resource: REPORT } });
 
     expect(wrapper.find('.resource-type').text()).toBe('Rapport');
     const link = wrapper.find('h3 a');
     expect(link.text()).toBe('Women Mediators and Inclusive Peace Processes');
-    expect(link.attributes('href')).toBe('https://www.c-r.org/');
-    expect(link.attributes('target')).toBe('_blank');
-    expect(link.attributes('rel')).toBe('noopener noreferrer');
+    expect(link.attributes('href')).toBe('/ressources/women-mediators');
     expect(wrapper.find('.resource-card__source').text()).toBe('Conciliation Resources');
     expect(wrapper.find('.resource-card__date').text()).toBe('Avril 2026');
     expect(wrapper.findAll('.resource-card__themes li').map((li) => li.text())).toEqual([
@@ -64,27 +62,16 @@ describe('ResourceCard', () => {
     wrapper.unmount();
   });
 
-  it('is not a link without an address', async () => {
-    const { wrapper } = await mountApp(ResourceCard, {
-      props: { resource: { ...REPORT, url: null } },
-    });
-
-    expect(wrapper.find('h3 a').exists()).toBe(false);
-    expect(wrapper.find('h3').text()).toBe('Women Mediators and Inclusive Peace Processes');
-    expect(wrapper.find('.resource-card__foot').exists()).toBe(false);
-    wrapper.unmount();
-  });
-
   it('toggles the bookmark', async () => {
     const { wrapper } = await mountApp(ResourceCard, {
-      props: { resource: { ...REPORT, is_saved: true } },
+      props: { resource: { ...REPORT, is_favorite: true } },
     });
 
     const save = wrapper.find('.resource-card__save');
     expect(save.attributes('aria-pressed')).toBe('true');
-    expect(save.attributes('aria-label')).toBe('Retirer des ressources enregistrées');
+    expect(save.attributes('aria-label')).toBe('Retirer des favoris');
     await save.trigger('click');
-    expect(wrapper.emitted('toggleSaved')).toHaveLength(1);
+    expect(wrapper.emitted('toggleFavorite')).toHaveLength(1);
     wrapper.unmount();
   });
 });
