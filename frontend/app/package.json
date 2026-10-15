@@ -24,6 +24,7 @@
     "pinia": "^4.0.3",
     "quasar": "^2.35.0",
     "vue": "^3.5.43",
+    "vue-advanced-cropper": "2.8.9",
     "vue-router": "^5.4.0"
   },
   "devDependencies": {

@@ -93,6 +93,14 @@
   color: var(--sage-ink) !important;
 }
 
+.bg-petrol-light {
+  background: var(--petrol-light) !important;
+}
+
+.text-petrol {
+  color: var(--petrol) !important;
+}
+
 // Liste déroulante compacte (tri, taille de page) : 36 px, fond paper, filet de la charte
 .rimef-select.q-field {
   font-size: var(--fs-xs);

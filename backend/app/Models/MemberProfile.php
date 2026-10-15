@@ -17,13 +17,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Profil de médiatrice affiché dans l'annuaire (un par compte ayant le rôle member).
  */
 #[Fillable([
-    'country_code', 'city', 'organization_type', 'job_title', 'tagline', 'bio', 'experience_since',
-    'audiences', 'is_available', 'photo_path',
+    'country_code', 'city', 'organization_type', 'organization_name', 'job_title', 'tagline', 'bio',
+    'experience_since', 'audiences', 'links', 'is_available', 'photo_path',
 ])]
 class MemberProfile extends Model
 {
     /** @use HasFactory<MemberProfileFactory> */
     use HasFactory;
+
+    /** Liens à intitulé fixe ; « other » porte son propre intitulé. */
+    public const LINK_LABELS = [
+        'linkedin' => 'LinkedIn',
+        'website' => 'Site personnel',
+        'organization' => 'Organisation',
+    ];
 
     protected function casts(): array
     {
@@ -31,6 +38,7 @@ class MemberProfile extends Model
             'organization_type' => OrganizationType::class,
             'is_available' => 'boolean',
             'experience_since' => 'integer',
+            'links' => 'array',
         ];
     }
 
@@ -62,6 +70,37 @@ class MemberProfile extends Model
     public function zones(): HasMany
     {
         return $this->hasMany(MemberZone::class)->orderBy('position');
+    }
+
+    /**
+     * Organisation affichée : son nom s'il est renseigné, sinon son type.
+     */
+    public function organizationLabel(): ?string
+    {
+        return $this->organization_name ?? $this->organization_type?->label();
+    }
+
+    /**
+     * Liens de la fiche dans l'ordre d'affichage, avec leur intitulé.
+     *
+     * @return list<array{type: string, label: string, url: string}>
+     */
+    public function displayedLinks(): array
+    {
+        $links = $this->links ?? [];
+        $displayed = [];
+
+        foreach (self::LINK_LABELS as $type => $label) {
+            if (isset($links[$type])) {
+                $displayed[] = ['type' => $type, 'label' => $label, 'url' => $links[$type]];
+            }
+        }
+
+        if (isset($links['other']['url'])) {
+            $displayed[] = ['type' => 'other', 'label' => $links['other']['label'], 'url' => $links['other']['url']];
+        }
+
+        return $displayed;
     }
 
     /**

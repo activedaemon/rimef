@@ -28,6 +28,7 @@ const PROFILE = {
   audiences: null,
   is_available: false,
   is_favorite: false,
+  links: [],
   conversation: null,
   expertises: [],
   zones: [],

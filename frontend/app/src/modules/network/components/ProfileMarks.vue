@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Repères de la fiche (fiche KeyFigures) : années d'expérience, pays d'intervention, publics
+// Repères de la fiche (fiche KeyFigures) : années d'expérience, zones d'intervention, publics
 // accompagnés. Seuls les repères renseignés sont affichés ; aucun → rien.
 import { computed } from 'vue';
 
@@ -8,10 +8,8 @@ import type { MemberProfile } from '../services/members';
 const props = defineProps<{ profile: MemberProfile }>();
 
 const years = computed(() => props.profile.years_of_experience);
-const countries = computed(() => props.profile.zones.length);
-const visible = computed(
-  () => years.value !== null || countries.value > 0 || props.profile.audiences
-);
+const zones = computed(() => props.profile.zones.length);
+const visible = computed(() => years.value !== null || zones.value > 0 || props.profile.audiences);
 </script>
 
 <template>
@@ -23,9 +21,9 @@ const visible = computed(
       </b>
       <span>d’expérience en médiation</span>
     </li>
-    <li v-if="countries > 0">
-      <b>{{ countries }}</b>
-      <span>pays d’intervention</span>
+    <li v-if="zones > 0">
+      <b>{{ zones }}</b>
+      <span>{{ zones > 1 ? 'zones d’intervention' : 'zone d’intervention' }}</span>
     </li>
     <li v-if="profile.audiences">
       <p class="profile-marks__text">{{ profile.audiences }}</p>

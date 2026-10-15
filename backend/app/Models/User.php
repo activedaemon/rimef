@@ -178,9 +178,12 @@ class User extends Authenticatable
         return 'membre';
     }
 
+    /**
+     * Slug figé à la création : un changement de nom ne casse pas les liens déjà partagés vers la fiche.
+     */
     protected function slugDependsOn(): array
     {
-        return ['first_name', 'last_name'];
+        return [];
     }
 
     public function isSuperAdmin(): bool

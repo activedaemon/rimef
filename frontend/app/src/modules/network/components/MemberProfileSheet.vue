@@ -13,7 +13,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ConversationThread from '@modules/messages/components/ConversationThread.vue';
 import ResourceRow from '@modules/resources/components/ResourceRow.vue';
 import { publishedLabel } from '@modules/resources/services/resources';
-import type { MemberProfile, MemberResource } from '../services/members';
+import type { MemberLink, MemberProfile, MemberResource } from '../services/members';
 import MemberEventItem from './MemberEventItem.vue';
 import ProfileHeader from './ProfileHeader.vue';
 import ProfileMarks from './ProfileMarks.vue';
@@ -86,8 +86,24 @@ function resourceEyebrow(resource: MemberResource): string {
 }
 
 const isEmpty = computed(
-  () => !props.profile.bio && !props.profile.expertises.length && !props.profile.zones.length
+  () =>
+    !props.profile.bio &&
+    !props.profile.expertises.length &&
+    !props.profile.zones.length &&
+    !props.profile.links.length
 );
+
+const LINK_ICONS: Record<MemberLink['type'], string> = {
+  linkedin: 'brand-linkedin',
+  website: 'world',
+  organization: 'building',
+  other: 'link',
+};
+
+/** Adresse sans « https:// » ni barre finale, pour l'affichage. */
+function displayUrl(url: string): string {
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+}
 </script>
 
 <template>
@@ -170,6 +186,24 @@ const isEmpty = computed(
             <ul class="profile-chips">
               <li v-for="zone in profile.zones" :key="zone.code">
                 <q-chip :ripple="false" class="profile-chip">{{ zone.name }}</q-chip>
+              </li>
+            </ul>
+          </section>
+
+          <section
+            v-if="profile.links.length"
+            class="profile-section"
+            aria-labelledby="profile-links"
+          >
+            <h2 id="profile-links">Liens</h2>
+            <ul class="profile-links">
+              <li v-for="link in profile.links" :key="link.type">
+                <q-icon :name="LINK_ICONS[link.type]" size="18px" aria-hidden="true" />
+                <span class="profile-links__label">{{ link.label }}</span>
+                <a :href="link.url" target="_blank" rel="noopener noreferrer nofollow">
+                  {{ displayUrl(link.url) }}
+                  <span class="sr-only">(nouvel onglet)</span>
+                </a>
               </li>
             </ul>
           </section>
@@ -403,6 +437,52 @@ const isEmpty = computed(
 
   &__empty {
     color: var(--ink-2);
+  }
+}
+
+.profile-links {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 18px 130px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
+
+    .q-icon {
+      color: var(--petrol);
+    }
+  }
+
+  &__label {
+    font-size: var(--fs-sm);
+    color: var(--muted);
+  }
+
+  a {
+    overflow: hidden;
+    color: var(--petrol);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--link-hover);
+    }
+  }
+}
+
+@media (max-width: 719px) {
+  .profile-links li {
+    grid-template-columns: 18px minmax(0, 1fr);
+
+    a {
+      grid-column: 2;
+    }
   }
 }
 
