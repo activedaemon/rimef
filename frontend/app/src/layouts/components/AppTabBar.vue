@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// Barre d'onglets mobile (fiche TabBar), sous 720 px : Accueil, Réseau, Agenda, Ressources, Profil.
+// Barre d'onglets mobile (fiche TabBar), sous 720 px : Accueil, Réseau, Agenda, Ressources.
+// Le profil, propre à la personne connectée, reste dans le menu du compte et le tiroir.
 // q-tabs / q-route-tab (onde, indicateur animé) : choix assumé, les lecteurs d'écran
 // annoncent des « onglets » ; la zone reste une <nav> libellée.
-import { TAB_BAR_NAVIGATION } from '@/router/navigation';
+import { MAIN_NAVIGATION } from '@/router/navigation';
 </script>
 
 <template>
@@ -16,7 +17,7 @@ import { TAB_BAR_NAVIGATION } from '@/router/navigation';
         class="app-tab-bar__tabs"
       >
         <q-route-tab
-          v-for="item in TAB_BAR_NAVIGATION"
+          v-for="item in MAIN_NAVIGATION"
           :key="item.routeName"
           :to="{ name: item.routeName }"
           :exact="item.routeName === 'home'"
@@ -39,7 +40,7 @@ import { TAB_BAR_NAVIGATION } from '@/router/navigation';
   &__tabs {
     :deep(.q-tabs__content) {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
     }
 
     :deep(.q-tab__indicator) {

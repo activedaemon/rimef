@@ -4,8 +4,6 @@ import {
   FOOTER_NAVIGATION,
   isNavigationItemActive,
   MAIN_NAVIGATION,
-  PROFILE_NAVIGATION,
-  TAB_BAR_NAVIGATION,
 } from './navigation';
 
 describe('navigation', () => {
@@ -27,10 +25,6 @@ describe('navigation', () => {
     ]);
   });
 
-  it('adds the profile to the mobile tab bar', () => {
-    expect(TAB_BAR_NAVIGATION.at(-1)).toBe(PROFILE_NAVIGATION);
-  });
-
   it('marks a section active on its own route only', () => {
     const network = MAIN_NAVIGATION[1]!;
 
@@ -39,7 +33,7 @@ describe('navigation', () => {
     expect(isNavigationItemActive(network, undefined)).toBe(false);
   });
 
-  it('keeps the profile active while editing it', () => {
-    expect(isNavigationItemActive(PROFILE_NAVIGATION, 'profile-edit')).toBe(true);
+  it('keeps a section active on its detail pages', () => {
+    expect(isNavigationItemActive(MAIN_NAVIGATION[1]!, 'member')).toBe(true);
   });
 });

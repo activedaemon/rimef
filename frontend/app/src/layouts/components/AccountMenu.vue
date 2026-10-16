@@ -1,18 +1,14 @@
 <script setup lang="ts">
-// Menu du compte (fiche AccountMenu) : identité, profil (son édition sans rôle member),
-// messages (avec les non-lus), Administration (administratrices et superadmin), déconnexion.
+// Menu du compte (fiche AccountMenu) : identité, puis les entrées du compte (AccountLinks).
 // Pastille : photo de la personne connectée si elle en a une, sinon ses initiales.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
 import { ref } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
-import { useLogout } from '@/composables/useLogout';
-import { useInbox } from '@/stores/inbox';
 import { useSession } from '@/stores/session';
+import AccountLinks from './AccountLinks.vue';
 
 const session = useSession();
-const inbox = useInbox();
-const { logout, loggingOut } = useLogout();
 const menuList = ref<{ $el: HTMLElement } | null>(null);
 
 function focusFirstItem(): void {
@@ -69,46 +65,7 @@ function moveFocus(event: KeyboardEvent): void {
         @keydown.down.prevent="moveFocus"
         @keydown.up.prevent="moveFocus"
       >
-        <q-item
-          v-if="session.isMember"
-          v-close-popup
-          clickable
-          role="menuitem"
-          :to="{ name: 'profile' }"
-        >
-          <q-item-section avatar><q-icon name="user" size="16px" /></q-item-section>
-          <q-item-section>Voir mon profil</q-item-section>
-        </q-item>
-        <q-item v-else v-close-popup clickable role="menuitem" :to="{ name: 'profile-edit' }">
-          <q-item-section avatar><q-icon name="pencil" size="16px" /></q-item-section>
-          <q-item-section>Modifier mon profil</q-item-section>
-        </q-item>
-        <q-item v-close-popup clickable role="menuitem" :to="{ name: 'messages' }">
-          <q-item-section avatar><q-icon name="message" size="16px" /></q-item-section>
-          <q-item-section>Mes messages</q-item-section>
-          <q-item-section v-if="inbox.unreadMessages > 0" side>
-            <q-badge
-              class="rimef-badge account-menu__count"
-              :label="inbox.unreadMessages"
-              :aria-label="`${inbox.unreadMessages} non lus`"
-            />
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="session.isAdmin"
-          v-close-popup
-          clickable
-          role="menuitem"
-          :to="{ name: 'admin' }"
-        >
-          <q-item-section avatar><q-icon name="shield-check" size="16px" /></q-item-section>
-          <q-item-section>Administration</q-item-section>
-        </q-item>
-        <q-separator class="account-menu__separator" />
-        <q-item v-close-popup clickable role="menuitem" :disable="loggingOut" @click="logout">
-          <q-item-section avatar><q-icon name="logout" size="16px" /></q-item-section>
-          <q-item-section>Se déconnecter</q-item-section>
-        </q-item>
+        <AccountLinks icon-size="16px" item-role="menuitem" />
       </q-list>
     </q-menu>
   </q-btn>
@@ -131,12 +88,6 @@ function moveFocus(event: KeyboardEvent): void {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-float);
-
-  // Messages non lus
-  &__count.q-badge {
-    background: var(--terracotta);
-    color: var(--paper);
-  }
 
   &__identity {
     display: flex;
@@ -166,16 +117,6 @@ function moveFocus(event: KeyboardEvent): void {
       min-width: 28px;
       color: var(--muted);
     }
-
-    &.q-router-link--exact-active {
-      color: var(--petrol);
-      font-weight: 600;
-    }
-  }
-
-  &__separator {
-    margin: var(--s-1);
-    background: var(--border);
   }
 }
 </style>

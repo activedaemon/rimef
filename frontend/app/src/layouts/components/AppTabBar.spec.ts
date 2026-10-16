@@ -10,8 +10,8 @@ import AppTabBar from './AppTabBar.vue';
 const InLayout = defineComponent({ render: () => h(QLayout, null, () => h(AppTabBar)) });
 
 describe('AppTabBar', () => {
-  it('shows the five tabs with the current one selected', async () => {
-    const { wrapper } = await mountApp(InLayout, { path: '/profil/modifier' });
+  it('shows the four tabs with the current one selected', async () => {
+    const { wrapper } = await mountApp(InLayout, { path: '/reseau' });
 
     const tabs = wrapper.findAll('nav[aria-label="Navigation mobile"] .q-tab .q-tab__label');
     expect(tabs.map((tab) => tab.text())).toEqual([
@@ -19,12 +19,11 @@ describe('AppTabBar', () => {
       'Réseau',
       'Agenda',
       'Ressources',
-      'Profil',
     ]);
-    // q-route-tab : l'onglet courant porte aria-selected (Profil reste actif en édition),
+    // q-route-tab : l'onglet courant porte aria-selected,
     // calculé par q-tabs juste après le rendu
     await vi.waitFor(() =>
-      expect(wrapper.find('.q-tab[aria-selected="true"] .q-tab__label').text()).toBe('Profil')
+      expect(wrapper.find('.q-tab[aria-selected="true"] .q-tab__label').text()).toBe('Réseau')
     );
 
     wrapper.unmount();
