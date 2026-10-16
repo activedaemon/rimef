@@ -1,18 +1,17 @@
 <script setup lang="ts">
-// Menu du compte (fiche AccountMenu) : identité, profil (son édition sans rôle member),
-// messages (avec les non-lus), Administration (administratrices et superadmin), déconnexion.
+// Menu du compte (fiche AccountMenu) : identité, puis les entrées du compte (AccountLinks).
 // Pastille : photo de la personne connectée si elle en a une, sinon ses initiales.
+// Chevron à côté de la pastille (pivote à l'ouverture) et anneau pétrole au survol et au focus :
+// ils signalent le menu, la fiche AccountMenu ne prévoyant que l'avatar. q-menu pose aria-expanded.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
 import { ref } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
-import { useLogout } from '@/composables/useLogout';
-import { useInbox } from '@/stores/inbox';
 import { useSession } from '@/stores/session';
+import AccountLinks from './AccountLinks.vue';
 
 const session = useSession();
-const inbox = useInbox();
-const { logout, loggingOut } = useLogout();
+const open = ref(false);
 const menuList = ref<{ $el: HTMLElement } | null>(null);
 
 function focusFirstItem(): void {
@@ -30,7 +29,7 @@ function moveFocus(event: KeyboardEvent): void {
 <template>
   <q-btn
     flat
-    round
+    no-caps
     class="account-button"
     :aria-label="`Mon compte, ${session.user?.name ?? ''}`"
     aria-haspopup="menu"
@@ -41,8 +40,16 @@ function moveFocus(event: KeyboardEvent): void {
       :size="38"
       class="account-button__avatar"
     />
+    <q-icon
+      name="chevron-down"
+      size="14px"
+      class="account-button__chevron"
+      :class="{ 'account-button__chevron--open': open }"
+      aria-hidden="true"
+    />
 
     <q-menu
+      v-model="open"
       anchor="bottom right"
       self="top right"
       :offset="[0, 8]"
@@ -69,56 +76,69 @@ function moveFocus(event: KeyboardEvent): void {
         @keydown.down.prevent="moveFocus"
         @keydown.up.prevent="moveFocus"
       >
-        <q-item
-          v-if="session.isMember"
-          v-close-popup
-          clickable
-          role="menuitem"
-          :to="{ name: 'profile' }"
-        >
-          <q-item-section avatar><q-icon name="user" size="16px" /></q-item-section>
-          <q-item-section>Voir mon profil</q-item-section>
-        </q-item>
-        <q-item v-else v-close-popup clickable role="menuitem" :to="{ name: 'profile-edit' }">
-          <q-item-section avatar><q-icon name="pencil" size="16px" /></q-item-section>
-          <q-item-section>Modifier mon profil</q-item-section>
-        </q-item>
-        <q-item v-close-popup clickable role="menuitem" :to="{ name: 'messages' }">
-          <q-item-section avatar><q-icon name="message" size="16px" /></q-item-section>
-          <q-item-section>Mes messages</q-item-section>
-          <q-item-section v-if="inbox.unreadMessages > 0" side>
-            <q-badge
-              class="rimef-badge account-menu__count"
-              :label="inbox.unreadMessages"
-              :aria-label="`${inbox.unreadMessages} non lus`"
-            />
-          </q-item-section>
-        </q-item>
-        <q-item
-          v-if="session.isAdmin"
-          v-close-popup
-          clickable
-          role="menuitem"
-          :to="{ name: 'admin' }"
-        >
-          <q-item-section avatar><q-icon name="shield-check" size="16px" /></q-item-section>
-          <q-item-section>Administration</q-item-section>
-        </q-item>
-        <q-separator class="account-menu__separator" />
-        <q-item v-close-popup clickable role="menuitem" :disable="loggingOut" @click="logout">
-          <q-item-section avatar><q-icon name="logout" size="16px" /></q-item-section>
-          <q-item-section>Se déconnecter</q-item-section>
-        </q-item>
+        <AccountLinks icon-size="16px" item-role="menuitem" />
       </q-list>
     </q-menu>
   </q-btn>
 </template>
 
 <style lang="scss" scoped>
-.account-button__avatar {
-  box-shadow:
-    0 0 0 2px var(--paper),
-    0 0 0 3px var(--border);
+.account-button {
+  min-height: 44px;
+  padding: 0 4px 0 2px;
+  border-radius: 999px;
+
+  :deep(.q-btn__content) {
+    gap: 4px;
+  }
+
+  &__avatar {
+    box-shadow:
+      0 0 0 2px var(--paper),
+      0 0 0 3px var(--border);
+    transition: box-shadow 0.15s;
+  }
+
+  &__chevron {
+    color: var(--muted);
+    transition:
+      transform 0.15s,
+      color 0.15s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  // Survol (pointeur fin seulement) et focus clavier : anneau et chevron passent en pétrole
+  @media (hover: hover) {
+    &:hover .account-button__avatar {
+      box-shadow:
+        0 0 0 2px var(--paper),
+        0 0 0 3px var(--petrol);
+    }
+
+    &:hover .account-button__chevron {
+      color: var(--petrol);
+    }
+  }
+
+  &:focus-visible .account-button__avatar {
+    box-shadow:
+      0 0 0 2px var(--paper),
+      0 0 0 3px var(--petrol);
+  }
+
+  &:focus-visible .account-button__chevron {
+    color: var(--petrol);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__avatar,
+    &__chevron {
+      transition: none;
+    }
+  }
 }
 </style>
 
@@ -131,12 +151,6 @@ function moveFocus(event: KeyboardEvent): void {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-float);
-
-  // Messages non lus
-  &__count.q-badge {
-    background: var(--terracotta);
-    color: var(--paper);
-  }
 
   &__identity {
     display: flex;
@@ -166,16 +180,6 @@ function moveFocus(event: KeyboardEvent): void {
       min-width: 28px;
       color: var(--muted);
     }
-
-    &.q-router-link--exact-active {
-      color: var(--petrol);
-      font-weight: 600;
-    }
-  }
-
-  &__separator {
-    margin: var(--s-1);
-    background: var(--border);
   }
 }
 </style>

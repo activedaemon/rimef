@@ -1,16 +1,16 @@
 <script setup lang="ts">
-// Tiroir mobile (bouton menu de l'en-tête) : navigation en Instrument Serif, puis compte.
+// Tiroir mobile (bouton menu de l'en-tête) : navigation en Instrument Serif, puis les
+// entrées du compte, communes au menu du compte (AccountLinks).
+// L'état actif de la navigation vient de isNavigationItemActive : celui de vue-router
+// (active-class) est neutralisé, sinon Accueil (« / ») resterait actif partout.
 import { useRoute } from 'vue-router';
 
-import { useLogout } from '@/composables/useLogout';
-import { useSession } from '@/stores/session';
 import { isNavigationItemActive, MAIN_NAVIGATION } from '@/router/navigation';
+import AccountLinks from './AccountLinks.vue';
 
 const open = defineModel<boolean>({ required: true });
 
 const route = useRoute();
-const { logout, loggingOut } = useLogout();
-const session = useSession();
 </script>
 
 <template>
@@ -25,7 +25,6 @@ const session = useSession();
   >
     <div class="app-drawer__inner">
       <q-btn
-        v-close-popup
         flat
         round
         icon="x"
@@ -41,6 +40,8 @@ const session = useSession();
             :key="item.routeName"
             clickable
             :to="{ name: item.routeName }"
+            active-class=""
+            exact-active-class=""
             class="app-drawer__link"
             :class="{ 'app-drawer__link--active': isNavigationItemActive(item, route.name) }"
             :aria-current="isNavigationItemActive(item, route.name) ? 'page' : undefined"
@@ -52,24 +53,7 @@ const session = useSession();
       </nav>
 
       <q-list class="app-drawer__account">
-        <q-item clickable :to="{ name: 'profile' }" class="app-drawer__sub" @click="open = false">
-          <q-item-section avatar><q-icon name="user" size="18px" /></q-item-section>
-          <q-item-section>Mon profil</q-item-section>
-        </q-item>
-        <q-item
-          v-if="session.isAdmin"
-          clickable
-          :to="{ name: 'admin' }"
-          class="app-drawer__sub"
-          @click="open = false"
-        >
-          <q-item-section avatar><q-icon name="shield-check" size="18px" /></q-item-section>
-          <q-item-section>Administration</q-item-section>
-        </q-item>
-        <q-item clickable class="app-drawer__sub" :disable="loggingOut" @click="logout">
-          <q-item-section avatar><q-icon name="logout" size="18px" /></q-item-section>
-          <q-item-section>Se déconnecter</q-item-section>
-        </q-item>
+        <AccountLinks icon-size="18px" @navigate="open = false" />
       </q-list>
     </div>
   </q-drawer>
@@ -108,7 +92,8 @@ const session = useSession();
     margin-top: var(--s-5);
   }
 
-  &__sub {
+  // Entrées rendues par AccountLinks
+  &__account :deep(.q-item) {
     min-height: 44px;
     padding: 0;
     color: var(--ink-2);
