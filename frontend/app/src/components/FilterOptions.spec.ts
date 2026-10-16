@@ -19,7 +19,10 @@ describe('FilterOptions', () => {
     await boxes[0]!.trigger('click');
     await boxes[1]!.trigger('click');
 
-    expect(wrapper.emitted('update:modelValue')).toEqual([[['europe', 'west_africa']], [['west_africa']]]);
+    expect(wrapper.emitted('update:modelValue')).toEqual([
+      [['europe', 'west_africa']],
+      [['west_africa']],
+    ]);
     wrapper.unmount();
   });
 

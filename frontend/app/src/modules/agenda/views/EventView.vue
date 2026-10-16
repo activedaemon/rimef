@@ -307,12 +307,13 @@ const peopleTitle = computed(() => {
 
   &__tabs {
     scroll-margin-top: var(--header-h);
-    border-bottom: 1px solid var(--border);
   }
 }
 
 // Onglets de la maquette : texte 13 px, actif en pétrole graisse 600, soulignement 2 px
 .event-tabs {
+  // Filet bas à la largeur du contenu (dans le conteneur), pas de bord à bord
+  border-bottom: 1px solid var(--border);
   color: var(--ink-2);
 
   :deep(.q-tab) {

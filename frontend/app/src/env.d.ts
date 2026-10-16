@@ -18,6 +18,10 @@ declare module 'vue-router' {
     searchScope?: SearchScope;
     /** La recherche du bandeau filtre la page elle-même (?q=…) au lieu d'ouvrir /recherche. */
     searchInPage?: boolean;
+    /** Réservée aux administratrices et au superadmin (les autres comptes vont à l'accueil). */
+    adminOnly?: boolean;
+    /** La recherche du bandeau mène à cette route avec ?q=… (fiche d'un compte → liste). */
+    searchTarget?: string;
     /** Téléphone : page en plein écran sous l'en-tête, sans barre d'onglets (conversation). */
     fullscreenOnPhone?: boolean;
   }

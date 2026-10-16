@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { resourceMeta, themeTone, type LibraryResource } from '../services/resources';
 import ResourceTypeBadge from './ResourceTypeBadge.vue';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = defineProps<{ resource: LibraryResource }>();
 const emit = defineEmits<{ toggleFavorite: [] }>();
@@ -42,9 +43,7 @@ const saveLabel = computed(() =>
         :aria-label="saveLabel"
         @click="emit('toggleFavorite')"
       >
-        <q-tooltip anchor="top middle" self="bottom middle" :offset="[0, 6]">
-          {{ saveLabel }}
-        </q-tooltip>
+        <AppTooltip>{{ saveLabel }}</AppTooltip>
       </q-btn>
     </div>
 

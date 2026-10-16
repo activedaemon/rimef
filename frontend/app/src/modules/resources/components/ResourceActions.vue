@@ -9,6 +9,7 @@ import { computed } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import { useNotify } from '@/composables/useNotify';
 import type { ResourceDetail } from '../services/resources';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = withDefaults(defineProps<{ resource: ResourceDetail; dock?: boolean }>(), {
   dock: false,
@@ -72,6 +73,7 @@ async function copyLink(): Promise<void> {
       aria-haspopup="menu"
       class="resource-actions__square"
     >
+      <AppTooltip>Plus d’actions</AppTooltip>
       <q-menu v-bind="menuPosition" :offset="[0, 6]" class="rimef-menu">
         <q-list role="menu" aria-label="Plus d’actions" dense>
           <q-item v-close-popup clickable role="menuitem" @click="copyLink">

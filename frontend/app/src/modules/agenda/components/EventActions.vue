@@ -12,6 +12,7 @@ import AppButton from '@/components/AppButton.vue';
 import { useNotify } from '@/composables/useNotify';
 import { formatDateRange } from '@/lib/dates';
 import { calendarLinks, type EventDetail } from '../services/events';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = withDefaults(defineProps<{ event: EventDetail; dock?: boolean }>(), {
   dock: false,
@@ -121,6 +122,7 @@ function copyDetails(): void {
       aria-haspopup="menu"
       class="event-actions__square"
     >
+      <AppTooltip>Plus d’actions</AppTooltip>
       <q-menu v-bind="menuPosition" :offset="[0, 6]" class="rimef-menu">
         <q-list role="menu" aria-label="Plus d’actions" dense>
           <q-item

@@ -19,3 +19,11 @@ export function eventNoun(count: number): string {
 export function resourceNoun(count: number): string {
   return count > 1 ? 'ressources' : 'ressource';
 }
+
+/**
+ * « de » élidé devant une voyelle : « la fiche d’Olivia », « la fiche de Marcel ».
+ * Le h n'est pas élidé (muet ou aspiré selon le prénom : on garde « de »).
+ */
+export function ofName(name: string): string {
+  return /^[aeiouyàâäéèêëîïôöùûüœæ]/i.test(name.trim()) ? `d’${name}` : `de ${name}`;
+}

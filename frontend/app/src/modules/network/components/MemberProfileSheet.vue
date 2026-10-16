@@ -139,14 +139,16 @@ function displayUrl(url: string): string {
             </span>
           </q-tab>
           <q-tab v-if="conversation" name="messages" :aria-label="messagesLabel">
-            <span class="q-tab__label">Messages</span>
-            <q-badge
-              v-if="unread > 0"
-              rounded
-              :label="unread"
-              class="profile-tabs__badge"
-              aria-hidden="true"
-            />
+            <!-- Pastille dans le libellé : à droite du mot (le contenu d'un q-tab est en colonne) -->
+            <span class="q-tab__label">
+              Messages<q-badge
+                v-if="unread > 0"
+                rounded
+                :label="unread"
+                class="profile-tabs__badge"
+                aria-hidden="true"
+              />
+            </span>
           </q-tab>
         </q-tabs>
       </div>
@@ -317,10 +319,6 @@ function displayUrl(url: string): string {
 
 <style lang="scss" scoped>
 .profile-sheet {
-  &__tabs {
-    border-bottom: 1px solid var(--border);
-  }
-
   // Sans débordement masqué : la colonne latérale reste collée au défilement (sticky)
   &__panels {
     overflow: visible;
@@ -332,8 +330,10 @@ function displayUrl(url: string): string {
   }
 }
 
-// Onglets de la maquette : texte 13 px, actif en pétrole graisse 600, soulignement 2 px
+// Onglets de la maquette : texte 13 px, actif en pétrole graisse 600, soulignement 2 px ;
+// filet bas à la largeur du contenu (dans le conteneur), pas de bord à bord
 .profile-tabs {
+  border-bottom: 1px solid var(--border);
   color: var(--ink-2);
 
   :deep(.q-tab) {
@@ -372,6 +372,7 @@ function displayUrl(url: string): string {
   // Non-lus : pastille terracotta comme le compteur de « Mes messages »
   &__badge {
     margin-left: 6px;
+    vertical-align: 1px;
     background: var(--terracotta-ink);
     color: var(--paper);
     font-size: 11px;

@@ -9,6 +9,7 @@ import { computed } from 'vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useSession } from '@/stores/session';
 import { presenceLabel, talkLabel, type EventAttendee } from '../services/events';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = withDefaults(
   defineProps<{ attendee: EventAttendee; eventDays: string[]; full?: boolean }>(),
@@ -71,6 +72,7 @@ const presence = computed(() => presenceLabel(props.attendee.attendance_days, pr
         class="attendee-card__write"
         @click="emit('write', attendee)"
       >
+        <AppTooltip>Écrire à {{ attendee.name }}</AppTooltip>
         <span class="attendee-card__envelope" aria-hidden="true">
           <q-icon name="mail" size="14px" />
         </span>

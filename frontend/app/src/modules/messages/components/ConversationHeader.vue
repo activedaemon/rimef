@@ -1,10 +1,13 @@
 <script setup lang="ts">
-// En-tête de la conversation ouverte (maquette Mes messages) : portrait, nom, badge, lieu et
+// En-tête de la conversation ouverte (maquette Mes messages) : portrait, nom, badges, lieu et
 // lien vers sa fiche, menu « … » (Supprimer la conversation). Sur téléphone, bouton retour.
+// Équipe RIMeF : badge pétrole et rôle (une administratrice médiatrice a aussi « Membre RIMeF »).
+// Compte désactivé : badge « Compte désactivé » ; compte supprimé : portrait neutre.
 import { useTemplateRef } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
-import type { ConversationContact } from '../services/messages';
+import { teamRoleLabel, type ConversationContact } from '../services/messages';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 defineProps<{ contact: ConversationContact | null; showBack?: boolean }>();
 const emit = defineEmits<{ back: []; delete: [] }>();
@@ -26,22 +29,40 @@ defineExpose({ focusTitle: () => title.value?.focus() });
       @click="emit('back')"
     />
     <MemberAvatar
-      :name="contact?.name ?? '?'"
-      :photo="contact?.photo_url ?? null"
+      v-if="contact"
+      :name="contact.name"
+      :photo="contact.photo_url"
       :size="44"
       class="conversation-header__avatar"
+    />
+    <q-avatar
+      v-else
+      size="44px"
+      icon="user"
+      class="conversation-header__ghost"
+      aria-hidden="true"
     />
     <div class="conversation-header__id">
       <div class="conversation-header__name">
         <h2 ref="title" tabindex="-1">
           {{ contact?.name ?? 'Compte supprimé' }}
         </h2>
+        <template v-if="contact?.is_team">
+          <q-badge class="rimef-badge conversation-header__team" label="Équipe RIMeF" />
+          <span class="conversation-header__role">{{ teamRoleLabel(contact.roles) }}</span>
+        </template>
         <q-badge
           v-if="contact?.has_profile"
           class="rimef-badge conversation-header__badge"
           color="sage-light"
           text-color="sage-ink"
           label="Membre RIMeF"
+        />
+        <q-badge
+          v-if="contact && !contact.is_active"
+          outline
+          class="rimef-badge conversation-header__off"
+          label="Compte désactivé"
         />
       </div>
       <p v-if="contact?.place" class="meta">
@@ -63,6 +84,7 @@ defineExpose({ focusTitle: () => title.value?.focus() });
       aria-label="Options de la conversation"
       class="conversation-header__options"
     >
+      <AppTooltip>Options de la conversation</AppTooltip>
       <q-menu anchor="bottom right" self="top right" class="message-menu">
         <q-list dense>
           <q-item v-close-popup clickable @click="emit('delete')">
@@ -76,6 +98,29 @@ defineExpose({ focusTitle: () => title.value?.focus() });
 </template>
 
 <style lang="scss" scoped>
+.conversation-header__team.q-badge {
+  background: var(--petrol-light);
+  color: var(--petrol);
+}
+
+.conversation-header__role {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--petrol);
+}
+
+.conversation-header__off.q-badge {
+  border-color: var(--border-hover);
+  color: var(--ink-2);
+}
+
+.conversation-header__ghost {
+  flex: none;
+  background: var(--ivory);
+  color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
 .conversation-header {
   display: flex;
   align-items: center;

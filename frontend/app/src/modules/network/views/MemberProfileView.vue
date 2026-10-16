@@ -14,6 +14,7 @@ import { useSession } from '@/stores/session';
 import ContactDialog from '../components/ContactDialog.vue';
 import MemberProfileSheet from '../components/MemberProfileSheet.vue';
 import { useMemberProfile } from '../composables/useMemberProfile';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -75,6 +76,7 @@ const favoriteLabel = computed(() =>
             aria-haspopup="menu"
             class="member-actions__more"
           >
+            <AppTooltip>Plus d’actions</AppTooltip>
             <q-menu anchor="bottom right" self="top right" :offset="[0, 6]" class="member-menu">
               <q-list role="menu" aria-label="Plus d’actions" dense>
                 <q-item

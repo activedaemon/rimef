@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\Admin\AccountController;
+use App\Http\Controllers\Api\Admin\InvitationController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CurrentUserController;
 use App\Http\Controllers\Api\EventController;
@@ -9,10 +11,12 @@ use App\Http\Controllers\Api\EventMeetingController;
 use App\Http\Controllers\Api\EventParticipationController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\InvitationAcceptController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ResourceController;
+use App\Http\Controllers\Api\TeamController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
@@ -43,6 +47,11 @@ Route::middleware([
     'api',
 ])->prefix('api')->group(function () {
     Route::get('/health', HealthController::class);
+
+    // Activation d'un compte invité, depuis le lien reçu par email (sans session)
+    Route::post('/invitation/accept', InvitationAcceptController::class)
+        ->middleware('throttle:6,1')
+        ->name('invitation.accept');
 
     Route::middleware(['auth:sanctum', EnsureUserIsActive::class])->group(function () {
         Route::get('/user', CurrentUserController::class)->name('user.current');
@@ -112,6 +121,10 @@ Route::middleware([
 
         // Messagerie interne
         Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
+        Route::post('/conversations', [ConversationController::class, 'start'])
+            ->middleware('throttle:10,60')
+            ->name('conversations.start');
+        Route::get('/team', TeamController::class)->name('team');
         Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])
             ->whereNumber('conversation')
             ->name('conversations.show');
@@ -136,6 +149,37 @@ Route::middleware([
         Route::put('/conversations/{conversation}/read', [ConversationController::class, 'read'])
             ->whereNumber('conversation')
             ->name('conversations.read');
+
+        // Rubrique Administration (administratrices et superadmin) ; droits fins : UserPolicy
+        Route::middleware('can:administer')->prefix('admin')->name('admin.')->group(function () {
+            Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');
+            Route::get('/accounts/{user}', [AccountController::class, 'show'])
+                ->whereNumber('user')
+                ->name('accounts.show');
+            Route::put('/accounts/{user}/activation', [AccountController::class, 'activate'])
+                ->whereNumber('user')
+                ->name('accounts.activate');
+            Route::delete('/accounts/{user}/activation', [AccountController::class, 'deactivate'])
+                ->whereNumber('user')
+                ->name('accounts.deactivate');
+            Route::put('/accounts/{user}/roles', [AccountController::class, 'updateRoles'])
+                ->whereNumber('user')
+                ->name('accounts.roles');
+            Route::delete('/accounts/{user}', [AccountController::class, 'destroy'])
+                ->whereNumber('user')
+                ->name('accounts.destroy');
+
+            Route::post('/invitations', [InvitationController::class, 'store'])
+                ->middleware('throttle:30,60')
+                ->name('invitations.store');
+            Route::post('/accounts/{user}/invitation', [InvitationController::class, 'resend'])
+                ->whereNumber('user')
+                ->middleware('throttle:30,60')
+                ->name('invitations.resend');
+            Route::delete('/accounts/{user}/invitation', [InvitationController::class, 'destroy'])
+                ->whereNumber('user')
+                ->name('invitations.destroy');
+        });
 
         // Cloche
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

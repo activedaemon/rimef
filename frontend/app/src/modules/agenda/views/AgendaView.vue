@@ -8,9 +8,11 @@ import { type ComponentPublicInstance, computed, onMounted, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
+import ActiveFilters from '@/components/ActiveFilters.vue';
 import FilterTag from '@/components/FilterTag.vue';
 import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
+import ResultsBar from '@/components/ResultsBar.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
 import type { FilterOption } from '@/lib/filters';
 import { eventNoun } from '@/lib/wording';
@@ -202,7 +204,7 @@ onMounted(() => void agenda.start());
             />
           </div>
 
-          <div v-if="agenda.filtered.value" class="agenda-active" aria-live="polite">
+          <ActiveFilters :filtered="agenda.filtered.value" @clear="agenda.reset">
             <FilterTag
               v-if="query.q"
               :label="`« ${query.q} »`"
@@ -235,44 +237,21 @@ onMounted(() => void agenda.start());
               :aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
               @click="setToggles(more.filter((value) => value !== key))"
             />
-          </div>
+          </ActiveFilters>
 
-          <div ref="resultsBar" class="agenda-bar">
-            <p class="agenda-bar__count" aria-live="polite">
-              <template v-if="agenda.filtered.value">
-                <b>{{ agenda.total.value }}</b> {{ eventNoun(agenda.total.value) }} sur
-                {{ periodTotal }}
-                <q-btn
-                  flat
-                  dense
-                  no-caps
-                  class="link-more agenda-bar__reset"
-                  label="Tout effacer"
-                  @click="agenda.reset"
-                />
-              </template>
-              <template v-else>
-                <b>{{ periodTotal }}</b> {{ eventNoun(periodTotal) }}
-                {{ PERIOD_SUFFIX[query.period] }}
-              </template>
-            </p>
-
-            <q-select
-              v-model="sort"
-              :options="sortOptions"
-              emit-value
-              map-options
-              dense
-              outlined
-              options-dense
-              class="rimef-select agenda-bar__sort"
-              aria-label="Trier par"
-            >
-              <template #prepend>
-                <span class="agenda-bar__sort-label gt-xs">Trier par :</span>
-              </template>
-            </q-select>
-          </div>
+          <ResultsBar
+            ref="resultsBar"
+            v-model:sort="sort"
+            :noun="{ one: 'événement', many: 'événements' }"
+            :from="agenda.from.value"
+            :to="agenda.to.value"
+            :total="agenda.total.value"
+            :last-page="agenda.lastPage.value"
+            :filtered="agenda.filtered.value"
+            :overall="periodTotal"
+            :suffix="PERIOD_SUFFIX[query.period]"
+            :sort-options="sortOptions"
+          />
 
           <div v-if="!agenda.loaded.value" class="agenda-loading">
             <q-spinner color="primary" size="32px" />
@@ -327,11 +306,8 @@ onMounted(() => void agenda.start());
             </div>
 
             <ListPager
-              noun="Événements"
               items-label="événements"
               :total="agenda.total.value"
-              :from="agenda.from.value"
-              :to="agenda.to.value"
               :page="agenda.page.value"
               :last-page="agenda.lastPage.value"
               :per-page="query.perPage"
@@ -454,47 +430,6 @@ onMounted(() => void agenda.start());
   margin-top: 18px;
 }
 
-.agenda-active {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.agenda-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 18px;
-  // Arrivée par le changement de page : la barre ne passe pas sous l'en-tête fixe
-  scroll-margin-top: calc(var(--header-h) + 16px);
-
-  &__count {
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
-
-    b {
-      font-weight: 600;
-      color: var(--petrol);
-      font-variant-numeric: tabular-nums;
-    }
-  }
-
-  &__reset {
-    margin-left: 10px;
-  }
-
-  &__sort {
-    min-width: 170px;
-  }
-
-  &__sort-label {
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-  }
-}
-
 .agenda-loading {
   display: grid;
   place-items: center;
@@ -585,10 +520,6 @@ onMounted(() => void agenda.start());
     &__list :deep(.q-tab) {
       margin-right: 26px;
     }
-  }
-
-  .agenda-bar__sort {
-    min-width: 0;
   }
 
   // Calendrier et citation sous la liste

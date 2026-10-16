@@ -5,11 +5,8 @@ import { mountApp } from '@/testing/mount-app';
 import ListPager from './ListPager.vue';
 
 const PROPS = {
-  noun: 'Ressources',
   itemsLabel: 'ressources',
   total: 20,
-  from: 1,
-  to: 9,
   page: 1,
   lastPage: 3,
   perPage: 9,
@@ -17,10 +14,10 @@ const PROPS = {
 };
 
 describe('ListPager', () => {
-  it('shows the range, the page size and the page numbers', async () => {
+  it('shows the page size and the page numbers, the range being above the list', async () => {
     const { wrapper } = await mountApp(ListPager, { props: PROPS });
 
-    expect(wrapper.find('.list-pager__range').text()).toBe('Ressources 1–9 sur 20');
+    expect(wrapper.find('.list-pager__range').exists()).toBe(false);
     expect(wrapper.find('nav').attributes('aria-label')).toBe('Pagination des ressources');
     expect(wrapper.find('.list-pager__size').text()).toContain('9 par page');
     expect(wrapper.find('.app-pagination').exists()).toBe(true);
@@ -29,7 +26,7 @@ describe('ListPager', () => {
 
   it('hides the page numbers on a single page, but keeps the page size', async () => {
     const { wrapper } = await mountApp(ListPager, {
-      props: { ...PROPS, to: 20, perPage: 36, lastPage: 1 },
+      props: { ...PROPS, perPage: 36, lastPage: 1 },
     });
 
     expect(wrapper.find('.list-pager__size').exists()).toBe(true);
@@ -37,19 +34,18 @@ describe('ListPager', () => {
     wrapper.unmount();
   });
 
-  it('shows only the range when the list fits in the smallest page', async () => {
+  it('shows nothing when the list fits in the smallest page', async () => {
     const { wrapper } = await mountApp(ListPager, {
-      props: { ...PROPS, total: 7, to: 7, lastPage: 1 },
+      props: { ...PROPS, total: 7, lastPage: 1 },
     });
 
-    expect(wrapper.find('.list-pager__range').text()).toBe('Ressources 1–7 sur 7');
-    expect(wrapper.find('nav').exists()).toBe(false);
+    expect(wrapper.find('.list-pager').exists()).toBe(false);
     wrapper.unmount();
   });
 
   it('shows nothing for an empty list', async () => {
     const { wrapper } = await mountApp(ListPager, {
-      props: { ...PROPS, total: 0, from: 0, to: 0, lastPage: 1 },
+      props: { ...PROPS, total: 0, lastPage: 1 },
     });
 
     expect(wrapper.find('.list-pager').exists()).toBe(false);

@@ -9,10 +9,13 @@ import ContactForm from '@modules/messages/components/ContactForm.vue';
 
 /** Médiatrice écrite : fiche de l'annuaire ou médiatrice présente à un événement. */
 export interface ContactRecipient {
-  slug: string;
+  /** Fiche de l'annuaire ; null pour un compte de l'équipe sans fiche (account_id requis). */
+  slug: string | null;
   name: string;
   first_name: string;
   photo_url: string | null;
+  /** Compte visé par son identifiant (fiche d'un compte de l'administration). */
+  account_id?: number;
 }
 
 defineProps<{ profile: ContactRecipient }>();
@@ -46,7 +49,10 @@ function onSent(conversationId: number): void {
         />
       </div>
 
-      <ContactForm :recipient="profile" @sent="onSent" />
+      <ContactForm
+        :recipient="{ id: profile.account_id, slug: profile.slug, first_name: profile.first_name }"
+        @sent="onSent"
+      />
     </q-card>
   </q-dialog>
 </template>

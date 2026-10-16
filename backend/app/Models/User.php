@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Enums\AccountStatus;
 use App\Enums\Role;
 use App\Exceptions\ProtectedSuperAdminException;
 use App\Models\Concerns\HasUniqueSlug;
 use App\Notifications\ResetPasswordNotification;
+use App\Services\Invitations;
 use BackedEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Role as RoleModel;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -28,6 +32,9 @@ use Spatie\Permission\Traits\HasRoles;
  *
  * Le compte superadmin est protégé : il ne peut être ni supprimé, ni désactivé, ni privé
  * de son rôle (ProtectedSuperAdminException).
+ *
+ * Un compte invité (invitation_pending) n'a pas de mot de passe et reste inactif jusqu'à
+ * l'activation du lien reçu par email (App\Services\Invitations).
  */
 #[Fillable(['first_name', 'last_name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
@@ -40,6 +47,11 @@ class User extends Authenticatable
         removeRole as protected removeRoleUnprotected;
         syncRoles as protected syncRolesUnprotected;
     }
+
+    /**
+     * Refus d'une action réservée aux membres (voir isMember()).
+     */
+    public const MEMBERS_ONLY_MESSAGE = 'Il faut être membre du réseau pour participer à un événement.';
 
     protected static function booted(): void
     {
@@ -56,6 +68,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'invitation_pending' => 'boolean',
+            'invited_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'activated_at' => 'datetime',
         ];
     }
 
@@ -67,6 +83,16 @@ class User extends Authenticatable
     protected function name(): Attribute
     {
         return Attribute::get(fn (): string => trim("{$this->first_name} {$this->last_name}"));
+    }
+
+    /**
+     * Administratrice qui a envoyé l'invitation.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function invitedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'invited_by_id');
     }
 
     /**
@@ -191,6 +217,84 @@ class User extends Authenticatable
         return $this->exists && $this->hasRole(Role::SuperAdmin->value);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(Role::Admin->value);
+    }
+
+    /**
+     * Actions réservées aux membres (rôle member) : participer à un événement, proposer de
+     * se retrouver sur place, puis recommander une ressource. Une administratrice ou le
+     * superadmin sans ce rôle n'a pas de fiche dans le réseau.
+     */
+    public function isMember(): bool
+    {
+        return $this->hasRole(Role::Member->value);
+    }
+
+    public function accountStatus(): AccountStatus
+    {
+        return match (true) {
+            $this->invitation_pending && $this->invitationExpiresAt()?->isFuture() === true => AccountStatus::Pending,
+            $this->invitation_pending => AccountStatus::Expired,
+            $this->is_active => AccountStatus::Active,
+            default => AccountStatus::Inactive,
+        };
+    }
+
+    /**
+     * Fin de validité du lien d'invitation ; null hors invitation.
+     */
+    public function invitationExpiresAt(): ?Carbon
+    {
+        return $this->invitation_pending && $this->invited_at !== null
+            ? $this->invited_at->copy()->addMinutes(self::invitationLifetimeMinutes())
+            : null;
+    }
+
+    /**
+     * Heure à partir de laquelle l'invitation peut être renvoyée (Invitations::RESEND_DELAY_MINUTES
+     * après le dernier envoi) ; null hors invitation.
+     */
+    public function invitationResendableAt(): ?Carbon
+    {
+        return $this->invitation_pending && $this->invited_at !== null
+            ? $this->invited_at->copy()->addMinutes(Invitations::RESEND_DELAY_MINUTES)
+            : null;
+    }
+
+    /**
+     * « Membre depuis » : activation de l'invitation, ou création pour les comptes antérieurs aux
+     * invitations ; null tant que l'invitation n'est pas acceptée.
+     */
+    public function memberSince(): ?Carbon
+    {
+        return $this->invitation_pending ? null : ($this->activated_at ?? $this->created_at);
+    }
+
+    public static function invitationLifetimeMinutes(): int
+    {
+        return (int) config('auth.passwords.invitations.expire');
+    }
+
+    /**
+     * Comptes dans un état donné (filtre Statut de l'administration).
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeWithAccountStatus(Builder $query, AccountStatus $status): Builder
+    {
+        $cutoff = now()->subMinutes(self::invitationLifetimeMinutes());
+
+        return match ($status) {
+            AccountStatus::Active => $query->where('users.invitation_pending', false)->where('users.is_active', true),
+            AccountStatus::Inactive => $query->where('users.invitation_pending', false)->where('users.is_active', false),
+            AccountStatus::Pending => $query->where('users.invitation_pending', true)->where('users.invited_at', '>', $cutoff),
+            AccountStatus::Expired => $query->where('users.invitation_pending', true)->where('users.invited_at', '<=', $cutoff),
+        };
+    }
+
     /**
      * @param  string|int|array<mixed>|RoleModel|BackedEnum  ...$role
      */
@@ -220,6 +324,11 @@ class User extends Authenticatable
      */
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
+        // Une invitée active son compte par le lien d'invitation, pas par « mot de passe oublié »
+        if ($this->invitation_pending) {
+            return;
+        }
+
         $this->notify(new ResetPasswordNotification($token));
     }
 

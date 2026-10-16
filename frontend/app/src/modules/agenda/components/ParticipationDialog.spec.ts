@@ -2,6 +2,7 @@
 import { flushPromises } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useSession } from '@/stores/session';
 import { mountApp } from '@/testing/mount-app';
 import * as events from '../services/events';
 import ParticipationDialog from './ParticipationDialog.vue';
@@ -43,6 +44,32 @@ describe('ParticipationDialog', () => {
     vi.mocked(events.saveParticipation).mockReset().mockResolvedValue();
     vi.mocked(events.setParticipation).mockReset().mockResolvedValue();
     vi.mocked(events.fetchEvent).mockReset();
+  });
+
+  it('greys out the confirmation for an account without the member role, and says why', async () => {
+    const { wrapper } = await mountApp(ParticipationDialog, {
+      props: { modelValue: false, event: FORUM, participating: false },
+    });
+    useSession().user = {
+      id: 1,
+      first_name: 'Hélène',
+      last_name: 'Marchand',
+      slug: 'helene-marchand',
+      name: 'Hélène Marchand',
+      email: 'helene@example.org',
+      roles: ['admin'],
+      photo_url: null,
+    };
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+
+    expect(button('Confirmer ma participation').getAttribute('aria-disabled')).toBe('true');
+    expect(
+      document.body.querySelector('.participation-dialog__members-only')?.textContent
+    ).toContain('Il faut être membre du réseau pour participer à un événement.');
+    button('Confirmer ma participation').click();
+    await flushPromises();
+    expect(events.saveParticipation).not.toHaveBeenCalled();
   });
 
   it('fills the days when it is created already open (first click on the Agenda)', async () => {

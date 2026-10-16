@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ListConversationsRequest;
 use App\Http\Requests\SendMessageRequest;
+use App\Http\Requests\StartConversationRequest;
 use App\Http\Requests\UpdateMessageRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Messagerie interne (écrans Mes messages et Conversation). Seules les participantes
@@ -100,10 +102,39 @@ class ConversationController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Premier message à un compte, par son identifiant (Nouveau message, fiche d'un compte de
+     * l'administration) : la conversation existante est reprise. Tous les comptes actifs
+     * s'écrivent entre eux (UserPolicy::sendMessage).
+     */
+    public function start(StartConversationRequest $request): JsonResponse
+    {
+        $recipient = User::query()->findOrFail($request->integer('recipient_id'));
+        abort_if($recipient->is($request->user()), 422, 'Vous ne pouvez pas vous écrire à vous-même.');
+        Gate::authorize('sendMessage', $recipient);
+
+        $conversation = $this->messaging->conversationBetween($request->user(), $recipient);
+        $this->messaging->send($conversation, $request->user(), $request->validated('body'));
+
+        return response()->json(['data' => ['conversation_id' => $conversation->id]], 201);
+    }
+
+    /**
+     * Réponse dans une conversation : refusée quand l'autre compte est désactivé ou supprimé
+     * (conversation en lecture seule, voir ConversationResource::can_reply).
+     */
     public function store(SendMessageRequest $request, int $conversation): JsonResponse
     {
+        $found = $this->find($request->user(), $conversation);
+        $other = $found->participants()->whereKeyNot($request->user()->getKey())->first();
+        abort_unless(
+            $other !== null && $request->user()->can('sendMessage', $other),
+            403,
+            'Vous ne pouvez plus répondre à cette conversation.',
+        );
+
         $message = $this->messaging->send(
-            $this->find($request->user(), $conversation),
+            $found,
             $request->user(),
             $request->validated('body'),
         );

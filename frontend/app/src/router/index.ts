@@ -134,6 +134,27 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        // Rubrique Administration : administratrices et superadmin (meta.adminOnly). Le champ du
+        // bandeau filtre la liste des comptes ; depuis une fiche, il y ramène (searchTarget).
+        path: 'administration',
+        component: RouterView,
+        meta: { adminOnly: true, searchPlaceholder: 'Rechercher un compte…' },
+        children: [
+          {
+            path: '',
+            name: 'admin',
+            component: () => import('@modules/admin/views/AdminView.vue'),
+            meta: { title: 'Administration', searchInPage: true },
+          },
+          {
+            path: 'membres/:id(\\d+)',
+            name: 'admin-account',
+            component: () => import('@modules/admin/views/AccountView.vue'),
+            meta: { title: 'Compte · Administration', searchTarget: 'admin' },
+          },
+        ],
+      },
+      {
         path: 'recherche',
         name: 'search',
         component: () => import('@modules/search/views/SearchView.vue'),
@@ -190,6 +211,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@modules/auth/views/ResetPasswordView.vue'),
         meta: { title: 'Nouveau mot de passe' },
       },
+      {
+        // Lien de l'email d'invitation (InvitationNotification::SPA_PATH)
+        path: 'activer-mon-compte',
+        name: 'accept-invitation',
+        component: () => import('@modules/auth/views/AcceptInvitationView.vue'),
+        meta: { title: 'Activer mon compte' },
+      },
     ],
   },
   {
@@ -219,6 +247,10 @@ router.beforeEach(async (to) => {
 
   if (guestOnly && session.authenticated) {
     return safeRedirect(to.query.redirect);
+  }
+
+  if (to.matched.some((record) => record.meta.adminOnly) && !session.isAdmin) {
+    return { name: 'home' };
   }
 
   return true;

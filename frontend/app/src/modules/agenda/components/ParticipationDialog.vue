@@ -4,7 +4,8 @@
 // moins un), « Disponible pour se retrouver sur place », note facultative. Déjà inscrite : mise à
 // jour, ou « Ne plus participer ». Sans participation connue (Agenda, accueil), la fiche est
 // chargée pour préremplir. Habillage des fenêtres de la messagerie (.message-dialog), feuille en
-// bas sur téléphone. Émet `saved` avec la participation qui en résulte.
+// bas sur téléphone. Émet `saved` avec la participation qui en résulte. Participer est réservé aux
+// membres : sans le rôle member, « Confirmer ma participation » est grisé et la raison affichée.
 import { useQuasar } from 'quasar';
 import { computed, ref, watch } from 'vue';
 
@@ -12,6 +13,7 @@ import AppButton from '@/components/AppButton.vue';
 import { useNotify } from '@/composables/useNotify';
 import { formatDateRange } from '@/lib/dates';
 import { extractApiError } from '@/lib/http';
+import { useSession } from '@/stores/session';
 import {
   eventDays,
   fetchEvent,
@@ -41,6 +43,10 @@ const emit = defineEmits<{ saved: [participating: boolean] }>();
 
 const $q = useQuasar();
 const notify = useNotify();
+const session = useSession();
+
+/** Compte connu sans le rôle member (administratrice sans fiche, superadmin). */
+const membersOnly = computed(() => session.authenticated && !session.isMember);
 
 const allDays = computed(() => eventDays(props.event));
 const dates = computed(() => formatDateRange(props.event.starts_at, props.event.ends_at));
@@ -79,7 +85,9 @@ watch(
   { immediate: true }
 );
 
-const canSave = computed(() => days.value.length > 0 && !saving.value && !loading.value);
+const canSave = computed(
+  () => days.value.length > 0 && !saving.value && !loading.value && !membersOnly.value
+);
 
 async function save(): Promise<void> {
   if (!canSave.value) return;
@@ -178,6 +186,15 @@ async function withdraw(): Promise<void> {
           class="participation-dialog__note"
         />
 
+        <p
+          v-if="membersOnly && !participating"
+          id="participation-members-only"
+          class="participation-dialog__members-only"
+        >
+          <q-icon name="lock" aria-hidden="true" />
+          Il faut être membre du réseau pour participer à un événement.
+        </p>
+
         <div class="participation-dialog__foot">
           <q-btn
             v-if="participating"
@@ -193,6 +210,7 @@ async function withdraw(): Promise<void> {
             :label="participating ? 'Enregistrer' : 'Confirmer ma participation'"
             :loading="saving"
             :disable="!canSave"
+            :aria-describedby="membersOnly ? 'participation-members-only' : undefined"
             class="participation-dialog__save"
           />
         </div>
@@ -232,6 +250,18 @@ async function withdraw(): Promise<void> {
 
   &__note {
     margin-top: 6px;
+  }
+
+  &__members-only {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin-top: var(--s-4);
+    padding: 10px 12px;
+    border-radius: var(--radius-xs);
+    background: var(--ivory);
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
   }
 
   &__foot {

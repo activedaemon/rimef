@@ -11,12 +11,18 @@ const session = useSession();
 const route = useRoute();
 const router = useRouter();
 
-const form = reactive({ email: '', password: '', remember: false });
+// Après l'activation d'un compte invité, l'email est déjà rempli (?email=…)
+const form = reactive({
+  email: typeof route.query.email === 'string' ? route.query.email : '',
+  password: '',
+  remember: false,
+});
 const showPassword = ref(false);
 const submitting = ref(false);
 const error = ref('');
 
 const passwordWasReset = route.query.reinitialise === '1';
+const accountWasActivated = route.query.active === '1';
 
 const emailRules = [
   (value: string) => !!value || 'Indiquez votre adresse email.',
@@ -48,6 +54,9 @@ async function submit(): Promise<void> {
 
     <p v-if="passwordWasReset" class="auth-form__notice" role="status">
       Votre mot de passe a été réinitialisé. Connectez-vous avec le nouveau.
+    </p>
+    <p v-if="accountWasActivated" class="auth-form__notice" role="status">
+      Votre compte est activé. Connectez-vous avec le mot de passe que vous venez de choisir.
     </p>
     <p v-if="error" class="auth-form__alert" role="alert">{{ error }}</p>
 

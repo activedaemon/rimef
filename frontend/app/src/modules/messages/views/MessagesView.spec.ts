@@ -36,9 +36,13 @@ const conversation = (
     photo_url: null,
     place: 'Abidjan, Côte d’Ivoire',
     has_profile: true,
+    roles: ['member'],
+    is_team: false,
+    is_active: true,
   },
   last_message: { excerpt: `Message de ${name}`, sent_at: '2026-10-10T08:57:00Z', is_mine: isMine },
   unread_count: unread,
+  can_reply: true,
 });
 
 function page(

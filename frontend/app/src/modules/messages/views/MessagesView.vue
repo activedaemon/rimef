@@ -71,6 +71,15 @@ const active = computed(
     (fallback.value?.id === activeId.value ? fallback.value : null)
 );
 
+/** Conversation en lecture seule : pourquoi on ne peut plus répondre. */
+const readOnlyReason = computed(() => {
+  const contact = active.value?.contact;
+  if (!contact)
+    return 'Ce compte a été supprimé. Les messages échangés restent visibles pour vous.';
+  const first = contact.name.split(' ')[0];
+  return `Le compte de ${first} a été désactivé. Les messages échangés restent visibles.`;
+});
+
 async function load(next = 1): Promise<void> {
   controller?.abort();
   const current = (controller = new AbortController());
@@ -305,7 +314,8 @@ watch(activeId, async (id, previous) => {
               variant="panel"
               :conversation-id="active.id"
               :contact-name="active.contact?.name ?? 'Compte supprimé'"
-              :can-reply="active.contact !== null"
+              :can-reply="active.can_reply"
+              :read-only-reason="readOnlyReason"
               @read="onRead"
               @sent="onSent"
               @updated="onUpdated"

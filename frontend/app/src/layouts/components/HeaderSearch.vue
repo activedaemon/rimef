@@ -9,6 +9,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { DEFAULT_SEARCH_PLACEHOLDER, fitPlaceholder, isSearchScope } from '@/lib/search';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const $q = useQuasar();
 const route = useRoute();
@@ -60,6 +61,10 @@ async function submit(): Promise<void> {
     return;
   }
   dialogOpen.value = false;
+  if (route.meta.searchTarget) {
+    await router.push({ name: route.meta.searchTarget, query: { q: terms } });
+    return;
+  }
   await router.push({
     name: 'search',
     query: scope.value ? { q: terms, rubrique: scope.value } : { q: terms },
@@ -90,7 +95,9 @@ async function submit(): Promise<void> {
     aria-label="Rechercher"
     aria-haspopup="dialog"
     @click="dialogOpen = true"
-  />
+  >
+    <AppTooltip position="bottom">Rechercher</AppTooltip>
+  </q-btn>
 
   <q-dialog v-model="dialogOpen" position="top" @show="focusDialogInput">
     <q-card class="search-dialog">

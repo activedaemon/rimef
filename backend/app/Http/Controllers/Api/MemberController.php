@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -68,6 +69,7 @@ class MemberController extends Controller
     {
         abort_unless($this->directory->isListed($user), 404);
         abort_if($user->is($request->user()), 422, 'Vous ne pouvez pas vous écrire à vous-même.');
+        Gate::authorize('sendMessage', $user);
 
         $conversation = $messaging->conversationBetween($request->user(), $user);
         $messaging->send($conversation, $request->user(), $request->validated('body'));

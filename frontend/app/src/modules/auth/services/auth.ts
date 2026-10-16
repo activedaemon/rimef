@@ -65,6 +65,12 @@ export async function forgotPassword(email: string): Promise<string> {
   return data.message;
 }
 
+/** Activation d'un compte invité : mot de passe choisi depuis le lien reçu par email. */
+export async function acceptInvitation(payload: ResetPasswordPayload): Promise<void> {
+  await ensureCsrf();
+  await http.post('/invitation/accept', payload);
+}
+
 export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
   await ensureCsrf();
   await http.post('/reset-password', payload);

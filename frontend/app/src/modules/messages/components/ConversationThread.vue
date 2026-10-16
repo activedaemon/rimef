@@ -32,17 +32,20 @@ import {
   sendMessage,
   type Message,
 } from '../services/messages';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = withDefaults(
   defineProps<{
     conversationId: number;
     /** Nom de l'interlocutrice, lu par les lecteurs d'écran devant ses messages. */
     contactName: string;
-    /** Réponse impossible si le compte de l'interlocutrice a été supprimé. */
+    /** Réponse impossible : compte de l'interlocutrice désactivé ou supprimé (lecture seule). */
     canReply?: boolean;
+    /** Raison affichée à la place de la zone de saisie quand la réponse est impossible. */
+    readOnlyReason?: string;
     variant?: 'panel' | 'card';
   }>(),
-  { canReply: true, variant: 'card' }
+  { canReply: true, variant: 'card', readOnlyReason: undefined }
 );
 const emit = defineEmits<{
   read: [];
@@ -381,6 +384,7 @@ watch(() => props.conversationId, load, { immediate: true });
                   aria-label="Options du message"
                   class="message__options"
                 >
+                  <AppTooltip>Options du message</AppTooltip>
                   <q-menu anchor="bottom right" self="top right" class="message-menu">
                     <q-list dense>
                       <q-item
@@ -431,6 +435,14 @@ watch(() => props.conversationId, load, { immediate: true });
       </p>
     </form>
 
+    <div v-else-if="!loading" class="thread__readonly" role="note">
+      <q-icon name="lock" size="16px" aria-hidden="true" />
+      <p>
+        <b>Vous ne pouvez plus répondre à cette conversation.</b>
+        {{ readOnlyReason ?? 'Les messages échangés restent visibles.' }}
+      </p>
+    </div>
+
     <q-dialog v-model="confirmOpen">
       <q-card
         class="message-dialog thread__confirm"
@@ -449,6 +461,30 @@ watch(() => props.conversationId, load, { immediate: true });
 </template>
 
 <style lang="scss" scoped>
+// Lecture seule : mention à la place de la zone de saisie (maquette .ms-ro)
+.thread__readonly {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 24px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--ivory);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--ink-2);
+
+  .q-icon {
+    margin-top: 2px;
+    color: var(--muted);
+  }
+
+  b {
+    display: block;
+    font-weight: 600;
+    color: var(--ink);
+  }
+}
+
 .thread {
   display: flex;
   flex-direction: column;

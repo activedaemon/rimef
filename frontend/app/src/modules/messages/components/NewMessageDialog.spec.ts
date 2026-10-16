@@ -12,6 +12,8 @@ vi.mock('../services/messages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/messages')>()),
   searchRecipients: vi.fn(),
   contactMember: vi.fn(),
+  fetchTeam: vi.fn(),
+  startConversation: vi.fn(),
 }));
 
 const member = (id: number, name: string, conversationId: number | null = null): Member => ({
@@ -46,6 +48,7 @@ const button = (label: string) =>
 describe('NewMessageDialog', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    vi.mocked(messages.fetchTeam).mockResolvedValue([]);
     vi.mocked(messages.searchRecipients).mockResolvedValue([
       member(1, 'David Gautier'),
       member(3, 'Fatou Ndiaye', 12),
@@ -77,7 +80,7 @@ describe('NewMessageDialog', () => {
   });
 
   it('writes to a new recipient, who can be changed', async () => {
-    vi.mocked(messages.contactMember).mockResolvedValue(20);
+    vi.mocked(messages.startConversation).mockResolvedValue(20);
     const { wrapper } = await openDialog();
 
     (options()[1] as HTMLElement).click();
@@ -97,8 +100,36 @@ describe('NewMessageDialog', () => {
     button('Envoyer le message').click();
     await flushPromises();
 
-    expect(messages.contactMember).toHaveBeenCalledWith('leïla-bouzid', 'Bonjour Leïla');
+    expect(messages.startConversation).toHaveBeenCalledWith(4, 'Bonjour Leïla');
     expect(wrapper.emitted('open')).toEqual([[20]]);
     wrapper.unmount();
+  });
+
+  it('lists the RIMeF team first, with its role, and writes to an administrator without a profile', async () => {
+    vi.mocked(messages.fetchTeam).mockResolvedValue([
+      {
+        id: 9,
+        slug: 'helene-marchand',
+        name: 'Hélène Marchand',
+        first_name: 'Hélène',
+        photo_url: null,
+        roles: ['admin'],
+        has_profile: false,
+        conversation_id: null,
+      },
+    ]);
+    vi.mocked(messages.startConversation).mockResolvedValue(30);
+    await openDialog();
+
+    const first = options()[0] as HTMLElement;
+    expect(document.body.querySelector('.new-message__section')?.textContent).toContain(
+      'Équipe RIMeF'
+    );
+    expect(first.textContent).toContain('Hélène Marchand');
+    expect(first.textContent).toContain('Administratrice');
+
+    first.click();
+    await flushPromises();
+    expect(document.body.textContent).toContain('Écrire à Hélène');
   });
 });
