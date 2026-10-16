@@ -256,11 +256,6 @@ async function resend(): Promise<void> {
 
       <div class="container account-body">
         <q-card flat tag="article" class="rimef-card account-main">
-          <p v-if="account.is_self" class="account-note">
-            C’est votre compte. Pour modifier votre nom ou votre photo, passez par Modifier mon
-            profil.
-          </p>
-
           <section class="account-section" aria-labelledby="account-title">
             <h2 id="account-title">Compte</h2>
             <dl class="account-facts">
@@ -532,17 +527,6 @@ async function resend(): Promise<void> {
   display: grid;
   gap: 30px;
   padding: 34px 38px 38px;
-}
-
-.account-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--radius-xs);
-  background: var(--ivory);
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
 }
 
 .account-section {

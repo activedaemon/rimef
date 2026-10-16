@@ -29,16 +29,29 @@ it('serves the photo of a mediator to members, with a long private cache', funct
         ->assertHeader('Cache-Control', 'immutable, max-age=31536000, private');
 });
 
-it('returns 404 without a photo or for an account outside the directory', function () {
+it('serves the photo of an active member of the team, without sheet', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole(Role::Admin);
+    MemberProfile::factory()->for($admin)->create(['photo_path' => 'members/1.webp']);
+
+    $this->actingAs($this->mediator)
+        ->get($this->tenantUrl("/api/members/{$admin->id}/photo"))
+        ->assertOk();
+});
+
+it('returns 404 without a photo or for an account neither listed nor in the team', function () {
     $withoutPhoto = User::factory()->create();
     $withoutPhoto->assignRole(Role::Member);
-    $adminOnly = User::factory()->create();
-    $adminOnly->assignRole(Role::Admin);
-    MemberProfile::factory()->for($adminOnly)->create(['photo_path' => 'members/1.webp']);
+    $inactiveAdmin = User::factory()->inactive()->create();
+    $inactiveAdmin->assignRole(Role::Admin);
+    MemberProfile::factory()->for($inactiveAdmin)->create(['photo_path' => 'members/1.webp']);
+    $noRole = User::factory()->create();
+    MemberProfile::factory()->for($noRole)->create(['photo_path' => 'members/1.webp']);
 
     $this->actingAs($this->mediator);
     $this->get($this->tenantUrl("/api/members/{$withoutPhoto->id}/photo"))->assertNotFound();
-    $this->get($this->tenantUrl("/api/members/{$adminOnly->id}/photo"))->assertNotFound();
+    $this->get($this->tenantUrl("/api/members/{$inactiveAdmin->id}/photo"))->assertNotFound();
+    $this->get($this->tenantUrl("/api/members/{$noRole->id}/photo"))->assertNotFound();
 });
 
 it('gives the photo url in the directory, versioned by the last update', function () {

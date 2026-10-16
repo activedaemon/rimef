@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Modifier mon profil (maquette pages-construites/edit) : sections Photo, Identité, Biographie,
 // Pratique, Domaines d'expertise, Zones d'intervention, Liens ; aperçu de la carte de l'annuaire.
-// Pas de section Langues (abandonnée). Un compte d'administration sans fiche ne modifie que son
-// prénom et son nom. Quitter la page avec des changements non enregistrés demande confirmation.
+// Pas de section Langues (abandonnée). Un compte d'administration sans fiche ne modifie que sa
+// photo, son prénom et son nom. Quitter la page avec des changements non enregistrés demande confirmation.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
@@ -70,7 +70,8 @@ function cancel(): void {
   if (dirty.value) {
     reset();
   } else {
-    void router.push({ name: 'profile' });
+    // Sans fiche, /profil ramène ici (router/index.ts)
+    void router.push({ name: hasSheet.value ? 'profile' : 'home' });
   }
 }
 
@@ -106,7 +107,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 <template>
   <q-page class="inner-page edit-page" :class="{ 'edit-page--docked': dirty }">
     <div class="container">
-      <BackLink :to="{ name: 'profile' }" label="Retour à mon profil" />
+      <BackLink v-if="hasSheet" :to="{ name: 'profile' }" label="Retour à mon profil" />
 
       <header class="edit-head">
         <div>
@@ -120,7 +121,8 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
             }}
           </p>
         </div>
-        <div v-if="form" class="edit-head__actions">
+        <!-- Sans fiche, la page est courte : les boutons du bas de la carte suffisent -->
+        <div v-if="form && hasSheet" class="edit-head__actions">
           <AppButton variant="quiet" label="Annuler" :disable="saving" @click="cancel" />
           <AppButton label="Enregistrer" :loading="saving" :disable="!dirty" @click="submit" />
         </div>
@@ -138,11 +140,14 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
         @submit.prevent="submit"
       >
         <q-card flat class="rimef-card edit-main">
-          <section v-if="hasSheet" class="edit-sec" aria-labelledby="sec-photo">
+          <section class="edit-sec" aria-labelledby="sec-photo">
             <h2 id="sec-photo">Photo</h2>
             <p class="edit-help">
-              Elle apparaît sur votre profil, dans l’annuaire du réseau et à côté de vos
-              participations.
+              {{
+                hasSheet
+                  ? 'Elle apparaît sur votre profil, dans l’annuaire du réseau et à côté de vos participations.'
+                  : 'Elle apparaît à côté de votre nom dans la messagerie et dans l’administration.'
+              }}
             </p>
             <ProfilePhotoField
               :name="fullName"

@@ -131,7 +131,7 @@ it('rejects unknown expertises and countries, and links that are not https', fun
         ]);
 });
 
-it('limits an administration account without sheet to its first and last name', function () {
+it('limits an administration account without sheet to its name and photo', function () {
     $admin = User::factory()->create(['first_name' => 'David', 'last_name' => 'Gautier']);
     $admin->assignRole(Role::Admin);
 
@@ -145,7 +145,15 @@ it('limits an administration account without sheet to its first and last name', 
 
     $this->postJson($this->tenantUrl('/api/profile/photo'), [
         'photo' => UploadedFile::fake()->image('portrait.jpg', 600, 600),
-    ])->assertForbidden();
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.has_sheet', false)
+        ->assertJsonPath('data.photo_url', fn (?string $url): bool => str_starts_with((string) $url, "/api/members/{$admin->id}/photo?v="));
+    Storage::disk('local')->assertExists($admin->memberProfile->photo_path);
+
+    $this->deleteJson($this->tenantUrl('/api/profile/photo'))
+        ->assertOk()
+        ->assertJsonPath('data.photo_url', null);
 });
 
 it('converts the photo into a 400 px square webp, and removes it', function () {

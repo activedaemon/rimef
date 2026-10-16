@@ -253,6 +253,11 @@ router.beforeEach(async (to) => {
     return { name: 'home' };
   }
 
+  // Sans rôle member, pas de fiche à montrer : « Mon profil » ouvre directement son édition
+  if (to.name === 'profile' && !session.isMember) {
+    return { name: 'profile-edit' };
+  }
+
   return true;
 });
 

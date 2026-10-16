@@ -64,6 +64,23 @@ describe('AccountMenu', () => {
     wrapper.unmount();
   });
 
+  it('opens the profile of a member, and its edition for an administration account', async () => {
+    const menuItem = (label: string) =>
+      Array.from(document.body.querySelectorAll<HTMLElement>('.q-item')).find((entry) =>
+        entry.textContent?.includes(label)
+      );
+
+    const member = await openMenu({ roles: ['admin', 'member'] });
+    expect(menuItem('Voir mon profil')?.getAttribute('href')).toBe('/profil');
+    member.wrapper.unmount();
+    document.body.innerHTML = '';
+
+    const admin = await openMenu();
+    expect(menuItem('Voir mon profil')).toBeUndefined();
+    expect(menuItem('Modifier mon profil')?.getAttribute('href')).toBe('/profil/modifier');
+    admin.wrapper.unmount();
+  });
+
   it('links to my messages with the unread count', async () => {
     const { wrapper } = await openMenu();
     useInbox().unreadMessages = 4;

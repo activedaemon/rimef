@@ -10,16 +10,11 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 
 /**
- * Photo du profil (POST /api/profile/photo), réservée aux comptes qui ont une fiche de médiatrice.
+ * Photo du profil (POST /api/profile/photo) : chaque compte, avec ou sans fiche de médiatrice.
  */
 class UpdateProfilePhotoRequest extends FormRequest
 {
     public const MAX_KILOBYTES = 5 * 1024;
-
-    public function authorize(): bool
-    {
-        return app(ProfileEditor::class)->hasSheet($this->user());
-    }
 
     /**
      * @return array<string, mixed>

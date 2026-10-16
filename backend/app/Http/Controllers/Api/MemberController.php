@@ -78,11 +78,12 @@ class MemberController extends Controller
     }
 
     /**
-     * Photo d'une médiatrice de l'annuaire, réservée aux comptes connectés (fichier privé du tenant).
+     * Photo d'une médiatrice de l'annuaire ou d'un membre de l'équipe, réservée aux comptes connectés
+     * (fichier privé du tenant).
      */
     public function photo(User $user): StreamedResponse
     {
-        $path = $this->directory->isListed($user) ? $user->memberProfile?->photo_path : null;
+        $path = $this->directory->hasServedPhoto($user) ? $user->memberProfile?->photo_path : null;
 
         abort_if($path === null || ! Storage::disk('local')->exists($path), 404);
 
