@@ -8,6 +8,7 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router';
 
 import AppButton from '@/components/AppButton.vue';
 import BackLink from '@/components/BackLink.vue';
+import PageIntro from '@/components/PageIntro.vue';
 import { useSession } from '@/stores/session';
 import { fetchMemberProfile, type MemberProfile } from '@modules/network/services/members';
 import ExpertisesField from '../components/ExpertisesField.vue';
@@ -107,26 +108,31 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
 <template>
   <q-page class="inner-page edit-page" :class="{ 'edit-page--docked': dirty }">
     <div class="container">
-      <BackLink v-if="hasSheet" :to="{ name: 'profile' }" label="Retour à mon profil" />
+      <!-- Sans fiche, ni lien de retour ni boutons dans l'en-tête : intro des pages de premier niveau -->
+      <PageIntro
+        v-if="profile && !hasSheet"
+        title="Modifier mon profil"
+        lead="Votre compte d’administration n’apparaît pas dans l’annuaire du réseau."
+      />
 
-      <header class="edit-head">
-        <div>
-          <h1>Modifier mon profil</h1>
-          <p class="edit-head__sub">
-            <q-icon name="eye" size="17px" aria-hidden="true" />
-            {{
-              hasSheet
-                ? 'Les informations ci-dessous sont visibles par les autres membres du réseau.'
-                : 'Votre compte d’administration n’apparaît pas dans l’annuaire du réseau.'
-            }}
-          </p>
-        </div>
-        <!-- Sans fiche, la page est courte : les boutons du bas de la carte suffisent -->
-        <div v-if="form && hasSheet" class="edit-head__actions">
-          <AppButton variant="quiet" label="Annuler" :disable="saving" @click="cancel" />
-          <AppButton label="Enregistrer" :loading="saving" :disable="!dirty" @click="submit" />
-        </div>
-      </header>
+      <!-- Attendre le profil : un compte sans fiche ne doit pas voir passer l'en-tête des membres -->
+      <template v-else-if="profile">
+        <BackLink :to="{ name: 'profile' }" label="Retour à mon profil" />
+
+        <header class="edit-head">
+          <div>
+            <h1>Modifier mon profil</h1>
+            <p class="edit-head__sub">
+              <q-icon name="eye" size="17px" aria-hidden="true" />
+              Les informations ci-dessous sont visibles par les autres membres du réseau.
+            </p>
+          </div>
+          <div v-if="form" class="edit-head__actions">
+            <AppButton variant="quiet" label="Annuler" :disable="saving" @click="cancel" />
+            <AppButton label="Enregistrer" :loading="saving" :disable="!dirty" @click="submit" />
+          </div>
+        </header>
+      </template>
 
       <div v-if="loading" class="edit-loading">
         <q-spinner size="32px" color="primary" aria-label="Chargement du profil" />
@@ -475,8 +481,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnloa
   align-items: start;
   padding-block: 28px 72px;
 
+  // Sans fiche : carte seule, alignée sur le titre de l'intro, sans trait au-dessus
   &--short {
     grid-template-columns: minmax(0, 760px);
+    padding-top: 0;
   }
 }
 
