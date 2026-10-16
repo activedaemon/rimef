@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Menu du compte (fiche AccountMenu) : identité, puis les entrées du compte (AccountLinks).
 // Pastille : photo de la personne connectée si elle en a une, sinon ses initiales.
+// Chevron à côté de la pastille (pivote à l'ouverture) et anneau pétrole au survol et au focus :
+// ils signalent le menu, la fiche AccountMenu ne prévoyant que l'avatar. q-menu pose aria-expanded.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
 import { ref } from 'vue';
 
@@ -9,6 +11,7 @@ import { useSession } from '@/stores/session';
 import AccountLinks from './AccountLinks.vue';
 
 const session = useSession();
+const open = ref(false);
 const menuList = ref<{ $el: HTMLElement } | null>(null);
 
 function focusFirstItem(): void {
@@ -26,7 +29,7 @@ function moveFocus(event: KeyboardEvent): void {
 <template>
   <q-btn
     flat
-    round
+    no-caps
     class="account-button"
     :aria-label="`Mon compte, ${session.user?.name ?? ''}`"
     aria-haspopup="menu"
@@ -37,8 +40,16 @@ function moveFocus(event: KeyboardEvent): void {
       :size="38"
       class="account-button__avatar"
     />
+    <q-icon
+      name="chevron-down"
+      size="14px"
+      class="account-button__chevron"
+      :class="{ 'account-button__chevron--open': open }"
+      aria-hidden="true"
+    />
 
     <q-menu
+      v-model="open"
       anchor="bottom right"
       self="top right"
       :offset="[0, 8]"
@@ -72,10 +83,62 @@ function moveFocus(event: KeyboardEvent): void {
 </template>
 
 <style lang="scss" scoped>
-.account-button__avatar {
-  box-shadow:
-    0 0 0 2px var(--paper),
-    0 0 0 3px var(--border);
+.account-button {
+  min-height: 44px;
+  padding: 0 4px 0 2px;
+  border-radius: 999px;
+
+  :deep(.q-btn__content) {
+    gap: 4px;
+  }
+
+  &__avatar {
+    box-shadow:
+      0 0 0 2px var(--paper),
+      0 0 0 3px var(--border);
+    transition: box-shadow 0.15s;
+  }
+
+  &__chevron {
+    color: var(--muted);
+    transition:
+      transform 0.15s,
+      color 0.15s;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  // Survol (pointeur fin seulement) et focus clavier : anneau et chevron passent en pétrole
+  @media (hover: hover) {
+    &:hover .account-button__avatar {
+      box-shadow:
+        0 0 0 2px var(--paper),
+        0 0 0 3px var(--petrol);
+    }
+
+    &:hover .account-button__chevron {
+      color: var(--petrol);
+    }
+  }
+
+  &:focus-visible .account-button__avatar {
+    box-shadow:
+      0 0 0 2px var(--paper),
+      0 0 0 3px var(--petrol);
+  }
+
+  &:focus-visible .account-button__chevron {
+    color: var(--petrol);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__avatar,
+    &__chevron {
+      transition: none;
+    }
+  }
 }
 </style>
 

@@ -167,19 +167,7 @@ function openAccount(account: Account, event: MouseEvent): void {
               <small class="accounts-table__email">{{ row.email }}</small>
             </div>
           </div>
-        </div>
-        <div>
-          <span class="accounts-table__roles">
-            <AccountRoleBadges :roles="row.roles" />
-            <span v-if="row.is_protected" class="accounts-table__protected">
-              <q-icon name="lock" size="14px" aria-hidden="true" />
-              <span class="sr-only">Compte protégé</span>
-              <q-tooltip>Compte protégé</q-tooltip>
-            </span>
-          </span>
-        </div>
-        <div class="accounts-table__card-foot">
-          <div>
+          <div class="accounts-table__card-status">
             <AccountStatusBadge :status="row.status">
               <template v-if="expiryLabel(row)">
                 <span class="sr-only">, {{ expiryLabel(row)?.text }}</span>
@@ -192,10 +180,26 @@ function openAccount(account: Account, event: MouseEvent): void {
               </template>
             </AccountStatusBadge>
           </div>
-          <p v-if="row.profile_completion" class="accounts-table__last">
-            <span>Fiche</span>{{ row.profile_completion.percent }} %
+        </div>
+        <div>
+          <span class="accounts-table__roles">
+            <AccountRoleBadges :roles="row.roles" />
+            <span v-if="row.is_protected" class="accounts-table__protected">
+              <q-icon name="lock" size="14px" aria-hidden="true" />
+              <span class="sr-only">Compte protégé</span>
+              <q-tooltip>Compte protégé</q-tooltip>
+            </span>
+          </span>
+        </div>
+        <div class="accounts-table__card-foot">
+          <p class="accounts-table__last">
+            <span>Fiche</span
+            >{{ row.profile_completion ? `${row.profile_completion.percent} %` : '—' }}
           </p>
           <p class="accounts-table__last"><span>Activité</span>{{ activityLabel(row) }}</p>
+          <p class="accounts-table__last">
+            <span>Membre depuis</span>{{ row.member_since ? shortDate(row.member_since) : '—' }}
+          </p>
         </div>
       </article>
     </template>
@@ -375,16 +379,32 @@ function openAccount(account: Account, event: MouseEvent): void {
     white-space: nowrap;
   }
 
-  &__card-foot {
+  // Nom à gauche, statut à droite
+  &__card-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+    gap: 12px;
+
+    .accounts-table__who {
+      flex: 1;
+    }
+  }
+
+  &__card-status {
+    flex: none;
+  }
+
+  // Fiche, activité et ancienneté en trois colonnes égales, alignées d'une carte à l'autre
+  &__card-foot {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
   }
 
   &__last {
     font-size: var(--fs-xs);
-    text-align: right;
+    min-width: 0;
     color: var(--ink-2);
 
     span {
