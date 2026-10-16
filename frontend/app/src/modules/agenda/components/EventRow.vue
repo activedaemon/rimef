@@ -12,6 +12,7 @@ import MemberAvatar from '@/components/MemberAvatar.vue';
 import { dayAndMonth } from '@/lib/dates';
 import { mediatorNoun } from '@/lib/wording';
 import { dayCount, type AgendaEvent } from '../services/events';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = withDefaults(defineProps<{ event: AgendaEvent; hideMine?: boolean }>(), {
   hideMine: false,
@@ -55,6 +56,9 @@ const markMine = computed(() => props.event.is_participating && !props.hideMine)
       <span v-if="markMine" class="event-row__check" aria-hidden="true">
         <q-icon name="check" size="12px" />
       </span>
+      <AppTooltip v-if="markMine">{{
+        event.is_past ? 'Vous y étiez' : 'Vous participez'
+      }}</AppTooltip>
     </div>
 
     <div class="event-row__info">

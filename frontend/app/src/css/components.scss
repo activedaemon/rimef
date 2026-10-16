@@ -218,3 +218,14 @@
     border-top: 1px solid var(--border);
   }
 }
+
+// Info-bulles (AppTooltip, q-tooltip téléporté hors des composants) : fond encre, texte papier
+.q-tooltip.app-tooltip {
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}

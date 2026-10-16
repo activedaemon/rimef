@@ -45,7 +45,8 @@ class FortifyServiceProvider extends ServiceProvider
                 ->where('email', Str::lower((string) $request->input(Fortify::username())))
                 ->first();
 
-            if ($user === null || ! Hash::check((string) $request->input('password'), $user->password)) {
+            // Invitation non acceptée : pas de mot de passe, même réponse qu'un identifiant inconnu
+            if ($user === null || $user->invitation_pending || ! Hash::check((string) $request->input('password'), (string) $user->password)) {
                 return null;
             }
 

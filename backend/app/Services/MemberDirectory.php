@@ -121,6 +121,20 @@ class MemberDirectory
     }
 
     /**
+     * La photo du compte est servie aux comptes connectés : médiatrice de l'annuaire, ou membre
+     * actif de l'équipe RIMeF (messagerie, administration), comme dans TeamController.
+     */
+    public function hasServedPhoto(User $user): bool
+    {
+        return $this->isListed($user) || User::query()
+            ->role([Role::Admin->value, Role::SuperAdmin->value])
+            ->where('users.is_active', true)
+            ->where('users.invitation_pending', false)
+            ->whereKey($user->getKey())
+            ->exists();
+    }
+
+    /**
      * Premier événement à venir de la médiatrice de la ligne courante (sous-requête).
      *
      * @return Builder<Event>

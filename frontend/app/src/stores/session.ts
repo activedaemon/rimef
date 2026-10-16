@@ -32,6 +32,11 @@ export const useSession = defineStore('session', () => {
   const isAdmin = computed(
     () => isSuperAdmin.value || (user.value?.roles.includes('admin') ?? false)
   );
+  /**
+   * Rôle member : seul il permet les actions réservées aux membres (participer à un événement,
+   * se retrouver sur place, recommander une ressource). Pas implicite pour les administratrices.
+   */
+  const isMember = computed(() => user.value?.roles.includes('member') ?? false);
   /** Rôle affiché (menu du compte, profil). */
   const roleLabel = computed(() => {
     if (isSuperAdmin.value) {
@@ -95,6 +100,7 @@ export const useSession = defineStore('session', () => {
     authenticated,
     isSuperAdmin,
     isAdmin,
+    isMember,
     roleLabel,
     roleLabels,
     bootstrap,

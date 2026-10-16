@@ -8,6 +8,7 @@ import { computed } from 'vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useSession } from '@/stores/session';
 import type { ResourceMediator } from '../services/resources';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = defineProps<{ mediator: ResourceMediator }>();
 const emit = defineEmits<{ write: [mediator: ResourceMediator] }>();
@@ -62,6 +63,7 @@ const badge = computed(() =>
         class="mediator-card__write"
         @click="emit('write', mediator)"
       >
+        <AppTooltip>Écrire à {{ mediator.name }}</AppTooltip>
         <span class="mediator-card__envelope" aria-hidden="true">
           <q-icon name="mail" size="14px" />
         </span>

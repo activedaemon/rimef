@@ -7,17 +7,19 @@ import { type ComponentPublicInstance, computed, onMounted, ref, watch } from 'v
 import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
+import ActiveFilters from '@/components/ActiveFilters.vue';
 import FilterTag from '@/components/FilterTag.vue';
 import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
 import QuoteBlock from '@/components/QuoteBlock.vue';
+import ResultsBar, { type DirectoryView } from '@/components/ResultsBar.vue';
 import MemberCard from '../components/MemberCard.vue';
-import ResultsBar, { type DirectoryView } from '../components/ResultsBar.vue';
 import { useMemberDirectory } from '../composables/useMemberDirectory';
 import {
   FILTER_KEYS,
   FILTER_LABELS,
   PER_PAGE_OPTIONS,
+  SORT_OPTIONS,
   TOGGLE_KEYS,
   TOGGLES,
   type FilterKey,
@@ -137,7 +139,7 @@ onMounted(() => void directory.start());
         </template>
       </PageIntro>
 
-      <div v-if="directory.filtered.value" class="network-active" aria-live="polite">
+      <ActiveFilters :filtered="directory.filtered.value" @clear="directory.reset">
         <FilterTag
           v-if="query.q"
           :label="`« ${query.q} »`"
@@ -158,17 +160,20 @@ onMounted(() => void directory.start());
           :aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
           @click="setToggles(more.filter((value) => value !== key))"
         />
-      </div>
+      </ActiveFilters>
 
       <ResultsBar
         ref="resultsBar"
         v-model:view="view"
         v-model:sort="sort"
-        class="network-results"
-        :count="directory.total.value"
-        :directory-total="directory.directoryTotal.value"
+        :noun="{ one: 'médiatrice', many: 'médiatrices' }"
+        :from="directory.from.value"
+        :to="directory.to.value"
+        :total="directory.total.value"
+        :last-page="directory.lastPage.value"
         :filtered="directory.filtered.value"
-        @reset="directory.reset"
+        :overall="directory.directoryTotal.value"
+        :sort-options="SORT_OPTIONS"
       />
 
       <div v-if="!directory.loaded.value" class="network-loading">
@@ -204,11 +209,8 @@ onMounted(() => void directory.start());
         </ul>
 
         <ListPager
-          noun="Médiatrices"
           items-label="médiatrices"
           :total="directory.total.value"
-          :from="directory.from.value"
-          :to="directory.to.value"
           :page="directory.page.value"
           :last-page="directory.lastPage.value"
           :per-page="directory.query.value.perPage"
@@ -226,18 +228,6 @@ onMounted(() => void directory.start());
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.network-active {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.network-results {
-  // Arrivée par le changement de page : la barre ne passe pas sous l'en-tête fixe
-  scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .network-loading {

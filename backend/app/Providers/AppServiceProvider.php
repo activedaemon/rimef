@@ -25,7 +25,11 @@ class AppServiceProvider extends ServiceProvider
         // Règle commune des mots de passe (réinitialisation, puis invitation et profil)
         Password::defaults(fn (): Password => Password::min(12)->max(255));
 
-        // Le superadmin passe toutes les autorisations
-        Gate::before(fn (User $user): ?bool => $user->isSuperAdmin() ? true : null);
+        // Le superadmin passe toutes les autorisations, sauf celles qui visent un compte :
+        // UserPolicy les décide pour lui aussi (son propre compte est protégé)
+        Gate::before(fn (User $user, string $ability, array $arguments): ?bool => $user->isSuperAdmin() && ! (($arguments[0] ?? null) instanceof User) ? true : null);
+
+        // Rubrique Administration : administratrices (et superadmin, par la règle ci-dessus)
+        Gate::define('administer', fn (User $user): bool => $user->isAdmin());
     }
 }

@@ -6,6 +6,7 @@ import { computed, ref } from 'vue';
 
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import type { Member } from '../services/members';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = defineProps<{ member: Member }>();
 const emit = defineEmits<{ toggleFavorite: [] }>();
@@ -51,7 +52,9 @@ const photoFailed = ref(false);
       :aria-pressed="member.is_favorite"
       :aria-label="favoriteLabel"
       @click="emit('toggleFavorite')"
-    />
+    >
+      <AppTooltip>{{ favoriteLabel }}</AppTooltip>
+    </q-btn>
 
     <div class="member-card__body">
       <h3 class="member-card__name">

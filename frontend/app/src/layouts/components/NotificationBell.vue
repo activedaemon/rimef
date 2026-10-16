@@ -16,6 +16,7 @@ import {
   type AppNotification,
 } from '@modules/notifications/services/notifications';
 import NotificationList from './NotificationList.vue';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const $q = useQuasar();
 const router = useRouter();
@@ -85,6 +86,7 @@ async function readAll(): Promise<void> {
     aria-haspopup="dialog"
     @click="fullscreen && (open = true)"
   >
+    <AppTooltip position="bottom">{{ buttonLabel }}</AppTooltip>
     <span v-if="unread > 0" class="notification-bell__dot" aria-hidden="true" />
 
     <!-- Sur ordinateur, q-menu s'ouvre seul au clic sur la cloche -->

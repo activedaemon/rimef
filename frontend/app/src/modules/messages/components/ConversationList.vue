@@ -10,6 +10,7 @@ import AppButton from '@/components/AppButton.vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { shortMoment } from '@/lib/dates';
 import type { Conversation, ConversationFilter } from '../services/messages';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 defineProps<{
   conversations: Conversation[];
@@ -173,8 +174,17 @@ function unreadLabel(count: number): string {
                   unreadLabel(conversation.unread_count)
                 }}</span>
               </span>
-              <span v-if="conversation.contact?.place" class="conversation-row__place">
+              <span
+                v-if="conversation.contact?.is_team"
+                class="conversation-row__place conversation-row__team"
+              >
+                Équipe RIMeF
+              </span>
+              <span v-else-if="conversation.contact?.place" class="conversation-row__place">
                 {{ conversation.contact.place }}
+              </span>
+              <span v-else-if="!conversation.contact" class="conversation-row__place">
+                Ce compte n’existe plus
               </span>
               <span v-if="conversation.last_message" class="conversation-row__excerpt">
                 <span v-if="conversation.last_message.is_mine" class="conversation-row__me"
@@ -192,7 +202,12 @@ function unreadLabel(count: number): string {
                 class="conversation-row__count"
                 :label="conversation.unread_count"
                 aria-hidden="true"
-              />
+              >
+                <AppTooltip>
+                  {{ conversation.unread_count }}
+                  {{ conversation.unread_count > 1 ? 'messages non lus' : 'message non lu' }}
+                </AppTooltip>
+              </q-badge>
             </q-item-section>
           </q-item>
         </q-list>
@@ -207,6 +222,12 @@ function unreadLabel(count: number): string {
 </template>
 
 <style lang="scss" scoped>
+// Équipe RIMeF à la place du lieu : pétrole, comme son badge dans la conversation
+.conversation-row__team {
+  font-weight: 600;
+  color: var(--petrol);
+}
+
 .conversation-list {
   display: flex;
   flex-direction: column;
@@ -382,7 +403,11 @@ function unreadLabel(count: number): string {
     color: var(--muted);
   }
 
-  &__end {
+  // Nombre de non-lus puis heure, sur une même ligne (le nombre à gauche de l'heure)
+  &__end.q-item__section {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     padding-left: 8px;
 
@@ -395,6 +420,7 @@ function unreadLabel(count: number): string {
   }
 
   &__count.q-badge {
+    order: -1;
     font-size: 11px;
     font-weight: 600;
     color: var(--paper);

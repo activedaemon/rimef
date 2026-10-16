@@ -21,6 +21,8 @@ const ROUTE_NAMES = [
   ['/messages/:id', 'conversation'],
   ['/recherche', 'search'],
   ['/connexion', 'login'],
+  ['/administration', 'admin'],
+  ['/administration/membres/:id', 'admin-account'],
 ] as const;
 
 // Rubriques avec leur recherche, comme dans router/index.ts

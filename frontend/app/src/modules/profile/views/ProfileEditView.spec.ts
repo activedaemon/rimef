@@ -108,13 +108,18 @@ describe('ProfileEditView', () => {
     wrapper.unmount();
   });
 
-  it('limits an administration account to its first and last name', async () => {
+  it('limits an administration account to its photo, first and last name', async () => {
     const { wrapper } = await openEditor({ ...AMINATA, has_sheet: false });
 
-    expect(sectionTitles(wrapper)).toEqual(['Identité']);
+    expect(sectionTitles(wrapper)).toEqual(['Photo', 'Identité']);
+    expect(wrapper.text()).toContain('dans la messagerie et dans l’administration');
     expect(wrapper.find('#job-title').exists()).toBe(false);
     expect(wrapper.find('.profile-preview').exists()).toBe(false);
     expect(wrapper.text()).toContain('n’apparaît pas dans l’annuaire');
+    // Pas de « Mon profil » à retrouver : /profil ramène ici
+    expect(wrapper.text()).not.toContain('Retour à mon profil');
+    expect(wrapper.find('.edit-head__actions').exists()).toBe(false);
+    expect(wrapper.find('.edit-foot__actions').exists()).toBe(true);
     wrapper.unmount();
   });
 

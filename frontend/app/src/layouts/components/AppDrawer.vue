@@ -3,12 +3,14 @@
 import { useRoute } from 'vue-router';
 
 import { useLogout } from '@/composables/useLogout';
+import { useSession } from '@/stores/session';
 import { isNavigationItemActive, MAIN_NAVIGATION } from '@/router/navigation';
 
 const open = defineModel<boolean>({ required: true });
 
 const route = useRoute();
 const { logout, loggingOut } = useLogout();
+const session = useSession();
 </script>
 
 <template>
@@ -53,6 +55,16 @@ const { logout, loggingOut } = useLogout();
         <q-item clickable :to="{ name: 'profile' }" class="app-drawer__sub" @click="open = false">
           <q-item-section avatar><q-icon name="user" size="18px" /></q-item-section>
           <q-item-section>Mon profil</q-item-section>
+        </q-item>
+        <q-item
+          v-if="session.isAdmin"
+          clickable
+          :to="{ name: 'admin' }"
+          class="app-drawer__sub"
+          @click="open = false"
+        >
+          <q-item-section avatar><q-icon name="shield-check" size="18px" /></q-item-section>
+          <q-item-section>Administration</q-item-section>
         </q-item>
         <q-item clickable class="app-drawer__sub" :disable="loggingOut" @click="logout">
           <q-item-section avatar><q-icon name="logout" size="18px" /></q-item-section>

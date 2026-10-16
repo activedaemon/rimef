@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources;
 
+use App\Enums\Role;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Support\DirectoryCatalog;
@@ -40,7 +41,13 @@ class ConversationResource extends JsonResource
                 'place' => $this->place($other),
                 // Fiche visible dans l'annuaire : lien depuis la conversation
                 'has_profile' => $other->is_active && $other->hasRole('member'),
+                // Équipe RIMeF (administratrice ou superadmin) : distinguée des membres
+                'roles' => $other->getRoleNames()->values()->all(),
+                'is_team' => $other->hasAnyRole([Role::Admin->value, Role::SuperAdmin->value]),
+                'is_active' => $other->is_active,
             ],
+            // Lecture seule : autre compte désactivé ou supprimé (contact null)
+            'can_reply' => $other !== null && $me->can('sendMessage', $other),
             'last_message' => $last === null ? null : [
                 'excerpt' => $last->isDeleted()
                     ? 'Message supprimé'

@@ -7,6 +7,7 @@ import type { QDate } from 'quasar';
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { fetchCalendar, monthLabel, todayKey, type CalendarDay } from '../services/events';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const props = defineProps<{
   /** Mois à afficher quand il change (filtre Date, jour choisi) : « 2026-11 ». */
@@ -86,7 +87,9 @@ onMounted(() => void loadMonth(view.value));
           icon="chevron-left"
           aria-label="Mois précédent"
           @click="dateRef?.offsetCalendar('month', true)"
-        />
+        >
+          <AppTooltip>Mois précédent</AppTooltip>
+        </q-btn>
         <q-btn
           flat
           round
@@ -94,7 +97,9 @@ onMounted(() => void loadMonth(view.value));
           icon="chevron-right"
           aria-label="Mois suivant"
           @click="dateRef?.offsetCalendar('month')"
-        />
+        >
+          <AppTooltip>Mois suivant</AppTooltip>
+        </q-btn>
       </div>
     </div>
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Fenêtre « Nouveau message » (maquette Mes messages), sœur de « Contacter » :
-// 1. choisir la destinataire parmi les médiatrices de l'annuaire (recherche par nom) ;
-//    si une conversation existe déjà avec elle, elle s'ouvre directement ;
+// 1. choisir la destinataire : section « Équipe RIMeF » (administratrices et superadmin, avec
+//    leur rôle ; en tête sans recherche, après les médiatrices pendant une recherche) et
+//    médiatrices de l'annuaire (recherche par nom) ; une conversation existante s'ouvre ;
 // 2. objet de la demande et message (ContactForm).
 // Émet `open` avec la conversation à afficher.
 import { useQuasar } from 'quasar';
@@ -10,7 +11,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import MemberAvatar from '@/components/MemberAvatar.vue';
 import { useSession } from '@/stores/session';
 import type { Member } from '@modules/network/services/members';
-import { searchRecipients } from '../services/messages';
+import { fetchTeam, searchRecipients, teamRoleLabel, type TeamMember } from '../services/messages';
 import ContactForm from './ContactForm.vue';
 
 const open = defineModel<boolean>({ required: true });
@@ -22,12 +23,47 @@ const session = useSession();
 const query = ref('');
 const results = ref<Member[]>([]);
 const searching = ref(false);
-const recipient = ref<Member | null>(null);
+const team = ref<TeamMember[]>([]);
+
+/** Destinataire choisie (médiatrice ou personne de l'équipe). */
+interface Recipient {
+  id: number;
+  slug: string;
+  name: string;
+  photo_url: string | null;
+  conversation_id: number | null;
+}
+const recipient = ref<Recipient | null>(null);
 const searchInput = ref<{ focus: () => void } | null>(null);
 const form = ref<{ focus: () => void } | null>(null);
 let controller: AbortController | null = null;
 
 const recipientFirstName = computed(() => recipient.value?.name.split(' ')[0] ?? '');
+
+function normalize(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/** Équipe filtrée par la recherche (nom ou rôle). */
+const teamResults = computed(() => {
+  const words = normalize(query.value).split(/\s+/).filter(Boolean);
+  return team.value.filter((person) => {
+    const text = normalize(`${person.name} ${teamRoleLabel(person.roles) ?? ''} equipe rimef`);
+    return words.every((word) => text.includes(word));
+  });
+});
+const teamFirst = computed(() => query.value.trim() === '');
+
+async function loadTeam(): Promise<void> {
+  try {
+    team.value = await fetchTeam();
+  } catch {
+    team.value = [];
+  }
+}
 
 async function search(): Promise<void> {
   controller?.abort();
@@ -43,18 +79,20 @@ async function search(): Promise<void> {
   }
 }
 
-function pick(member: Member): void {
-  if (member.conversation_id !== null) {
+function pick(person: Recipient): void {
+  if (person.conversation_id !== null) {
     open.value = false;
-    emit('open', member.conversation_id);
+    emit('open', person.conversation_id);
     return;
   }
-  recipient.value = member;
+  recipient.value = person;
   void nextTick(() => form.value?.focus());
 }
 
 function pickFirst(): void {
-  const first = results.value[0];
+  const first = teamFirst.value
+    ? (teamResults.value[0] ?? results.value[0])
+    : (results.value[0] ?? teamResults.value[0]);
   if (first) pick(first);
 }
 
@@ -74,6 +112,7 @@ watch(open, (value) => {
   query.value = '';
   recipient.value = null;
   void search();
+  void loadTeam();
 });
 </script>
 
@@ -93,7 +132,7 @@ watch(open, (value) => {
           <span class="new-message__icon" aria-hidden="true"><q-icon name="pencil" /></span>
           <div>
             <h2 id="new-message-title">Nouveau message</h2>
-            <p>Écrivez à une médiatrice du réseau</p>
+            <p>Écrivez à une médiatrice ou à l’équipe du réseau</p>
           </div>
           <q-btn
             v-close-popup
@@ -114,7 +153,7 @@ watch(open, (value) => {
           outlined
           dense
           debounce="250"
-          placeholder="Rechercher une médiatrice par son nom…"
+          placeholder="Rechercher une personne par son nom…"
           class="new-message__search"
           @update:model-value="search"
           @keydown.enter.prevent="pickFirst"
@@ -123,37 +162,83 @@ watch(open, (value) => {
           <template v-if="searching" #append><q-spinner size="16px" color="primary" /></template>
         </q-input>
 
-        <q-list class="new-message__results" aria-label="Médiatrices">
-          <q-item
-            v-for="member in results"
-            :key="member.id"
-            clickable
-            class="new-message__option"
-            @click="pick(member)"
+        <q-list class="new-message__results" aria-label="Destinataires">
+          <template
+            v-for="section in teamFirst ? ['team', 'members'] : ['members', 'team']"
+            :key="section"
           >
-            <q-item-section avatar>
-              <MemberAvatar :name="member.name" :photo="member.photo_url" :size="40" />
-            </q-item-section>
-            <q-item-section>
-              <q-item-label class="new-message__name">{{ member.name }}</q-item-label>
-              <q-item-label caption class="new-message__meta">
-                {{ member.country?.name
-                }}<template v-if="member.country && member.expertises[0]"> · </template
-                ><em v-if="member.expertises[0]">{{ member.expertises[0] }}</em>
+            <template v-if="section === 'team' && teamResults.length">
+              <q-item-label header class="new-message__section">
+                Équipe RIMeF<small>Pour une question sur le réseau ou votre compte</small>
               </q-item-label>
-            </q-item-section>
-            <q-item-section v-if="member.conversation_id !== null" side>
-              <q-badge
-                outline
-                class="rimef-badge new-message__badge"
-                label="Conversation en cours"
-              />
-            </q-item-section>
-          </q-item>
-          <q-item v-if="!searching && !results.length" class="new-message__empty">
-            <q-item-section
-              >Aucune médiatrice ne correspond à « {{ query.trim() }} ».</q-item-section
-            >
+              <q-item
+                v-for="person in teamResults"
+                :key="`team-${person.id}`"
+                clickable
+                class="new-message__option"
+                @click="pick(person)"
+              >
+                <q-item-section avatar>
+                  <MemberAvatar :name="person.name" :photo="person.photo_url" :size="40" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="new-message__name">{{ person.name }}</q-item-label>
+                  <q-item-label caption class="new-message__meta">
+                    <span class="new-message__team">Équipe RIMeF</span> ·
+                    {{ teamRoleLabel(person.roles) }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="person.conversation_id !== null" side>
+                  <q-badge
+                    outline
+                    class="rimef-badge new-message__badge"
+                    label="Conversation en cours"
+                  />
+                </q-item-section>
+              </q-item>
+            </template>
+
+            <template v-if="section === 'members'">
+              <q-item-label
+                v-if="teamResults.length && results.length"
+                header
+                class="new-message__section"
+              >
+                Médiatrices
+              </q-item-label>
+              <q-item
+                v-for="member in results"
+                :key="member.id"
+                clickable
+                class="new-message__option"
+                @click="pick(member)"
+              >
+                <q-item-section avatar>
+                  <MemberAvatar :name="member.name" :photo="member.photo_url" :size="40" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="new-message__name">{{ member.name }}</q-item-label>
+                  <q-item-label caption class="new-message__meta">
+                    {{ member.country?.name
+                    }}<template v-if="member.country && member.expertises[0]"> · </template
+                    ><em v-if="member.expertises[0]">{{ member.expertises[0] }}</em>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="member.conversation_id !== null" side>
+                  <q-badge
+                    outline
+                    class="rimef-badge new-message__badge"
+                    label="Conversation en cours"
+                  />
+                </q-item-section>
+              </q-item>
+            </template>
+          </template>
+          <q-item
+            v-if="!searching && !results.length && !teamResults.length"
+            class="new-message__empty"
+          >
+            <q-item-section>Personne ne correspond à « {{ query.trim() }} ».</q-item-section>
           </q-item>
         </q-list>
 
@@ -179,7 +264,7 @@ watch(open, (value) => {
 
         <ContactForm
           ref="form"
-          :recipient="{ slug: recipient.slug, first_name: recipientFirstName }"
+          :recipient="{ id: recipient.id, slug: recipient.slug, first_name: recipientFirstName }"
           @sent="onSent"
         >
           <template #secondary>
@@ -248,6 +333,33 @@ watch(open, (value) => {
     color: var(--ink-2);
     border-color: var(--border);
     white-space: nowrap;
+  }
+
+  &__section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    padding: 12px 8px 4px;
+    font-size: var(--fs-eyebrow);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+
+    small {
+      font-size: var(--fs-xs);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--muted);
+    }
+  }
+
+  // Équipe RIMeF : pétrole, comme son badge dans la conversation
+  &__team {
+    font-weight: 600;
+    color: var(--petrol);
   }
 
   &__empty {

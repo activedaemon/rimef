@@ -15,6 +15,10 @@ export interface ConversationContact {
   place: string | null;
   /** Fiche visible dans l'annuaire. */
   has_profile: boolean;
+  roles: string[];
+  /** Équipe RIMeF (administratrice ou superadmin), distinguée des membres. */
+  is_team: boolean;
+  is_active: boolean;
 }
 
 export interface Conversation {
@@ -23,6 +27,8 @@ export interface Conversation {
   contact: ConversationContact | null;
   last_message: { excerpt: string; sent_at: string; is_mine: boolean } | null;
   unread_count: number;
+  /** false : l'autre compte est désactivé ou supprimé, la conversation est en lecture seule. */
+  can_reply: boolean;
 }
 
 export interface Message {
@@ -137,6 +143,41 @@ export async function searchRecipients(q: string, signal?: AbortSignal): Promise
     signal,
   });
   return data.data;
+}
+
+/** Personne de l'équipe RIMeF (section de « Nouveau message »). */
+export interface TeamMember {
+  id: number;
+  slug: string;
+  name: string;
+  first_name: string;
+  photo_url: string | null;
+  roles: string[];
+  /** Aussi médiatrice : fiche dans l'annuaire. */
+  has_profile: boolean;
+  conversation_id: number | null;
+}
+
+/** Rôle d'équipe affiché : « Superadministrateur » ou « Administratrice » (null pour une membre). */
+export function teamRoleLabel(roles: string[]): string | null {
+  if (roles.includes('superadmin')) return 'Superadministrateur';
+  return roles.includes('admin') ? 'Administratrice' : null;
+}
+
+/** Administratrices et superadmin actifs, hors la personne connectée. */
+export async function fetchTeam(): Promise<TeamMember[]> {
+  const { data } = await http.get<{ data: TeamMember[] }>('/team');
+  return data.data;
+}
+
+/** Premier message à un compte par son identifiant (équipe comprise) ; renvoie la conversation. */
+export async function startConversation(recipientId: number, body: string): Promise<number> {
+  await ensureCsrf();
+  const { data } = await http.post<{ data: { conversation_id: number } }>('/conversations', {
+    recipient_id: recipientId,
+    body,
+  });
+  return data.data.conversation_id;
 }
 
 /** Fenêtres « Contacter » et « Nouveau message » : renvoie la conversation du message. */

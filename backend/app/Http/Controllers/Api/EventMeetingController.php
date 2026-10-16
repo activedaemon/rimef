@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -18,6 +19,7 @@ class EventMeetingController extends Controller
 {
     public function store(Request $request, Event $event): Response
     {
+        abort_unless($request->user()->isMember(), 403, User::MEMBERS_ONLY_MESSAGE);
         abort_if($event->isPast(), 422, 'Cet événement est terminé.');
 
         $userId = $request->user()->getKey();

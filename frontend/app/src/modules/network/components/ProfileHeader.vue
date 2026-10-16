@@ -2,6 +2,7 @@
 // En-tête de la fiche (fiche ProfileHeader) : portrait orné de deux feuilles, nom, badge, fonction, lieu, région,
 // organisation, citation ; les actions (favori, modifier…) arrivent par le slot « actions ».
 // Un compte d'administration hors annuaire n'a pas de fiche : nom et photo suffisent, badges et rôle se passent en props.
+// Repères supplémentaires (fiche d'un compte dans l'administration) : slot « facts », des <li class="meta">.
 import { useQuasar } from 'quasar';
 import { computed } from 'vue';
 
@@ -70,7 +71,7 @@ const place = computed(() =>
       </p>
 
       <ul
-        v-if="place || profile.organization"
+        v-if="place || profile.organization || $slots.facts"
         class="profile-header__facts"
         aria-label="Informations"
       >
@@ -80,6 +81,7 @@ const place = computed(() =>
         <li v-if="profile.organization" class="meta">
           <q-icon name="building" size="15px" aria-hidden="true" />{{ profile.organization }}
         </li>
+        <slot name="facts" />
       </ul>
 
       <blockquote v-if="profile.tagline" class="profile-header__quote">

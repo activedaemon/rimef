@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Dev;
 use App\Http\Controllers\Controller;
 use App\Mail\MailBrand;
 use App\Models\User;
+use App\Notifications\InvitationNotification;
 use App\Notifications\NewMessageNotification;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Http\JsonResponse;
@@ -43,6 +44,10 @@ class EmailPreviewController extends Controller
         'new-message' => [
             'name' => 'Nouveau message (messagerie du réseau)',
             'source' => NewMessageNotification::class,
+        ],
+        'invitation' => [
+            'name' => 'Invitation à rejoindre le réseau',
+            'source' => InvitationNotification::class,
         ],
     ];
 
@@ -187,6 +192,7 @@ class EmailPreviewController extends Controller
     {
         return match ($template) {
             'password-reset' => new ResetPasswordNotification('demo-token-123'),
+            'invitation' => new InvitationNotification('demo-token-123', 'Hélène Marchand', now()->addMinutes(User::invitationLifetimeMinutes())),
             // Email seul : le destinataire fictif n'existe pas en base (pas d'entrée de cloche)
             'new-message' => new NewMessageNotification(
                 conversationId: 1,

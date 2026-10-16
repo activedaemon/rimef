@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Menu du compte (fiche AccountMenu) : identité, profil, messages (avec les non-lus), déconnexion.
+// Menu du compte (fiche AccountMenu) : identité, profil (son édition sans rôle member),
+// messages (avec les non-lus), Administration (administratrices et superadmin), déconnexion.
 // Pastille : photo de la personne connectée si elle en a une, sinon ses initiales.
 // Flèches haut/bas entre les entrées ; Échap ferme et rend le focus au bouton (q-menu).
 import { ref } from 'vue';
@@ -68,9 +69,19 @@ function moveFocus(event: KeyboardEvent): void {
         @keydown.down.prevent="moveFocus"
         @keydown.up.prevent="moveFocus"
       >
-        <q-item v-close-popup clickable role="menuitem" :to="{ name: 'profile' }">
+        <q-item
+          v-if="session.isMember"
+          v-close-popup
+          clickable
+          role="menuitem"
+          :to="{ name: 'profile' }"
+        >
           <q-item-section avatar><q-icon name="user" size="16px" /></q-item-section>
           <q-item-section>Voir mon profil</q-item-section>
+        </q-item>
+        <q-item v-else v-close-popup clickable role="menuitem" :to="{ name: 'profile-edit' }">
+          <q-item-section avatar><q-icon name="pencil" size="16px" /></q-item-section>
+          <q-item-section>Modifier mon profil</q-item-section>
         </q-item>
         <q-item v-close-popup clickable role="menuitem" :to="{ name: 'messages' }">
           <q-item-section avatar><q-icon name="message" size="16px" /></q-item-section>
@@ -82,6 +93,16 @@ function moveFocus(event: KeyboardEvent): void {
               :aria-label="`${inbox.unreadMessages} non lus`"
             />
           </q-item-section>
+        </q-item>
+        <q-item
+          v-if="session.isAdmin"
+          v-close-popup
+          clickable
+          role="menuitem"
+          :to="{ name: 'admin' }"
+        >
+          <q-item-section avatar><q-icon name="shield-check" size="16px" /></q-item-section>
+          <q-item-section>Administration</q-item-section>
         </q-item>
         <q-separator class="account-menu__separator" />
         <q-item v-close-popup clickable role="menuitem" :disable="loggingOut" @click="logout">

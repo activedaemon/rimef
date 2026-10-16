@@ -18,7 +18,7 @@ use RuntimeException;
 
 /**
  * Page « Modifier mon profil » : enregistrement de l'identité, de la fiche de médiatrice et de sa photo.
- * Un compte sans rôle member (administration) n'a pas de fiche : seuls son prénom et son nom changent.
+ * Un compte sans rôle member (administration) n'a pas de fiche : seuls son prénom, son nom et sa photo changent.
  */
 class ProfileEditor
 {

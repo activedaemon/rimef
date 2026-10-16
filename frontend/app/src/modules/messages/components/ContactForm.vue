@@ -8,9 +8,12 @@ import { computed, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import { useNotify } from '@/composables/useNotify';
 import { extractApiError } from '@/lib/http';
-import { MAX_MESSAGE_LENGTH, contactMember } from '../services/messages';
+import { MAX_MESSAGE_LENGTH, contactMember, startConversation } from '../services/messages';
 
-const props = defineProps<{ recipient: { slug: string; first_name: string } }>();
+// Avec un identifiant : tout compte autorisé (équipe comprise) ; sinon la fiche de l'annuaire (slug)
+const props = defineProps<{
+  recipient: { id?: number; slug?: string | null; first_name: string };
+}>();
 const emit = defineEmits<{ sent: [conversationId: number] }>();
 
 const notify = useNotify();
@@ -24,7 +27,11 @@ async function submit(): Promise<void> {
   if (!canSend.value) return;
   sending.value = true;
   try {
-    const conversationId = await contactMember(props.recipient.slug, body.value.trim());
+    const text = body.value.trim();
+    const conversationId =
+      props.recipient.id !== undefined
+        ? await startConversation(props.recipient.id, text)
+        : await contactMember(props.recipient.slug ?? '', text);
     notify.success(`Message envoyé à ${props.recipient.first_name}.`);
     emit('sent', conversationId);
   } catch (error) {

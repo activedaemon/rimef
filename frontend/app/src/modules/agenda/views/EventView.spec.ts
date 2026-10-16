@@ -102,7 +102,7 @@ async function openEvent(path = '/agenda/paris-peace-forum-2026', viewerId = 1) 
     global: { stubs: { QPage: { template: '<div><slot /></div>' } } },
   });
   const session = useSession();
-  session.user = { id: viewerId } as typeof session.user;
+  session.user = { id: viewerId, roles: ['member'] } as unknown as typeof session.user;
   await flushPromises();
   return result;
 }

@@ -9,11 +9,12 @@ import { type ComponentPublicInstance, computed, onMounted, ref } from 'vue';
 import AppButton from '@/components/AppButton.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FilterMenu from '@/components/FilterMenu.vue';
+import ActiveFilters from '@/components/ActiveFilters.vue';
 import FilterTag from '@/components/FilterTag.vue';
 import ListPager from '@/components/ListPager.vue';
 import PageIntro from '@/components/PageIntro.vue';
+import ResultsBar from '@/components/ResultsBar.vue';
 import type { FilterOption } from '@/lib/filters';
-import { resourceNoun } from '@/lib/wording';
 import ResourceCard from '../components/ResourceCard.vue';
 import ResourceVoices from '../components/ResourceVoices.vue';
 import { useResources } from '../composables/useResources';
@@ -155,7 +156,7 @@ onMounted(() => {
             />
           </div>
 
-          <div v-if="library.filtered.value" class="resources-active" aria-live="polite">
+          <ActiveFilters :filtered="library.filtered.value" @clear="library.reset">
             <FilterTag
               v-if="query.q"
               :label="`« ${query.q} »`"
@@ -182,43 +183,21 @@ onMounted(() => {
               :aria-label="`Retirer le filtre ${TOGGLES[key].label}`"
               @click="setToggles(more.filter((value) => value !== key))"
             />
-          </div>
+          </ActiveFilters>
 
-          <div ref="resultsBar" class="resources-bar">
-            <p class="resources-bar__count" aria-live="polite">
-              <template v-if="library.filtered.value">
-                <b>{{ library.total.value }}</b> {{ resourceNoun(library.total.value) }} sur
-                {{ libraryTotal }}
-                <q-btn
-                  flat
-                  dense
-                  no-caps
-                  class="link-more resources-bar__reset"
-                  label="Tout effacer"
-                  @click="library.reset"
-                />
-              </template>
-              <template v-else>
-                <b>{{ libraryTotal }}</b> {{ resourceNoun(libraryTotal) }} dans la bibliothèque
-              </template>
-            </p>
-
-            <q-select
-              v-model="sort"
-              :options="SORT_OPTIONS"
-              emit-value
-              map-options
-              dense
-              outlined
-              options-dense
-              class="rimef-select resources-bar__sort"
-              aria-label="Trier par"
-            >
-              <template #prepend>
-                <span class="resources-bar__sort-label gt-xs">Trier par :</span>
-              </template>
-            </q-select>
-          </div>
+          <ResultsBar
+            ref="resultsBar"
+            v-model:sort="sort"
+            :noun="{ one: 'ressource', many: 'ressources' }"
+            :from="library.from.value"
+            :to="library.to.value"
+            :total="library.total.value"
+            :last-page="library.lastPage.value"
+            :filtered="library.filtered.value"
+            :overall="libraryTotal"
+            suffix="dans la bibliothèque"
+            :sort-options="SORT_OPTIONS"
+          />
 
           <div v-if="!library.loaded.value" class="resources-loading">
             <q-spinner color="primary" size="32px" />
@@ -250,11 +229,8 @@ onMounted(() => {
             </ul>
 
             <ListPager
-              noun="Ressources"
               items-label="ressources"
               :total="library.total.value"
-              :from="library.from.value"
-              :to="library.to.value"
               :page="library.page.value"
               :last-page="library.lastPage.value"
               :per-page="query.perPage"
@@ -310,47 +286,6 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 18px;
-}
-
-.resources-active {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.resources-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 18px;
-  // Arrivée par le changement de page : la barre ne passe pas sous l'en-tête fixe
-  scroll-margin-top: calc(var(--header-h) + 16px);
-
-  &__count {
-    font-size: var(--fs-sm);
-    color: var(--ink-2);
-
-    b {
-      font-weight: 600;
-      color: var(--petrol);
-      font-variant-numeric: tabular-nums;
-    }
-  }
-
-  &__reset {
-    margin-left: 10px;
-  }
-
-  &__sort {
-    min-width: 190px;
-  }
-
-  &__sort-label {
-    font-size: var(--fs-xs);
-    color: var(--ink-2);
-  }
 }
 
 .resources-loading {

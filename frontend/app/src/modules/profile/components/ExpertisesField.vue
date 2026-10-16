@@ -4,6 +4,7 @@
 import { computed, ref } from 'vue';
 
 import type { ProfileOptions } from '../services/profile';
+import AppTooltip from '@/components/AppTooltip.vue';
 
 const MAX_EXPERTISES = 12;
 const MAX_SUGGESTIONS = 6;
@@ -75,7 +76,9 @@ function moveEarlier(index: number): void {
             class="expertises-field__move"
             :aria-label="`Placer ${expertise} avant ${expertises[index - 1]}`"
             @click="moveEarlier(index)"
-          />
+          >
+            <AppTooltip>Placer avant {{ expertises[index - 1] }}</AppTooltip>
+          </q-btn>
           {{ expertise }}
         </q-chip>
       </li>
