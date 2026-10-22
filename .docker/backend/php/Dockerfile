@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.6
-FROM php:8.5-fpm-bookworm
+# 8.5.12 minimum : CVE-2026-109618 et CVE-2026-109619 (RCE non authentifiées).
+FROM php:8.5.12-fpm-bookworm
 
 # Composer 2 (binaire officiel)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
