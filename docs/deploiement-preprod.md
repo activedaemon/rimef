@@ -81,8 +81,9 @@ L'alias SSH (`PREPROD_SSH`, défaut `activedaemon`) et le dossier du clone
 
 ## Bon à savoir
 
-- **`/api/dev/emails`** est disponible (hors `production`), derrière un mot de passe posé
-  par nginx sur `/api/dev` uniquement (`make preprod-credentials`).
+- **`/api/dev/emails`** (catalogue des emails de test) répond 404 par défaut. Pour
+  l'ouvrir, `RIMEF_DEV_TOOLS=true` dans `shared/.env` : il reste alors derrière le mot
+  de passe nginx de `/api/dev` (`make preprod-credentials`), avec 10 envois par minute.
 - **Dépendance** : la preprod passe par le Traefik de Seckup ; s'il redémarre, elle est
   coupée le temps du redémarrage.
 - **Diagnostic** : `make preprod-ps`, `make -f Makefile.prod preprod-logs` sur le serveur,
