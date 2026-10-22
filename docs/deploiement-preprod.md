@@ -2,7 +2,7 @@
 
 Instance de **recette temporaire** sur le serveur Active Daemon, en attendant un
 serveur dédié. Données de démonstration, emails capturés par Mailpit (aucun envoi
-réel), accès protégé par mot de passe et non référencé.
+réel), accès par la connexion RIMeF et non référencé.
 
 ```
 Internet ─► Traefik de Seckup (seckup-traefik, ports 80/443, Let's Encrypt TLS-ALPN)
@@ -11,7 +11,7 @@ Internet ─► Traefik de Seckup (seckup-traefik, ports 80/443, Let's Encrypt T
               │  mail.rimef.active-daemon.com  → rimef-preprod-mailpit
               ▼
         Stack Docker « rimef-preprod » (.docker/docker-compose.preprod.yml)
-          nginx (SPA + /api, mot de passe, noindex) · php-fpm · queue · MySQL · Mailpit
+          nginx (SPA + /api, noindex, mot de passe sur /api/dev) · php-fpm · queue · MySQL · Mailpit
               │ code monté depuis /srv/rimef/preprod/current
 ```
 
@@ -81,7 +81,8 @@ L'alias SSH (`PREPROD_SSH`, défaut `activedaemon`) et le dossier du clone
 
 ## Bon à savoir
 
-- **`/api/dev/emails`** est disponible (hors `production`), derrière le mot de passe du site.
+- **`/api/dev/emails`** est disponible (hors `production`), derrière un mot de passe posé
+  par nginx sur `/api/dev` uniquement (`make preprod-credentials`).
 - **Dépendance** : la preprod passe par le Traefik de Seckup ; s'il redémarre, elle est
   coupée le temps du redémarrage.
 - **Diagnostic** : `make preprod-ps`, `make -f Makefile.prod preprod-logs` sur le serveur,

@@ -75,11 +75,11 @@ preprod-bootstrap: ## Créer la preprod : secrets, .env, stack Docker, 1er dépl
 	 grep -q '^DB_PASSWORD=.\+' $(SHARED)/.env || sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$$MYSQL_PASSWORD|" $(SHARED)/.env; \
 	 chmod 600 $(SHARED)/.env
 	@grep -q '^MAIL_HOST=rimef-preprod-mailpit$$' $(SHARED)/.env || { echo "✗ Garde-fou : le .env n'envoie pas les emails vers Mailpit — arrêt"; exit 1; }
-	@echo -e "$(CYAN)[4/6] Mot de passe d'accès au site$(NC)"
+	@echo -e "$(CYAN)[4/6] Mot de passe des outils de dev (/api/dev)$(NC)"
 	@if [ ! -s $(SHARED)/basic-auth.htpasswd ]; then \
 	   pass="$(random_password)"; \
 	   printf 'rimef:%s\n' "$$(openssl passwd -apr1 "$$pass")" > $(SHARED)/basic-auth.htpasswd; \
-	   printf 'Site : https://$(PREPROD_HOST)\nIdentifiant : rimef\nMot de passe : %s\n' "$$pass" > $(SHARED)/basic-auth.txt; \
+	   printf 'Outils de dev : https://$(PREPROD_HOST)/api/dev/emails\nIdentifiant : rimef\nMot de passe : %s\n' "$$pass" > $(SHARED)/basic-auth.txt; \
 	   chmod 644 $(SHARED)/basic-auth.htpasswd; chmod 600 $(SHARED)/basic-auth.txt; \
 	   echo "  ✓ généré (make -f Makefile.prod preprod-credentials)"; \
 	 else echo "  ↪ déjà présent, conservé"; fi
@@ -112,7 +112,9 @@ preprod-rollback: ## Revenir à la release précédente (sans annuler les migrat
 	@RELEASE_ROOT=$(PREPROD_ROOT) COMPOSE_FILE_PATH=$(COMPOSE_FILE_PATH) \
 	  bash infra/scripts/deploy.sh rollback
 
-preprod-credentials: ## Afficher les accès au site et à Mailpit
+preprod-credentials: ## Afficher les accès au site, aux outils de dev et à Mailpit
+	@echo "Site : https://$(PREPROD_HOST) (connexion RIMeF)"
+	@echo ""
 	@cat $(SHARED)/basic-auth.txt 2>/dev/null || { echo "✗ Preprod non initialisée"; exit 1; }
 	@echo ""
 	@echo "Emails : https://$(MAILPIT_HOST)"
