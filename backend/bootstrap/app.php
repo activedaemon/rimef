@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Outils de développement (prévisualisation et test des emails) :
-            // jamais exposés en production.
+            // jamais exposés en production ; ailleurs, filtrés par EnsureDevToolsEnabled.
             if (! app()->environment('production')) {
                 Route::group([], base_path('routes/dev.php'));
             }

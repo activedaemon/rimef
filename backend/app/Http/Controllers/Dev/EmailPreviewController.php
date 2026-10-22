@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -178,9 +179,12 @@ class EmailPreviewController extends Controller
                 'message' => "Email de test envoyé à {$validated['email']} (voir Mailpit).",
             ]);
         } catch (Throwable $e) {
+            // Le détail (hôte SMTP, identifiants…) reste dans les logs, jamais dans la réponse.
+            Log::error('Échec de l\'envoi d\'un email de test', ['template' => $template, 'exception' => $e]);
+
             return response()->json([
                 'success' => false,
-                'message' => "Échec de l'envoi : ".$e->getMessage(),
+                'message' => "Échec de l'envoi. Le détail est dans les logs.",
             ], 500);
         }
     }

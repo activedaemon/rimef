@@ -2,9 +2,56 @@
 
 use App\Mail\MailBrand;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 // Routes de dev sans contrainte de domaine : visées sur le domaine du tenant, comme dans le navigateur.
+
+// Les tests tournent en `testing` : sans l'option, les outils de dev répondraient 404.
+beforeEach(fn () => config(['rimef.dev_tools' => true]));
+
+it('hides the email catalogue in staging without the option', function () {
+    app()->detectEnvironment(fn () => 'staging');
+    config(['rimef.dev_tools' => false]);
+
+    $this->get('http://rimef.localhost/api/dev/emails')->assertNotFound();
+    $this->postJson('http://rimef.localhost/api/dev/emails/send/password-reset', ['email' => 'test@example.org'])->assertNotFound();
+});
+
+it('opens the email catalogue in local without the option', function () {
+    app()->detectEnvironment(fn () => 'local');
+    config(['rimef.dev_tools' => false]);
+
+    $this->get('http://rimef.localhost/api/dev/emails')->assertOk();
+});
+
+it('opens the email catalogue in staging with the option', function () {
+    app()->detectEnvironment(fn () => 'staging');
+
+    $this->get('http://rimef.localhost/api/dev/emails')->assertOk();
+});
+
+it('limits test sends to ten per minute', function () {
+    Notification::fake();
+
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('http://rimef.localhost/api/dev/emails/send/password-reset', ['email' => 'test@example.org'])->assertOk();
+    }
+
+    $this->postJson('http://rimef.localhost/api/dev/emails/send/password-reset', ['email' => 'test@example.org'])->assertTooManyRequests();
+});
+
+it('hides the failure detail from the response and logs it', function () {
+    Log::spy();
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('smtp://rimef:secret@mailpit:1025 injoignable'));
+
+    $this->postJson('http://rimef.localhost/api/dev/emails/send/password-reset', ['email' => 'test@example.org'])
+        ->assertServerError()
+        ->assertJson(['success' => false, 'message' => "Échec de l'envoi. Le détail est dans les logs."])
+        ->assertDontSee('secret');
+
+    Log::shouldHaveReceived('error')->once();
+});
 
 it('lists the previewable emails', function () {
     $this->get('http://rimef.localhost/api/dev/emails')

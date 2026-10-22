@@ -29,6 +29,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Outils de développement
+    |--------------------------------------------------------------------------
+    |
+    | Catalogue des emails de test (/api/dev/emails) : toujours ouvert en local ;
+    | ailleurs (instance de recette), seulement si ce réglage est activé. Jamais
+    | en production, où les routes ne sont pas chargées.
+    |
+    */
+
+    'dev_tools' => (bool) env('RIMEF_DEV_TOOLS', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Superadmin
     |--------------------------------------------------------------------------
     |
